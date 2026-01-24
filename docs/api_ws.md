@@ -3,6 +3,7 @@
 ## Purpose
 WebSocket используется для ingest/history/subscribe, где control идет в JSON или MessagePack,
 а dfhbin передается бинарными фреймами.
+Документ описывает типы сообщений и базовые правила обмена.
 
 ## Connection endpoints
 - /ws/json — control в JSON
@@ -37,3 +38,9 @@ WebSocket используется для ingest/history/subscribe, где contr
 - ingest priority over history
 - history can be rejected under load
 - ws connection limits per token
+
+## Open questions
+- Нужна ли отдельная команда для ping/pong на уровне control?
+- Как фиксировать окончание history потока и его статус?
+- Какие коды ошибок и уровни детализации должны быть обязательны?
+- Какие лимиты по размеру фреймов следует принять по умолчанию?
