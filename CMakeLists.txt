@@ -11,3 +11,9 @@ include(ThirdParty)
 
 add_subdirectory(src/dfh_node)
 add_subdirectory(src/app)
+
+if(DFH_NODE_BUILD_TESTS)
+  include(CTest)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
