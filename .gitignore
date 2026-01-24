@@ -1,0 +1,18 @@
+# CMake build directories
+build/
+cmake-build-*/
+out/
+
+# IDE
+.vscode/
+.vs/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Artifacts
+bin/
+lib/
+*.log
