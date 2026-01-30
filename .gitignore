@@ -26,3 +26,4 @@ CTestTestfile.cmake
 compile_commands.json
 Testing/
 _deps/
+/plan/

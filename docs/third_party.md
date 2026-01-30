@@ -13,7 +13,8 @@
 ## Таблица зависимостей (шаблон)
 | Name | Upstream URL | Pinned ref (tag/commit) | License | Notes |
 | --- | --- | --- | --- | --- |
-|  |  |  |  |  |
+| nlohmann/json | https://github.com/nlohmann/json | v3.11.3 | MIT | Header-only JSON library |
+| log-it-cpp | https://github.com/NewYaroslav/log-it-cpp | v1.0.1 | MIT | Logging library |
 
 ## Процесс обновления
 1) Обновить ref сабмодуля (закрепить новый тег/коммит).
