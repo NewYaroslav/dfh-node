@@ -2,6 +2,7 @@ add_library(dfh_node STATIC
   config.cpp
   config_loader.cpp
   config_validator.cpp
+  logging.cpp
   version.cpp
 )
 
@@ -17,4 +18,5 @@ target_include_directories(dfh_node
 target_link_libraries(dfh_node
   PUBLIC
     nlohmann_json::nlohmann_json
+    log-it-cpp
 )
