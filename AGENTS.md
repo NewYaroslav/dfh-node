@@ -34,18 +34,21 @@
 
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
-- include/ — публичные заголовки; сейчас `include/dfh_node/version.hpp`.
-- src/dfh_node/ — библиотека ноды: `version.cpp`.
+- include/ — публичные заголовки: `version.hpp`, `build_info.hpp`, `config.hpp`,
+  `config_loader.hpp`, `config_validator.hpp`, `interfaces.hpp`, `logging.hpp`, `status.hpp`.
+- src/dfh_node/ — библиотека ноды: `version.cpp`, `config.cpp`, `config_loader.cpp`,
+  `config_validator.cpp`, `logging.cpp`, `status.cpp`.
 - src/app/ — приложение: `main.cpp`.
-- tests/ — тесты (сейчас `test_smoke.cpp`).
-- examples/ — примеры (каркас).
-- third_party/ — каталог для submodules (пока пусто; см. docs/third_party.md).
+- tests/ — тесты: `test_smoke.cpp`, `test_config_defaults.cpp`,
+  `test_config_loader.cpp`, `test_config_validator.cpp`.
+- examples/ — примеры: `config_minimal.json`.
+- third_party/ — каталог для submodules (см. docs/third_party.md).
 - cmake/ — CMake-скрипты (Options/Warnings/ThirdParty).
 
 ### 4.1 Таргеты CMake
 - Библиотека: `dfh_node` (STATIC).
 - Приложение: `dfh_node_app`.
-- Тесты: `dfh_node_smoke` (CTest).
+- Тесты: `dfh_node_smoke`, `test_config_defaults`, `test_config_loader`, `test_config_validator` (CTest).
 
 ### 4.2 Опции CMake (реальные)
 - `DFH_NODE_BUILD_TESTS` (ON) — включить тесты.
@@ -76,7 +79,8 @@
   3) Вызывает `build-tests-mingw.bat`.
 
 ### 5.4 Тесты
-- Сейчас включен один тест: `dfh_node_smoke` (см. `tests/CMakeLists.txt`).
+- Сейчас включены тесты: `dfh_node_smoke`, `test_config_defaults`,
+  `test_config_loader`, `test_config_validator`, а также smoke-тесты приложения через CTest.
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
 
 ## 6. Процесс разработки
@@ -86,15 +90,17 @@
 - Перед PR: сборка и тесты MSVC + MinGW (если поддерживается на машине).
 
 ## 7. Зависимости
-- `third_party/` — место под git submodules; сейчас сабмодулей нет (в репозитории нет `.gitmodules`).
+- `third_party/` — место под git submodules; в репозитории есть `.gitmodules`.
 - Правила обновления зависимостей: `docs/third_party.md`.
 - Изменения зависимостей — отдельная задача/PR.
+- Подключенные deps:
+  - nlohmann/json (JSON).
+  - log-it-cpp (logging).
 - Планируемые ключевые deps (TODO до подключения):
   - Simple-Web-Server (HTTP), Simple-WebSocket-Server (WS).
   - OpenSSL (HMAC/хэши).
   - Boost (минимальные компоненты).
   - MessagePack (контрольные сообщения в WS).
-  - JSON парсер (выбрать и подключить, например yyjson или nlohmann/json).
 
 ## 8. Протоколы и API (краткая справка, без кода)
 - HTTP (планируемые пути, TODO до внедрения):
