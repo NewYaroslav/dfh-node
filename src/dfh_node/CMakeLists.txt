@@ -1,5 +1,7 @@
 add_library(dfh_node STATIC
   config.cpp
+  config_loader.cpp
+  config_validator.cpp
   version.cpp
 )
 
@@ -10,4 +12,9 @@ target_include_directories(dfh_node
     ${PROJECT_SOURCE_DIR}/include
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
+)
+
+target_link_libraries(dfh_node
+  PUBLIC
+    nlohmann_json::nlohmann_json
 )
