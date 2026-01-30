@@ -3,6 +3,7 @@ add_library(dfh_node STATIC
   config_loader.cpp
   config_validator.cpp
   logging.cpp
+  status.cpp
   version.cpp
 )
 
