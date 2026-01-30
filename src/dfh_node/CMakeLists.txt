@@ -1,4 +1,5 @@
 add_library(dfh_node STATIC
+  config.cpp
   version.cpp
 )
 
