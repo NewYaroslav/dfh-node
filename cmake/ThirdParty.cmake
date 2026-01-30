@@ -18,6 +18,10 @@ else()
       ${CMAKE_SOURCE_DIR}/third_party/log-it-cpp/libs/fmt/include
       ${CMAKE_SOURCE_DIR}/third_party/log-it-cpp/libs/time-shield-cpp/include/time_shield_cpp
     )
+    target_compile_options(log-it-cpp INTERFACE
+      $<$<CXX_COMPILER_ID:GNU,Clang>:-Wno-deprecated-declarations>
+      $<$<CXX_COMPILER_ID:MSVC>:/wd4996>
+    )
   else()
     message(FATAL_ERROR "log-it-cpp submodule not found. Run: git submodule update --init")
   endif()
