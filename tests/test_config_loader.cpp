@@ -1,3 +1,8 @@
+/**
+ * @file test_config_loader.cpp
+ * @brief Проверка загрузки конфигурации из файла.
+ * @details Тестирует успешный путь, отсутствие файла и ошибку парсинга.
+ */
 #include "dfh_node/config_loader.hpp"
 #include "test_helpers.hpp"
 
@@ -6,6 +11,7 @@
 
 int main() {
     {
+        // Успешная загрузка минимального конфига.
         auto config_path = std::filesystem::path(__FILE__).parent_path() /
                            ".." / "examples" / "config_minimal.json";
         auto result = dfh_node::config::load_from_file(config_path);
@@ -15,6 +21,7 @@ int main() {
     }
 
     {
+        // Ошибка при отсутствии файла.
         auto result = dfh_node::config::load_from_file("missing_config.json");
         CHECK(!result.is_ok());
         CHECK(!result.config.has_value());
@@ -23,6 +30,7 @@ int main() {
     }
 
     {
+        // Ошибка парсинга JSON.
         auto temp_path = std::filesystem::temp_directory_path() /
                          "dfh_node_invalid_config.json";
         {

@@ -1,1 +1,1 @@
-# Placeholder for sanitizer configuration.
+# Заглушка для будущей конфигурации санитайзеров.

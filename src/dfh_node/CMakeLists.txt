@@ -1,3 +1,5 @@
+# CMake-описание библиотеки dfh_node.
+# Содержит базовые исходники и публичные include-директории.
 add_library(dfh_node STATIC
     config.cpp
     config_loader.cpp

@@ -1,3 +1,8 @@
+/**
+ * @file main.cpp
+ * @brief Точка входа dfh_node_app и базовая инициализация.
+ * @details Читает конфигурацию, валидирует и выводит стартовый статус.
+ */
 #include <cctype>
 #include <filesystem>
 #include <iostream>
@@ -15,12 +20,15 @@
 
 namespace {
 
+// Печатает подсказку по аргументам командной строки.
 void print_usage() { std::cerr << "Usage: dfh_node_app --config <path>\n"; }
 
+// Преобразует уровень логирования из строки, игнорируя регистр.
 logit::LogLevel parse_level(const std::string &level) {
     std::string lower;
     lower.reserve(level.size());
     for (char ch : level) {
+        // Приводим к unsigned char, чтобы избежать UB на отрицательных значениях.
         lower.push_back(
             static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
     }
@@ -42,6 +50,7 @@ logit::LogLevel parse_level(const std::string &level) {
     return logit::LogLevel::LOG_LVL_INFO;
 }
 
+// Ищет аргумент --config и возвращает следующий за ним путь.
 std::string find_config_path(int argc, char **argv) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -55,6 +64,7 @@ std::string find_config_path(int argc, char **argv) {
     return {};
 }
 
+// Печатает ошибки загрузки конфигурации.
 void print_errors(const std::vector<dfh_node::config::LoadError> &errors) {
     std::cerr << "Configuration errors:\n";
     for (const auto &err : errors) {
@@ -63,6 +73,7 @@ void print_errors(const std::vector<dfh_node::config::LoadError> &errors) {
     }
 }
 
+// Печатает ошибки валидации конфигурации.
 void print_errors(
     const std::vector<dfh_node::config::ValidationError> &errors) {
     std::cerr << "Configuration errors:\n";
@@ -76,6 +87,7 @@ void print_errors(
 
 namespace dfh_node::logging {
 
+// Инициализация должна быть идемпотентной, чтобы не плодить логгеры.
 void init_logging(const config::LoggingConfig &log_cfg) {
     static bool initialized = false;
     if (initialized) {
@@ -93,6 +105,7 @@ void init_logging(const config::LoggingConfig &log_cfg) {
                                   LOGIT_FILE_LOGGER_AUTO_DELETE_DAYS,
                                   LOGIT_FILE_LOGGER_PATTERN);
         } catch (const std::exception &ex) {
+            // Если файл не открылся, предупреждаем через доступный канал.
             if (log_cfg.console) {
                 LOGIT_PRINTF_WARN("Failed to init file logger: %s", ex.what());
             } else {

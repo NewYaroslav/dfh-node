@@ -1,3 +1,8 @@
+/**
+ * @file config_loader.cpp
+ * @brief Разбор JSON-конфига и формирование структур Config.
+ * @details Ошибки собираются в список, исключения парсинга перехватываются.
+ */
 #include "dfh_node/config_loader.hpp"
 
 #include "dfh_node/config.hpp"
@@ -12,6 +17,7 @@ namespace {
 
 using nlohmann::json;
 
+// Склеивает путь к полю в виде "a.b.c" для сообщений об ошибке.
 std::string join_path(const std::string &prefix, const std::string &field) {
     if (prefix.empty()) {
         return field;
@@ -19,11 +25,13 @@ std::string join_path(const std::string &prefix, const std::string &field) {
     return prefix + "." + field;
 }
 
+// Добавляет ошибку загрузки в общий список.
 void add_error(std::vector<LoadError> &errors, const std::string &path,
                const std::string &code, const std::string &message) {
     errors.push_back(LoadError{path, code, message});
 }
 
+// Считывает строковое поле; при required=true требует наличия поля.
 bool read_string(const json &obj, const char *key, std::string &out,
                  std::vector<LoadError> &errors, const std::string &prefix,
                  bool required) {
@@ -44,6 +52,7 @@ bool read_string(const json &obj, const char *key, std::string &out,
     return true;
 }
 
+// Считывает булево поле; отсутствие поля не считается ошибкой.
 bool read_bool(const json &obj, const char *key, bool &out,
                std::vector<LoadError> &errors, const std::string &prefix) {
     auto it = obj.find(key);
@@ -59,6 +68,7 @@ bool read_bool(const json &obj, const char *key, bool &out,
     return true;
 }
 
+// Считывает int64-значение; отсутствие поля не считается ошибкой.
 bool read_int64(const json &obj, const char *key, std::int64_t &out,
                 std::vector<LoadError> &errors, const std::string &prefix) {
     auto it = obj.find(key);
@@ -74,6 +84,7 @@ bool read_int64(const json &obj, const char *key, std::int64_t &out,
     return true;
 }
 
+// Считывает int-значение; отсутствие поля не считается ошибкой.
 bool read_int(const json &obj, const char *key, int &out,
               std::vector<LoadError> &errors, const std::string &prefix) {
     auto it = obj.find(key);
@@ -95,6 +106,7 @@ LoadResult load_from_file(const std::filesystem::path &path) {
     LoadResult result;
 
     if (!std::filesystem::exists(path)) {
+        // Единый код ошибки для отсутствующего файла.
         add_error(result.errors, path.string(), "file_not_found",
                   "File not found");
         return result;
@@ -112,6 +124,7 @@ LoadResult load_from_file(const std::filesystem::path &path) {
 
     json root;
     try {
+        // Парсим целиком, чтобы получить однозначные сообщения об ошибках.
         root = json::parse(buffer.str());
     } catch (const json::parse_error &ex) {
         add_error(result.errors, path.string(), "parse_error", ex.what());
@@ -123,6 +136,7 @@ LoadResult load_from_file(const std::filesystem::path &path) {
         return result;
     }
 
+    // Стартуем с дефолтов и затем переопределяем значения из файла.
     Config cfg = default_config();
 
     read_int(root, "schema_version", cfg.schema_version, result.errors, "");
@@ -237,6 +251,7 @@ LoadResult load_from_file(const std::filesystem::path &path) {
                       "Expected array");
         } else {
             const auto &arr = *it;
+            // Пересобираем список, чтобы исключить частично заполненные данные.
             cfg.peers.clear();
             cfg.peers.reserve(arr.size());
             for (std::size_t i = 0; i < arr.size(); ++i) {

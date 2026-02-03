@@ -1,3 +1,8 @@
+/**
+ * @file config_validator.cpp
+ * @brief Валидация конфигурации ноды по правилам проекта.
+ * @details Формирует список ошибок без прерывания выполнения.
+ */
 #include "dfh_node/config_validator.hpp"
 
 #include <regex>
@@ -6,20 +11,24 @@
 namespace dfh_node::config {
 namespace {
 
+// Добавляет новую ошибку в список.
 void add_error(std::vector<ValidationError> &errors, const std::string &path,
                const std::string &code, const std::string &message) {
     errors.push_back(ValidationError{path, code, message});
 }
 
+// Проверяет допустимые значения env.
 bool is_valid_env(const std::string &env) {
     return env == "dev" || env == "staging" || env == "prod";
 }
 
+// Проверяет допустимые уровни логирования.
 bool is_valid_level(const std::string &level) {
     return level == "trace" || level == "debug" || level == "info" ||
            level == "warn" || level == "error";
 }
 
+// Проверяет, что URL начинается с http(s).
 bool starts_with_http(const std::string &url) {
     return url.rfind("http://", 0) == 0 || url.rfind("https://", 0) == 0;
 }
@@ -40,6 +49,7 @@ std::vector<ValidationError> validate(const Config &cfg) {
         add_error(errors, "node_id", "out_of_range",
                   "node_id must be <= 64 chars");
     } else {
+        // Регулярное выражение фиксирует допустимый набор символов.
         static const std::regex kNodeIdRe("^[A-Za-z0-9_-]+$");
         if (!std::regex_match(cfg.node_id, kNodeIdRe)) {
             add_error(errors, "node_id", "invalid_format",

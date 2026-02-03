@@ -1,8 +1,14 @@
+/**
+ * @file config.cpp
+ * @brief Реализация фабрики дефолтной конфигурации.
+ * @details Значения соответствуют минимальному рабочему профилю.
+ */
 #include "dfh_node/config.hpp"
 
 namespace dfh_node::config {
 
 Config default_config() {
+    // Собираем значения в одном месте, чтобы loader мог переопределять их.
     Config cfg;
     cfg.schema_version = 1;
     cfg.node_id = "";

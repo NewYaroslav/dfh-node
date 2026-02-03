@@ -1,3 +1,5 @@
+# CMake-описание тестовых таргетов и регистрации в CTest.
+# Содержит smoke-тесты и unit-тесты конфигурации.
 add_executable(dfh_node_smoke
     test_smoke.cpp
 )
@@ -9,6 +11,7 @@ target_link_libraries(dfh_node_smoke
 
 add_test(NAME dfh_node_smoke COMMAND dfh_node_smoke)
 
+# Копируем минимальный конфиг в build для тестов приложения.
 configure_file(
     ${CMAKE_SOURCE_DIR}/examples/config_minimal.json
     ${CMAKE_BINARY_DIR}/test_configs/config_minimal.json

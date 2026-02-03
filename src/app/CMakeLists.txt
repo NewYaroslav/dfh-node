@@ -1,3 +1,5 @@
+# CMake-описание исполняемого приложения dfh_node_app.
+# Линкуется с библиотекой dfh_node.
 add_executable(dfh_node_app
     main.cpp
 )
