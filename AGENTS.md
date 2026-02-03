@@ -37,6 +37,12 @@
 - Следовать .editorconfig.
 - Перед коммитом запускать clang-format для измененных C/C++ файлов.
 
+## 3.2 Logging
+- Используем log-it-cpp напрямую: LOGIT_TRACE/DEBUG/INFO/WARN/ERROR/FATAL (или DFH_* алиасы).
+- Не добавляем функции-обёртки с va_list/vformat вокруг log-it-cpp.
+- Для printf-style используем LOGIT_PRINTF_* / LOGIT_FORMAT_* (или DFH_PRINTF_* / DFH_FORMAT_* алиасы).
+- Причина: compile-time gating уровней и отсутствие лишнего форматирования при отключенном уровне.
+
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
 - include/ — публичные заголовки: `version.hpp`, `build_info.hpp`, `config.hpp`,
