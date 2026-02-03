@@ -1,7 +1,9 @@
+# Настройка стандартных предупреждений компилятора.
+# Используется всеми таргетами проекта.
 function(dfh_node_apply_warnings target_name)
-  if(MSVC)
-    target_compile_options(${target_name} PRIVATE /W4)
-  else()
-    target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wpedantic)
-  endif()
+    if(MSVC)
+        target_compile_options(${target_name} PRIVATE /W4)
+    else()
+        target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
 endfunction()

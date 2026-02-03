@@ -1,5 +1,7 @@
+# Базовые настройки проекта и проверки окружения.
+# Запрещает in-source сборку и фиксирует стандарт C++.
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
-  message(FATAL_ERROR "In-source builds are not supported. Use: cmake -S . -B build")
+    message(FATAL_ERROR "In-source builds are not supported. Use: cmake -S . -B build")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)

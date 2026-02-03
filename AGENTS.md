@@ -32,20 +32,40 @@
 - Перегруз: history режется первой; ingest держим максимально живым (HTTP reject, WS drop + error по msg_id).
 - Anti-replay (ts + nonce + HMAC) внедряем сразу.
 
+## 3.1 Code style
+- Отступы: 4 пробела (без табов) для C/C++ и CMake.
+- Следовать .editorconfig.
+- Перед коммитом запускать clang-format для измененных C/C++ файлов.
+
+## 3.2 Logging
+- Используем log-it-cpp напрямую: LOGIT_TRACE/DEBUG/INFO/WARN/ERROR/FATAL (или DFH_* алиасы).
+- Не добавляем функции-обёртки с va_list/vformat вокруг log-it-cpp.
+- Для printf-style используем LOGIT_PRINTF_* / LOGIT_FORMAT_* (или DFH_PRINTF_* / DFH_FORMAT_* алиасы).
+- Причина: compile-time gating уровней и отсутствие лишнего форматирования при отключенном уровне.
+
+## 3.3 Комментарии и документация
+- Любой новый/изменённый публичный API обязан иметь Doxygen-комментарий (/// с @brief/@param/@return и т.п.).
+- Любая нетривиальная логика обязана иметь комментарий "почему так", а не пересказ кода.
+- Запрещены бессмысленные комментарии, дублирующие код или имена переменных.
+- Все комментарии пишем по-русски (Doxygen-теги допускаются).
+
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
-- include/ — публичные заголовки; сейчас `include/dfh_node/version.hpp`.
-- src/dfh_node/ — библиотека ноды: `version.cpp`.
+- include/ — публичные заголовки: `version.hpp`, `build_info.hpp`, `config.hpp`,
+  `config_loader.hpp`, `config_validator.hpp`, `interfaces.hpp`, `logging.hpp`, `status.hpp`.
+- src/dfh_node/ — библиотека ноды: `version.cpp`, `config.cpp`, `config_loader.cpp`,
+  `config_validator.cpp`, `logging.cpp`, `status.cpp`.
 - src/app/ — приложение: `main.cpp`.
-- tests/ — тесты (сейчас `test_smoke.cpp`).
-- examples/ — примеры (каркас).
-- third_party/ — каталог для submodules (пока пусто; см. docs/third_party.md).
+- tests/ — тесты: `test_smoke.cpp`, `test_config_defaults.cpp`,
+  `test_config_loader.cpp`, `test_config_validator.cpp`.
+- examples/ — примеры: `config_minimal.json`.
+- third_party/ — каталог для submodules (см. docs/third_party.md).
 - cmake/ — CMake-скрипты (Options/Warnings/ThirdParty).
 
 ### 4.1 Таргеты CMake
 - Библиотека: `dfh_node` (STATIC).
 - Приложение: `dfh_node_app`.
-- Тесты: `dfh_node_smoke` (CTest).
+- Тесты: `dfh_node_smoke`, `test_config_defaults`, `test_config_loader`, `test_config_validator` (CTest).
 
 ### 4.2 Опции CMake (реальные)
 - `DFH_NODE_BUILD_TESTS` (ON) — включить тесты.
@@ -76,7 +96,8 @@
   3) Вызывает `build-tests-mingw.bat`.
 
 ### 5.4 Тесты
-- Сейчас включен один тест: `dfh_node_smoke` (см. `tests/CMakeLists.txt`).
+- Сейчас включены тесты: `dfh_node_smoke`, `test_config_defaults`,
+  `test_config_loader`, `test_config_validator`, а также smoke-тесты приложения через CTest.
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
 
 ## 6. Процесс разработки
@@ -86,15 +107,17 @@
 - Перед PR: сборка и тесты MSVC + MinGW (если поддерживается на машине).
 
 ## 7. Зависимости
-- `third_party/` — место под git submodules; сейчас сабмодулей нет (в репозитории нет `.gitmodules`).
+- `third_party/` — место под git submodules; в репозитории есть `.gitmodules`.
 - Правила обновления зависимостей: `docs/third_party.md`.
 - Изменения зависимостей — отдельная задача/PR.
+- Подключенные deps:
+  - nlohmann/json (JSON).
+  - log-it-cpp (logging).
 - Планируемые ключевые deps (TODO до подключения):
   - Simple-Web-Server (HTTP), Simple-WebSocket-Server (WS).
   - OpenSSL (HMAC/хэши).
   - Boost (минимальные компоненты).
   - MessagePack (контрольные сообщения в WS).
-  - JSON парсер (выбрать и подключить, например yyjson или nlohmann/json).
 
 ## 8. Протоколы и API (краткая справка, без кода)
 - HTTP (планируемые пути, TODO до внедрения):
@@ -122,6 +145,8 @@
 - Сборка `build-msvc` и тесты `ctest -C Debug --output-on-failure`.
 - Прогон `build-tests-mingw.bat` (если MinGW доступен).
 - Обновлены документы/README при изменении API/поведения.
+- Добавлены комментарии к новым/изменённым сущностям?
+- Нет комментариев, повторяющих код?
 - Нет артефактов сборки в git status.
 
 ## 12. Быстрые команды

@@ -48,13 +48,14 @@ dfh-node — это сервер (“нода”) для хранения и р�
 Сейчас репозиторий содержит только skeleton/каркас.
 Реализация будет добавляться пошагово: сборка, очереди, auth, HTTP/WS, sync, тесты.
 
-## Build (WIP)
+## Quick Start
 
-Минимальный каркас собирается локально через CMake:
+Сборка и запуск в режиме Debug:
 
-```
-cmake -S . -B build
-cmake --build build
+```bat
+cmake -S . -B build-msvc
+cmake --build build-msvc --config Debug
+build-msvc\src\app\dfh_node_app.exe --config examples\config_minimal.json
 ```
 
 Текущие таргеты сборки:
@@ -62,10 +63,13 @@ cmake --build build
 - dfh_node (статическая библиотека)
 - dfh_node_app (исполняемый файл)
 
-## Запуск (WIP)
+## Configuration
 
-После сборки можно запустить приложение:
+Полный формат `config.json` описан в `docs/config.md`.
+Минимальный пример находится в `examples/config_minimal.json`.
 
-```
-./build/src/app/dfh_node_app
-```
+## Logging
+
+Поддерживаемые уровни: `trace`, `debug`, `info`, `warn`, `error`.
+Логирование в файл опционально через `logging.file_path`.
+Секреты (например, `server_secret`) не выводятся в логах.

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "node_id": "node-01",
+  "env": "dev",
+  "http": {
+    "bind_host": "0.0.0.0",
+    "port": 8080,
+    "max_payload_bytes": 10000000
+  },
+  "ws": {
+    "bind_host": "0.0.0.0",
+    "port": 8081,
+    "max_payload_bytes": 10000000
+  },
+  "queues": {
+    "ingest_capacity": 10000,
+    "history_capacity": 5000,
+    "workers": 4
+  },
+  "security": {
+    "server_secret": "test-secret-key-16chars",
+    "anti_replay": {
+      "enabled": true,
+      "max_skew_ms": 5000,
+      "nonce_ttl_ms": 60000,
+      "nonce_capacity": 10000
+    }
+  },
+  "peers": [],
+  "storage": {
+    "path": "./data",
+    "min_free_bytes": 2000000000
+  },
+  "logging": {
+    "level": "info",
+    "console": true,
+    "file_path": ""
+  }
+}
