@@ -7,12 +7,12 @@
 namespace dfh_node {
 
 struct StatusSnapshot {
-  std::string node_id;
-  std::string version;
-  std::string build_info;
-  std::uint64_t uptime_ms = 0;
-  std::size_t peers_count = 0;
-  std::string env;
+    std::string node_id;
+    std::string version;
+    std::string build_info;
+    std::uint64_t uptime_ms = 0;
+    std::size_t peers_count = 0;
+    std::string env;
 };
 
-}  // namespace dfh_node
+} // namespace dfh_node

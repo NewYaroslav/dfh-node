@@ -8,11 +8,11 @@
 namespace dfh_node::config {
 
 struct ValidationError {
-  std::string path;
-  std::string code;
-  std::string message;
+    std::string path;
+    std::string code;
+    std::string message;
 };
 
-std::vector<ValidationError> validate(const Config& cfg);
+std::vector<ValidationError> validate(const Config &cfg);
 
-}  // namespace dfh_node::config
+} // namespace dfh_node::config

@@ -32,6 +32,11 @@
 - Перегруз: history режется первой; ingest держим максимально живым (HTTP reject, WS drop + error по msg_id).
 - Anti-replay (ts + nonce + HMAC) внедряем сразу.
 
+## 3.1 Code style
+- Отступы: 4 пробела (без табов) для C/C++ и CMake.
+- Следовать .editorconfig.
+- Перед коммитом запускать clang-format для измененных C/C++ файлов.
+
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
 - include/ — публичные заголовки: `version.hpp`, `build_info.hpp`, `config.hpp`,
