@@ -1,7 +1,7 @@
 /**
- * @file test_config_defaults.cpp
- * @brief Проверка значений конфигурации по умолчанию.
- * @details Убеждается, что дефолты не меняются без явной правки.
+ * \file test_config_defaults.cpp
+ * \brief Проверка значений конфигурации по умолчанию.
+ * \details Убеждается, что дефолты не меняются без явной правки.
  */
 #include "dfh_node/config.hpp"
 #include "test_helpers.hpp"

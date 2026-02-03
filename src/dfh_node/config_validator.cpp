@@ -1,7 +1,7 @@
 /**
- * @file config_validator.cpp
- * @brief Валидация конфигурации ноды по правилам проекта.
- * @details Формирует список ошибок без прерывания выполнения.
+ * \file config_validator.cpp
+ * \brief Валидация конфигурации ноды по правилам проекта.
+ * \details Формирует список ошибок без прерывания выполнения.
  */
 #include "dfh_node/config_validator.hpp"
 

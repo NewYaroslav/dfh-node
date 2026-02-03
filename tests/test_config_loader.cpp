@@ -1,7 +1,7 @@
 /**
- * @file test_config_loader.cpp
- * @brief Проверка загрузки конфигурации из файла.
- * @details Тестирует успешный путь, отсутствие файла и ошибку парсинга.
+ * \file test_config_loader.cpp
+ * \brief Проверка загрузки конфигурации из файла.
+ * \details Тестирует успешный путь, отсутствие файла и ошибку парсинга.
  */
 #include "dfh_node/config_loader.hpp"
 #include "test_helpers.hpp"

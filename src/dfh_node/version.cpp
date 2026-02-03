@@ -1,7 +1,7 @@
 /**
- * @file version.cpp
- * @brief Реализации доступа к версии и имени ноды.
- * @details Возвращает константы из public header без доп. логики.
+ * \file version.cpp
+ * \brief Реализации доступа к версии и имени ноды.
+ * \details Возвращает константы из public header без доп. логики.
  */
 #include "dfh_node/version.hpp"
 

@@ -1,7 +1,7 @@
 /**
- * @file main.cpp
- * @brief Точка входа dfh_node_app и базовая инициализация.
- * @details Читает конфигурацию, валидирует и выводит стартовый статус.
+ * \file main.cpp
+ * \brief Точка входа dfh_node_app и базовая инициализация.
+ * \details Читает конфигурацию, валидирует и выводит стартовый статус.
  */
 #include <cctype>
 #include <filesystem>

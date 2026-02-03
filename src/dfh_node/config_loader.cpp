@@ -1,7 +1,7 @@
 /**
- * @file config_loader.cpp
- * @brief Разбор JSON-конфига и формирование структур Config.
- * @details Ошибки собираются в список, исключения парсинга перехватываются.
+ * \file config_loader.cpp
+ * \brief Разбор JSON-конфига и формирование структур Config.
+ * \details Ошибки собираются в список, исключения парсинга перехватываются.
  */
 #include "dfh_node/config_loader.hpp"
 
