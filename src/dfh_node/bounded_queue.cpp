@@ -1,3 +1,8 @@
+/**
+ * \file bounded_queue.cpp
+ * \brief Реализация внутренней bounded-очереди для Job.
+ * \details Не содержит синхронизации, рассчитывает на внешний mutex.
+ */
 #include "bounded_queue.hpp"
 #include <utility>
 

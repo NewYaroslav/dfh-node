@@ -1,3 +1,8 @@
+/**
+ * \file bounded_queue.hpp
+ * \brief Внутренняя bounded-очередь без синхронизации.
+ * \details Используется TaskScheduler при внешнем удержании lock.
+ */
 #pragma once
 
 #include "dfh_node/job.hpp"

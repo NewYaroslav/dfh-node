@@ -1,3 +1,8 @@
+/**
+ * \file job.hpp
+ * \brief Модель задач и результаты постановки в очередь.
+ * \details Содержит JobKind, EnqueueResult и правила работы с payload.
+ */
 #pragma once
 
 #include <cstdint>
