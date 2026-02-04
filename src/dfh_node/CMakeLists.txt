@@ -7,6 +7,7 @@ add_library(dfh_node STATIC
     config_validator.cpp
     status.cpp
     task_scheduler.cpp
+    worker_pool.cpp
     version.cpp
 )
 
