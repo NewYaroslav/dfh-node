@@ -7,7 +7,7 @@
 
 #include "dfh_node/job.hpp"
 #include "dfh_node/status.hpp"
-#include "bounded_queue.hpp"
+#include "dfh_node/internal/bounded_queue.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>

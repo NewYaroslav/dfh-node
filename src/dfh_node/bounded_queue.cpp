@@ -3,7 +3,7 @@
  * \brief Реализация внутренней bounded-очереди для Job.
  * \details Не содержит синхронизации, рассчитывает на внешний mutex.
  */
-#include "bounded_queue.hpp"
+#include "dfh_node/internal/bounded_queue.hpp"
 #include <utility>
 
 namespace dfh_node {

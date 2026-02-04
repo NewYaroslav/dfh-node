@@ -20,6 +20,12 @@
 - Авторизация/лимиты не тянут networking и storage напрямую; общение через сервисы/интерфейсы.
 - Коллбеки роутера: максимум 1–3 аргумента; сложные параметры передаются DTO через unique_ptr.
 
+## 2.1 Архитектура очередей и TaskScheduler
+- BoundedQueue — internal API, простой bounded-контейнер без mutex/cv/shutdown.
+- TaskScheduler — единый mutex+cv для ingest/history, приоритет ingest > history, stop-now shutdown.
+- WorkerPool — сбор per-kind метрик (total_processed, avg_wait_ms), steady_clock, C++17 fetch_add.
+- dfh_node_app — one-shot mode до появления HTTP/WS транспорта (логирование и немедленный выход).
+
 ## 3. Зафиксированные спорные/важные тех-решения
 - Язык: C++17 (пока).
 - HTTP: Simple-Web-Server; WS: Simple-WebSocket-Server (планируемые зависимости).
