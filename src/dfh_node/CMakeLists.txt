@@ -1,6 +1,7 @@
 # CMake-описание библиотеки dfh_node.
 # Содержит базовые исходники и публичные include-директории.
 add_library(dfh_node STATIC
+    bounded_queue.cpp
     config.cpp
     config_loader.cpp
     config_validator.cpp
