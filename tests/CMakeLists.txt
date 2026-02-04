@@ -60,3 +60,35 @@ target_link_libraries(test_config_validator
 )
 
 add_test(NAME test_config_validator COMMAND test_config_validator)
+
+add_executable(test_task_scheduler
+    test_task_scheduler.cpp
+)
+
+target_link_libraries(test_task_scheduler
+    PRIVATE
+        dfh_node
+)
+
+target_include_directories(test_task_scheduler
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/dfh_node
+)
+
+add_test(NAME test_task_scheduler COMMAND test_task_scheduler)
+
+add_executable(test_worker_pool
+    test_worker_pool.cpp
+)
+
+target_link_libraries(test_worker_pool
+    PRIVATE
+        dfh_node
+)
+
+target_include_directories(test_worker_pool
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/dfh_node
+)
+
+add_test(NAME test_worker_pool COMMAND test_worker_pool)
