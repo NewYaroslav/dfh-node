@@ -28,10 +28,10 @@ struct WsConfig {
 };
 
 /// \brief Настройки внутренних очередей и воркеров.
-/// \details Поля используются планировщиком ingest/history.
+/// \details Поля используются планировщиком high/low приоритета.
 struct QueuesConfig {
-    std::int64_t ingest_capacity = 10000; ///< Ёмкость ingest-очереди, элементов.
-    std::int64_t history_capacity = 5000; ///< Ёмкость history-очереди, элементов.
+    std::int64_t high_capacity = 10000; ///< Ёмкость high-priority очереди, элементов.
+    std::int64_t low_capacity = 5000; ///< Ёмкость low-priority очереди, элементов.
     int workers = 4; ///< Количество рабочих потоков.
 };
 

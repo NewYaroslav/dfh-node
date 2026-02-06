@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-#include "dfh_node/status.hpp"
+#include "status.hpp"
 
 namespace dfh_node {
 

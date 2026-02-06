@@ -11,14 +11,14 @@
 
 #include <LogIt.hpp>
 
-#include "dfh_node/build_info.hpp"
-#include "dfh_node/config_loader.hpp"
-#include "dfh_node/config_validator.hpp"
-#include "dfh_node/logging.hpp"
-#include "dfh_node/status.hpp"
-#include "dfh_node/task_scheduler.hpp"
-#include "dfh_node/version.hpp"
-#include "dfh_node/worker_pool.hpp"
+#include "build_info.hpp"
+#include "config_loader.hpp"
+#include "config_validator.hpp"
+#include "logging.hpp"
+#include "status.hpp"
+#include "task_scheduler.hpp"
+#include "version.hpp"
+#include "worker_pool.hpp"
 
 namespace {
 
@@ -143,8 +143,8 @@ int main(int argc, char **argv) {
     }
 
     dfh_node::TaskScheduler scheduler(
-        result.config->queues.ingest_capacity,
-        result.config->queues.history_capacity);
+        result.config->queues.high_capacity,
+        result.config->queues.low_capacity);
 
     dfh_node::WorkerPool pool(
         static_cast<std::size_t>(result.config->queues.workers), scheduler);
@@ -166,19 +166,19 @@ int main(int argc, char **argv) {
     status.peers_count = result.config->peers.size();
     status.env = result.config->env;
 
-    auto ingest_metrics = scheduler.get_ingest_metrics();
-    ingest_metrics.total_processed =
-        pool.get_total_processed(dfh_node::JobKind::Ingest);
-    ingest_metrics.avg_wait_ms =
-        pool.get_avg_wait_ms(dfh_node::JobKind::Ingest);
-    status.ingest_queue = ingest_metrics;
+    auto high_metrics = scheduler.high_metrics();
+    high_metrics.total_processed =
+        pool.total_processed(dfh_node::TaskLane::High);
+    high_metrics.avg_wait_ms =
+        pool.avg_wait_ms(dfh_node::TaskLane::High);
+    status.high_priority_queue = high_metrics;
 
-    auto history_metrics = scheduler.get_history_metrics();
-    history_metrics.total_processed =
-        pool.get_total_processed(dfh_node::JobKind::History);
-    history_metrics.avg_wait_ms =
-        pool.get_avg_wait_ms(dfh_node::JobKind::History);
-    status.history_queue = history_metrics;
+    auto low_metrics = scheduler.low_metrics();
+    low_metrics.total_processed =
+        pool.total_processed(dfh_node::TaskLane::Low);
+    low_metrics.avg_wait_ms =
+        pool.avg_wait_ms(dfh_node::TaskLane::Low);
+    status.low_priority_queue = low_metrics;
 
     status.workers_count = result.config->queues.workers;
 
@@ -191,21 +191,21 @@ int main(int argc, char **argv) {
                     status.env.c_str());
 
     DFH_PRINTF_INFO(
-        "Queues: ingest(size=%zu, cap=%zu, rej=%llu, drop=%llu, enq=%llu, "
-        "proc=%llu, wait=%.2fms), history(size=%zu, cap=%zu, rej=%llu, "
+        "Queues: high(size=%zu, cap=%zu, rej=%llu, drop=%llu, enq=%llu, "
+        "proc=%llu, wait=%.2fms), low(size=%zu, cap=%zu, rej=%llu, "
         "drop=%llu, enq=%llu, proc=%llu, wait=%.2fms), workers=%d",
-        status.ingest_queue.current_size, status.ingest_queue.capacity,
-        static_cast<unsigned long long>(status.ingest_queue.rejected_count),
-        static_cast<unsigned long long>(status.ingest_queue.dropped_count),
-        static_cast<unsigned long long>(status.ingest_queue.total_enqueued),
-        static_cast<unsigned long long>(status.ingest_queue.total_processed),
-        status.ingest_queue.avg_wait_ms, status.history_queue.current_size,
-        status.history_queue.capacity,
-        static_cast<unsigned long long>(status.history_queue.rejected_count),
-        static_cast<unsigned long long>(status.history_queue.dropped_count),
-        static_cast<unsigned long long>(status.history_queue.total_enqueued),
-        static_cast<unsigned long long>(status.history_queue.total_processed),
-        status.history_queue.avg_wait_ms, status.workers_count);
+        status.high_priority_queue.current_size, status.high_priority_queue.capacity,
+        static_cast<unsigned long long>(status.high_priority_queue.rejected_count),
+        static_cast<unsigned long long>(status.high_priority_queue.dropped_count),
+        static_cast<unsigned long long>(status.high_priority_queue.total_enqueued),
+        static_cast<unsigned long long>(status.high_priority_queue.total_processed),
+        status.high_priority_queue.avg_wait_ms, status.low_priority_queue.current_size,
+        status.low_priority_queue.capacity,
+        static_cast<unsigned long long>(status.low_priority_queue.rejected_count),
+        static_cast<unsigned long long>(status.low_priority_queue.dropped_count),
+        static_cast<unsigned long long>(status.low_priority_queue.total_enqueued),
+        static_cast<unsigned long long>(status.low_priority_queue.total_processed),
+        status.low_priority_queue.avg_wait_ms, status.workers_count);
 
     // One-shot mode: остановить воркеры (graceful).
     // TODO: daemon mode / event-loop для долгоживущего процесса (при HTTP/WS транспорте).

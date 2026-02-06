@@ -3,9 +3,9 @@
  * \brief Разбор JSON-конфига и формирование структур Config.
  * \details Ошибки собираются в список, исключения парсинга перехватываются.
  */
-#include "dfh_node/config_loader.hpp"
+#include "config_loader.hpp"
 
-#include "dfh_node/config.hpp"
+#include "config.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -176,9 +176,9 @@ LoadResult load_from_file(const std::filesystem::path &path) {
                       "Expected object");
         } else {
             const auto &obj = *it;
-            read_int64(obj, "ingest_capacity", cfg.queues.ingest_capacity,
+            read_int64(obj, "high_capacity", cfg.queues.high_capacity,
                        result.errors, "queues");
-            read_int64(obj, "history_capacity", cfg.queues.history_capacity,
+            read_int64(obj, "low_capacity", cfg.queues.low_capacity,
                        result.errors, "queues");
             read_int(obj, "workers", cfg.queues.workers, result.errors,
                      "queues");

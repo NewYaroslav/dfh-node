@@ -1,7 +1,7 @@
 /**
- * \file job.hpp
+ * \file task.hpp
  * \brief Модель задач и результаты постановки в очередь.
- * \details Содержит JobKind, EnqueueResult и правила работы с payload.
+ * \details Содержит TaskLane/TaskKind, EnqueueResult и правила работы с payload.
  */
 #pragma once
 
@@ -11,18 +11,24 @@
 
 namespace dfh_node {
 
-/// \brief Тип задачи для приоритетного планировщика.
-enum class JobKind : std::uint8_t {
-    Ingest = 0,   ///< Задача записи (высокий приоритет).
-    History = 1   ///< Задача чтения истории (низкий приоритет).
+/// \brief Лейн планировщика (соответствует конкретной очереди).
+enum class TaskLane : std::uint8_t {
+    High = 0, ///< High-priority очередь.
+    Low = 1   ///< Low-priority очередь.
 };
 
-/// \brief Хелпер для индексации массивов метрик по JobKind.
-/// \param kind Тип задачи.
-/// \return Индекс в массиве (0 для Ingest, 1 для History).
-inline int to_index(JobKind kind) {
-    return static_cast<int>(kind);
+/// \brief Хелпер для индексации массивов метрик по TaskLane.
+/// \param lane Лейн планировщика.
+/// \return Индекс в массиве (0 для High, 1 для Low).
+inline int to_index(TaskLane lane) {
+    return static_cast<int>(lane);
 }
+
+/// \brief Семантический тип задачи (доменная операция).
+enum class TaskKind : std::uint8_t {
+    Ingest = 0, ///< Задача записи.
+    History = 1 ///< Задача чтения истории.
+};
 
 /// \brief Статус постановки задачи в очередь.
 enum class EnqueueStatus {
@@ -34,7 +40,7 @@ enum class EnqueueStatus {
 /// \brief Результат постановки задачи в очередь.
 struct EnqueueResult {
     EnqueueStatus status;      ///< Статус операции.
-    std::string error_code;    ///< Код ошибки ("overload.ingest_queue_full", "overload.history_queue_full").
+    std::string error_code;    ///< Код ошибки ("overload.high_priority_queue_full", "overload.low_priority_queue_full").
     std::string error_message; ///< Человекочитаемое описание ошибки.
 };
 
@@ -45,11 +51,12 @@ struct EnqueueResult {
 /// - ЗАПРЕЩЕНО: захват больших объектов по значению (дорогое копирование в std::function)
 /// - ЗАПРЕЩЕНО: capture by reference на stack-объекты ([&local_var] -> UB после enqueue)
 /// - ОБЯЗАТЕЛЬНО: DTO передавать через unique_ptr<IngestRequestDTO> в capture
-struct Job {
-    JobKind kind;                    ///< Тип задачи (Ingest/History).
+struct Task {
+    TaskKind kind;                   ///< Тип задачи (Ingest/History).
     std::string request_id;          ///< ID для логирования/трейсинга.
     std::uint64_t enqueue_ts_ms;     ///< Timestamp постановки в очередь (steady_clock! НЕ system_clock).
     std::function<void()> payload;   ///< Исполняемая логика задачи.
+    TaskLane lane = TaskLane::High;  ///< Лейн планировщика (High/Low).
 };
 
 } // namespace dfh_node

@@ -22,8 +22,9 @@
 
 ## 2.1 Архитектура очередей и TaskScheduler
 - BoundedQueue — internal API, простой bounded-контейнер без mutex/cv/shutdown.
-- TaskScheduler — единый mutex+cv для ingest/history, приоритет ingest > history, stop-now shutdown.
-- WorkerPool — сбор per-kind метрик (total_processed, avg_wait_ms), steady_clock, C++17 fetch_add.
+- Терминология планировщика: `TaskLane` = приоритет/очередь (`High`/`Low`), `TaskKind` = семантика операции (`Ingest`/`History`), `Task` хранит оба поля.
+- TaskScheduler — единый mutex+cv для high/low priority очередей, приоритет high > low, stop-now shutdown.
+- WorkerPool — сбор per-lane метрик (total_processed, avg_wait_ms), steady_clock, C++17 fetch_add.
 - dfh_node_app — one-shot mode до появления HTTP/WS транспорта (логирование и немедленный выход).
 
 ## 3. Зафиксированные спорные/важные тех-решения
@@ -42,6 +43,11 @@
 - Отступы: 4 пробела (без табов) для C/C++ и CMake.
 - Следовать .editorconfig.
 - Перед коммитом запускать clang-format для измененных C/C++ файлов.
+- Приватные поля классов именуем с префиксом `m_` (например, `m_scheduler`, `m_mutex`).
+- Для accessor-методов используем имена без префикса `get_` (`total_processed()`, `avg_wait_ms()`, `high_metrics()`).
+- Заголовки `.hpp` размещаем рядом с реализациями `.cpp` в `src/`; отдельную папку `include/` не используем.
+- Файлы `.ipp` используем только для шаблонного кода (templates); для обычного кода используем `.hpp` + `.cpp`.
+- Header-only допускается только когда это оправдано шаблонами/инлайном; нетемплейтные реализации выносим в `.cpp`.
 
 ## 3.2 Logging
 - Используем log-it-cpp напрямую: LOGIT_TRACE/DEBUG/INFO/WARN/ERROR/FATAL (или DFH_* алиасы).
@@ -59,10 +65,9 @@
 
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
-- include/ — публичные заголовки: `version.hpp`, `build_info.hpp`, `config.hpp`,
-  `config_loader.hpp`, `config_validator.hpp`, `interfaces.hpp`, `logging.hpp`, `status.hpp`.
-- src/dfh_node/ — библиотека ноды: `version.cpp`, `config.cpp`, `config_loader.cpp`,
-  `config_validator.cpp`, `logging.cpp`, `status.cpp`.
+- src/dfh_node/ — библиотека ноды: `.cpp` и соответствующие `.hpp` рядом
+  (`version.*`, `config.*`, `config_loader.*`, `config_validator.*`, `logging.hpp`,
+  `status.*`, `task.*`, `task_scheduler.*`, `worker_pool.*`, `internal/bounded_queue.hpp`).
 - src/app/ — приложение: `main.cpp`.
 - tests/ — тесты: `test_smoke.cpp`, `test_config_defaults.cpp`,
   `test_config_loader.cpp`, `test_config_validator.cpp`.

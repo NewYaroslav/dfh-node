@@ -3,7 +3,7 @@
  * \brief Проверка правил валидации конфигурации.
  * \details Покрывает валидный случай и типовые ошибки.
  */
-#include "dfh_node/config_validator.hpp"
+#include "config_validator.hpp"
 #include "test_helpers.hpp"
 
 int main() {

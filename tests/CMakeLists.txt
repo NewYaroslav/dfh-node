@@ -70,11 +70,6 @@ target_link_libraries(test_task_scheduler
         dfh_node
 )
 
-target_include_directories(test_task_scheduler
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/src/dfh_node
-)
-
 add_test(NAME test_task_scheduler COMMAND test_task_scheduler)
 
 add_executable(test_worker_pool
@@ -84,11 +79,6 @@ add_executable(test_worker_pool
 target_link_libraries(test_worker_pool
     PRIVATE
         dfh_node
-)
-
-target_include_directories(test_worker_pool
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/src/dfh_node
 )
 
 add_test(NAME test_worker_pool COMMAND test_worker_pool)

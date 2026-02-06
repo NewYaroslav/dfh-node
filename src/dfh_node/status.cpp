@@ -3,7 +3,7 @@
  * \brief Реализации системных источников времени и случайности.
  * \details Использует std::chrono и std::random_device без хранения состояния.
  */
-#include "dfh_node/interfaces.hpp"
+#include "interfaces.hpp"
 
 #include <chrono>
 #include <random>

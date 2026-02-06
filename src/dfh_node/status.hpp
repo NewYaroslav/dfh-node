@@ -11,7 +11,7 @@
 
 namespace dfh_node {
 
-/// \brief Метрики одной очереди (ingest или history).
+/// \brief Метрики одной очереди (high-priority или low-priority).
 struct QueueMetrics {
     std::size_t current_size = 0; ///< Текущее количество задач в очереди.
     std::size_t capacity = 0; ///< Максимальная вместимость очереди.
@@ -31,8 +31,8 @@ struct StatusSnapshot {
     std::uint64_t uptime_ms = 0; ///< Время работы, мс.
     std::size_t peers_count = 0; ///< Количество peer-нод.
     std::string env; ///< Окружение (dev|staging|prod).
-    QueueMetrics ingest_queue; ///< Метрики очереди записи (ingest).
-    QueueMetrics history_queue; ///< Метрики очереди чтения (history).
+    QueueMetrics high_priority_queue; ///< Метрики high-priority очереди.
+    QueueMetrics low_priority_queue; ///< Метрики low-priority очереди.
     int workers_count = 0; ///< Количество воркеров (из config.queues.workers).
 };
 

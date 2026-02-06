@@ -3,7 +3,7 @@
  * \brief Unit-тесты для WorkerPool.
  * \details Проверяет shutdown и сбор метрик обработки.
  */
-#include "dfh_node/worker_pool.hpp"
+#include "worker_pool.hpp"
 #include "test_helpers.hpp"
 
 #include <atomic>
@@ -22,10 +22,10 @@ void test_shutdown_stop_now() {
 
     // Enqueue несколько задач.
     for (int i = 0; i < 5; ++i) {
-        Job job{JobKind::Ingest, "req" + std::to_string(i), 0, []() {
+        Task task{TaskKind::Ingest, "req" + std::to_string(i), 0, []() {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }};
-        scheduler.enqueue_ingest(std::move(job));
+        scheduler.enqueue_high(std::move(task));
     }
 
     // Shutdown (stop-now, не дожидаемся пустых очередей).
@@ -50,10 +50,10 @@ void test_metrics_collection() {
 
     std::atomic<int> executed{0};
     for (int i = 0; i < 10; ++i) {
-        Job job{JobKind::Ingest, "req" + std::to_string(i), static_cast<std::uint64_t>(now_ms), [&executed]() {
+        Task task{TaskKind::Ingest, "req" + std::to_string(i), static_cast<std::uint64_t>(now_ms), [&executed]() {
             executed.fetch_add(1, std::memory_order_relaxed);
         }};
-        auto result = scheduler.enqueue_ingest(std::move(job));
+        auto result = scheduler.enqueue_high(std::move(task));
         CHECK(result.status == EnqueueStatus::Ok);
     }
 
@@ -63,10 +63,11 @@ void test_metrics_collection() {
     }
 
     // Проверка метрик.
-    auto metrics = scheduler.get_ingest_metrics();
+    auto metrics = scheduler.high_metrics();
     CHECK_EQ(metrics.total_enqueued, 10);
-    CHECK_EQ(pool.get_total_processed(JobKind::Ingest), 10);
-    CHECK(pool.get_avg_wait_ms(JobKind::Ingest) >= 0.0);
+    CHECK_EQ(pool.total_processed(TaskLane::High), 10);
+    CHECK_EQ(pool.total_processed(TaskLane::Low), 0);
+    CHECK(pool.avg_wait_ms(TaskLane::High) >= 0.0);
 
     pool.shutdown();
 }

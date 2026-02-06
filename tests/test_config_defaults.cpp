@@ -3,7 +3,7 @@
  * \brief Проверка значений конфигурации по умолчанию.
  * \details Убеждается, что дефолты не меняются без явной правки.
  */
-#include "dfh_node/config.hpp"
+#include "config.hpp"
 #include "test_helpers.hpp"
 
 int main() {

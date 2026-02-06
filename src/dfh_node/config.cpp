@@ -3,7 +3,7 @@
  * \brief Реализация фабрики дефолтной конфигурации.
  * \details Значения соответствуют минимальному рабочему профилю.
  */
-#include "dfh_node/config.hpp"
+#include "config.hpp"
 
 namespace dfh_node::config {
 
@@ -22,8 +22,8 @@ Config default_config() {
     cfg.ws.port = 8081;
     cfg.ws.max_payload_bytes = 10000000;
 
-    cfg.queues.ingest_capacity = 10000;
-    cfg.queues.history_capacity = 5000;
+    cfg.queues.high_capacity = 10000;
+    cfg.queues.low_capacity = 5000;
     cfg.queues.workers = 4;
 
     cfg.security.server_secret = "";

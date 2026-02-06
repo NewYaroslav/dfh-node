@@ -5,7 +5,7 @@
  */
 #include <cassert>
 
-#include "dfh_node/version.hpp"
+#include "version.hpp"
 
 int main() {
     // Базовая проверка соответствия констант и функций.

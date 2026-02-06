@@ -15,7 +15,7 @@ dfh_node_apply_warnings(dfh_node)
 
 target_include_directories(dfh_node
     PUBLIC
-        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/src/dfh_node
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )

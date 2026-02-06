@@ -5,7 +5,7 @@
  */
 #pragma once
 
-#include "dfh_node/config.hpp"
+#include "config.hpp"
 
 #include <filesystem>
 #include <optional>
