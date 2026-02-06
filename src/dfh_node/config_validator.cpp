@@ -1,9 +1,9 @@
 /**
- * @file config_validator.cpp
- * @brief Валидация конфигурации ноды по правилам проекта.
- * @details Формирует список ошибок без прерывания выполнения.
+ * \file config_validator.cpp
+ * \brief Валидация конфигурации ноды по правилам проекта.
+ * \details Формирует список ошибок без прерывания выполнения.
  */
-#include "dfh_node/config_validator.hpp"
+#include "config_validator.hpp"
 
 #include <regex>
 #include <set>
@@ -94,13 +94,13 @@ std::vector<ValidationError> validate(const Config &cfg) {
                   "ws.max_payload_bytes must be > 0");
     }
 
-    if (cfg.queues.ingest_capacity <= 0) {
-        add_error(errors, "queues.ingest_capacity", "out_of_range",
-                  "queues.ingest_capacity must be > 0");
+    if (cfg.queues.high_capacity <= 0) {
+        add_error(errors, "queues.high_capacity", "out_of_range",
+                  "queues.high_capacity must be > 0");
     }
-    if (cfg.queues.history_capacity <= 0) {
-        add_error(errors, "queues.history_capacity", "out_of_range",
-                  "queues.history_capacity must be > 0");
+    if (cfg.queues.low_capacity <= 0) {
+        add_error(errors, "queues.low_capacity", "out_of_range",
+                  "queues.low_capacity must be > 0");
     }
     if (cfg.queues.workers <= 0) {
         add_error(errors, "queues.workers", "out_of_range",

@@ -19,8 +19,8 @@
     "max_payload_bytes": 10000000
   },
   "queues": {
-    "ingest_capacity": 10000,
-    "history_capacity": 5000,
+    "high_capacity": 10000,
+    "low_capacity": 5000,
     "workers": 4
   },
   "security": {
@@ -62,8 +62,8 @@
     "max_payload_bytes": 20000000
   },
   "queues": {
-    "ingest_capacity": 20000,
-    "history_capacity": 10000,
+    "high_capacity": 20000,
+    "low_capacity": 10000,
     "workers": 8
   },
   "security": {
@@ -122,8 +122,8 @@
 - `max_payload_bytes` (int, default: `10000000`).
 
 ### queues
-- `ingest_capacity` (int, default: `10000`).
-- `history_capacity` (int, default: `5000`).
+- `high_capacity` (int, default: `10000`).
+- `low_capacity` (int, default: `5000`).
 - `workers` (int, default: `4`).
 
 ### security
@@ -157,7 +157,7 @@
 - `http.port` и `ws.port`: `1..65535`, порты должны отличаться
 - `http.bind_host` и `ws.bind_host`: не пустые
 - `http.max_payload_bytes`, `ws.max_payload_bytes`: > 0
-- `queues.ingest_capacity`, `queues.history_capacity`, `queues.workers`: > 0
+- `queues.high_capacity`, `queues.low_capacity`, `queues.workers`: > 0
 - `security.server_secret`: не пустой, длина >= 16
 - `security.anti_replay.max_skew_ms`, `nonce_ttl_ms`, `nonce_capacity`: > 0
 - `storage.path`: не пустой

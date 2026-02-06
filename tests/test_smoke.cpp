@@ -1,11 +1,11 @@
 /**
- * @file test_smoke.cpp
- * @brief Smoke-тест версий и идентификаторов ноды.
- * @details Проверяет согласованность API версии.
+ * \file test_smoke.cpp
+ * \brief Smoke-тест версий и идентификаторов ноды.
+ * \details Проверяет согласованность API версии.
  */
 #include <cassert>
 
-#include "dfh_node/version.hpp"
+#include "version.hpp"
 
 int main() {
     // Базовая проверка соответствия констант и функций.

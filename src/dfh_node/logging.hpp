@@ -1,20 +1,20 @@
 /**
- * @file logging.hpp
- * @brief Инициализация логирования и алиасы макросов log-it-cpp.
- * @details Макросы не оборачиваются функциями ради compile-time gating.
+ * \file logging.hpp
+ * \brief Инициализация логирования и алиасы макросов log-it-cpp.
+ * \details Макросы не оборачиваются функциями ради compile-time gating.
  */
 #pragma once
 
-#include "dfh_node/config.hpp"
+#include "config.hpp"
 
 namespace dfh_node::logging {
 
-/// @brief Инициализирует log-it-cpp согласно конфигурации.
-/// @param log_cfg Настройки логирования.
-/// @return Ничего не возвращает.
-/// @throws Не бросает (ошибки файла обрабатываются внутри).
-/// @note Побочные эффекты: настройка логгеров и уровня логирования.
-/// @note Не потокобезопасно; вызывать в одном потоке при старте.
+/// \brief Инициализирует log-it-cpp согласно конфигурации.
+/// \param log_cfg Настройки логирования.
+/// \return Ничего не возвращает.
+/// \throws Не бросает (ошибки файла обрабатываются внутри).
+/// \note Побочные эффекты: настройка логгеров и уровня логирования.
+/// \note Не потокобезопасно; вызывать в одном потоке при старте.
 void init_logging(const config::LoggingConfig &log_cfg);
 
 } // namespace dfh_node::logging

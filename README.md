@@ -12,7 +12,7 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - WebSocket: control-протокол для ingest/history/subscribe.
 - WebSocket: передача dfhbin как бинарных фреймов.
 - Поддержка двух режимов control-сообщений: JSON (простой) и MessagePack (быстрый).
-- Очереди обработки запросов с приоритетом записи: ingest важнее history; при перегрузе history режется первой.
+- Очереди планировщика по приоритету: high-priority важнее low-priority; обычно ingest маппится в high, history в low, и при перегрузе low режется первой.
 - Авторизация по API ключам со scope-моделью: read / write / admin / sync.
 - Rate limiting: лимит запросов/сек и лимит одновременных WS соединений.
 - Anti-replay для подписанных запросов (timestamp + nonce + HMAC).
@@ -35,8 +35,7 @@ dfh-node — это сервер (“нода”) для хранения и р�
 ## Repository layout
 
 - docs/ — документация (API, конфиг, безопасность).
-- include/ — публичные заголовки (если будут).
-- src/dfh_node/ — реализация библиотеки ноды (ядро).
+- src/dfh_node/ — ядро ноды: заголовки `.hpp` лежат рядом с реализациями `.cpp`.
 - src/app/ — приложение (main, wiring, CLI, загрузка конфига).
 - tests/ — тесты.
 - examples/ — примеры клиентов/сценариев.

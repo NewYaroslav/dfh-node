@@ -1,7 +1,7 @@
 /**
- * @file test_helpers.hpp
- * @brief Минимальные макросы проверок для unit/smoke тестов.
- * @details Преднамеренно без стороннего фреймворка.
+ * \file test_helpers.hpp
+ * \brief Минимальные макросы проверок для unit/smoke тестов.
+ * \details Преднамеренно без стороннего фреймворка.
  */
 #pragma once
 

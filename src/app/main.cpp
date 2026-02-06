@@ -1,7 +1,7 @@
 /**
- * @file main.cpp
- * @brief Точка входа dfh_node_app и базовая инициализация.
- * @details Читает конфигурацию, валидирует и выводит стартовый статус.
+ * \file main.cpp
+ * \brief Точка входа dfh_node_app и базовая инициализация.
+ * \details Читает конфигурацию, валидирует и выводит стартовый статус.
  */
 #include <cctype>
 #include <filesystem>
@@ -11,12 +11,14 @@
 
 #include <LogIt.hpp>
 
-#include "dfh_node/build_info.hpp"
-#include "dfh_node/config_loader.hpp"
-#include "dfh_node/config_validator.hpp"
-#include "dfh_node/logging.hpp"
-#include "dfh_node/status.hpp"
-#include "dfh_node/version.hpp"
+#include "build_info.hpp"
+#include "config_loader.hpp"
+#include "config_validator.hpp"
+#include "logging.hpp"
+#include "status.hpp"
+#include "task_scheduler.hpp"
+#include "version.hpp"
+#include "worker_pool.hpp"
 
 namespace {
 
@@ -140,6 +142,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    dfh_node::TaskScheduler scheduler(
+        result.config->queues.high_capacity,
+        result.config->queues.low_capacity);
+
+    dfh_node::WorkerPool pool(
+        static_cast<std::size_t>(result.config->queues.workers), scheduler);
+
+    pool.start();
+
     dfh_node::logging::init_logging(result.config->logging);
 
     DFH_PRINTF_INFO("dfh-node v%s starting...",
@@ -155,6 +166,22 @@ int main(int argc, char **argv) {
     status.peers_count = result.config->peers.size();
     status.env = result.config->env;
 
+    auto high_metrics = scheduler.high_metrics();
+    high_metrics.total_processed =
+        pool.total_processed(dfh_node::TaskLane::High);
+    high_metrics.avg_wait_ms =
+        pool.avg_wait_ms(dfh_node::TaskLane::High);
+    status.high_priority_queue = high_metrics;
+
+    auto low_metrics = scheduler.low_metrics();
+    low_metrics.total_processed =
+        pool.total_processed(dfh_node::TaskLane::Low);
+    low_metrics.avg_wait_ms =
+        pool.avg_wait_ms(dfh_node::TaskLane::Low);
+    status.low_priority_queue = low_metrics;
+
+    status.workers_count = result.config->queues.workers;
+
     DFH_PRINTF_INFO("Status: node_id=%s, version=%s, build=%s, uptime_ms=%llu, "
                     "peers_count=%llu, env=%s",
                     status.node_id.c_str(), status.version.c_str(),
@@ -162,6 +189,29 @@ int main(int argc, char **argv) {
                     static_cast<unsigned long long>(status.uptime_ms),
                     static_cast<unsigned long long>(status.peers_count),
                     status.env.c_str());
+
+    DFH_PRINTF_INFO(
+        "Queues: high(size=%zu, cap=%zu, rej=%llu, drop=%llu, enq=%llu, "
+        "proc=%llu, wait=%.2fms), low(size=%zu, cap=%zu, rej=%llu, "
+        "drop=%llu, enq=%llu, proc=%llu, wait=%.2fms), workers=%d",
+        status.high_priority_queue.current_size, status.high_priority_queue.capacity,
+        static_cast<unsigned long long>(status.high_priority_queue.rejected_count),
+        static_cast<unsigned long long>(status.high_priority_queue.dropped_count),
+        static_cast<unsigned long long>(status.high_priority_queue.total_enqueued),
+        static_cast<unsigned long long>(status.high_priority_queue.total_processed),
+        status.high_priority_queue.avg_wait_ms, status.low_priority_queue.current_size,
+        status.low_priority_queue.capacity,
+        static_cast<unsigned long long>(status.low_priority_queue.rejected_count),
+        static_cast<unsigned long long>(status.low_priority_queue.dropped_count),
+        static_cast<unsigned long long>(status.low_priority_queue.total_enqueued),
+        static_cast<unsigned long long>(status.low_priority_queue.total_processed),
+        status.low_priority_queue.avg_wait_ms, status.workers_count);
+
+    // One-shot mode: остановить воркеры (graceful).
+    // TODO: daemon mode / event-loop для долгоживущего процесса (при HTTP/WS транспорте).
+    // TODO: signal handler для Ctrl+C (при долгоживущем режиме через флаг --run).
+    // TODO: режим --print-status-json для машинного чтения статуса.
+    pool.shutdown();
 
     return 0;
 }

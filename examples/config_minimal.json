@@ -13,8 +13,8 @@
     "max_payload_bytes": 10000000
   },
   "queues": {
-    "ingest_capacity": 10000,
-    "history_capacity": 5000,
+    "high_capacity": 10000,
+    "low_capacity": 5000,
     "workers": 4
   },
   "security": {

@@ -35,8 +35,9 @@ WebSocket используется для ingest/history/subscribe, где contr
   - server signals completion (например финальный control “done” — как идея)
 
 ## Limits & prioritization
-- ingest priority over history
-- history can be rejected under load
+- scheduler uses high-priority over low-priority lanes
+- обычно ingest идет в high-priority lane, history в low-priority lane
+- low-priority requests can be rejected under load
 - ws connection limits per token
 
 ## Open questions

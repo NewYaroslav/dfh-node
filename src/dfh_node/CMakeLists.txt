@@ -1,10 +1,13 @@
 # CMake-описание библиотеки dfh_node.
 # Содержит базовые исходники и публичные include-директории.
 add_library(dfh_node STATIC
+    bounded_queue.cpp
     config.cpp
     config_loader.cpp
     config_validator.cpp
     status.cpp
+    task_scheduler.cpp
+    worker_pool.cpp
     version.cpp
 )
 
@@ -12,7 +15,7 @@ dfh_node_apply_warnings(dfh_node)
 
 target_include_directories(dfh_node
     PUBLIC
-        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/src/dfh_node
     PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
