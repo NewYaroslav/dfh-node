@@ -93,3 +93,14 @@ target_link_libraries(test_scope
 )
 
 add_test(NAME test_scope COMMAND test_scope)
+
+add_executable(test_fingerprint_computer
+    test_fingerprint_computer.cpp
+)
+
+target_link_libraries(test_fingerprint_computer
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_fingerprint_computer COMMAND test_fingerprint_computer)
