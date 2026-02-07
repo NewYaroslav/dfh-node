@@ -7,20 +7,18 @@
 
 namespace dfh_node {
 
-ConfigApiKeyStore::ConfigApiKeyStore(const std::vector<config::ApiKeyEntry>& entries) {
-    for (const auto& entry : entries) {
-        ApiKeyRecord record{
-            entry.fingerprint,
-            entry.scope_mask,
-            entry.expires_at_ms,
-            entry.rps_limit,
-            entry.ws_max_connections
-        };
+ConfigApiKeyStore::ConfigApiKeyStore(
+    const std::vector<config::ApiKeyEntry> &entries) {
+    for (const auto &entry : entries) {
+        ApiKeyRecord record{entry.fingerprint, entry.scope_mask,
+                            entry.expires_at_ms, entry.rps_limit,
+                            entry.ws_max_connections};
         m_records[entry.fingerprint] = record;
     }
 }
 
-std::optional<ApiKeyRecord> ConfigApiKeyStore::lookup(const std::string& fingerprint) const {
+std::optional<ApiKeyRecord>
+ConfigApiKeyStore::lookup(const std::string &fingerprint) const {
     const auto it = m_records.find(fingerprint);
     if (it == m_records.end()) {
         return std::nullopt;

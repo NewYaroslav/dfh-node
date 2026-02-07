@@ -222,7 +222,8 @@ LoadResult load_from_file(const std::filesystem::path &path) {
 
     if (auto it = root.find("auth"); it != root.end()) {
         if (!it->is_object()) {
-            add_error(result.errors, "auth", "type_mismatch", "Expected object");
+            add_error(result.errors, "auth", "type_mismatch",
+                      "Expected object");
         } else {
             auto &obj = *it;
             read_int64(obj, "cache_ttl_ms", cfg.auth.cache_ttl_ms,
@@ -247,7 +248,8 @@ LoadResult load_from_file(const std::filesystem::path &path) {
                         auto &key_json = keys_it->at(i);
                         if (!key_json.is_object()) {
                             add_error(result.errors,
-                                      "auth.api_keys[" + std::to_string(i) + "]",
+                                      "auth.api_keys[" + std::to_string(i) +
+                                          "]",
                                       "type_mismatch", "Expected object");
                             continue;
                         }
@@ -302,28 +304,26 @@ LoadResult load_from_file(const std::filesystem::path &path) {
                                      ++si) {
                                     const auto &scope_json = scopes_it->at(si);
                                     if (!scope_json.is_string()) {
-                                        add_error(
-                                            result.errors,
-                                            "auth.api_keys[" +
-                                                std::to_string(i) +
-                                                "].scopes[" +
-                                                std::to_string(si) + "]",
-                                            "type_mismatch",
-                                            "Expected string");
+                                        add_error(result.errors,
+                                                  "auth.api_keys[" +
+                                                      std::to_string(i) +
+                                                      "].scopes[" +
+                                                      std::to_string(si) + "]",
+                                                  "type_mismatch",
+                                                  "Expected string");
                                         continue;
                                     }
 
                                     auto parsed = parse_scope(
                                         scope_json.get<std::string>());
                                     if (!parsed.has_value()) {
-                                        add_error(
-                                            result.errors,
-                                            "auth.api_keys[" +
-                                                std::to_string(i) +
-                                                "].scopes[" +
-                                                std::to_string(si) + "]",
-                                            "invalid_value",
-                                            "Unknown scope");
+                                        add_error(result.errors,
+                                                  "auth.api_keys[" +
+                                                      std::to_string(i) +
+                                                      "].scopes[" +
+                                                      std::to_string(si) + "]",
+                                                  "invalid_value",
+                                                  "Unknown scope");
                                         continue;
                                     }
 
@@ -337,12 +337,11 @@ LoadResult load_from_file(const std::filesystem::path &path) {
                             expires_it != key_json.end()) {
                             if (!expires_it->is_null()) {
                                 if (!expires_it->is_number_integer()) {
-                                    add_error(result.errors,
-                                              "auth.api_keys[" +
-                                                  std::to_string(i) +
-                                                  "].expires_at",
-                                              "type_mismatch",
-                                              "Expected integer");
+                                    add_error(
+                                        result.errors,
+                                        "auth.api_keys[" + std::to_string(i) +
+                                            "].expires_at",
+                                        "type_mismatch", "Expected integer");
                                 } else {
                                     expires_at_ms =
                                         expires_it->get<std::int64_t>();
@@ -361,13 +360,14 @@ LoadResult load_from_file(const std::filesystem::path &path) {
                                               "].rate_limit",
                                           "type_mismatch", "Expected object");
                             } else {
-                                read_int64(*rl_it, "rps", rps_limit,
-                                           result.errors,
-                                           "auth.api_keys[" + std::to_string(i) +
-                                               "].rate_limit");
+                                read_int64(
+                                    *rl_it, "rps", rps_limit, result.errors,
+                                    "auth.api_keys[" + std::to_string(i) +
+                                        "].rate_limit");
                                 read_int64(*rl_it, "ws_max_connections",
                                            ws_max_connections, result.errors,
-                                           "auth.api_keys[" + std::to_string(i) +
+                                           "auth.api_keys[" +
+                                               std::to_string(i) +
                                                "].rate_limit");
                             }
                         }

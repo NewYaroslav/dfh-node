@@ -8,8 +8,7 @@
 
 namespace dfh_node {
 
-BoundedQueue::BoundedQueue(std::size_t capacity)
-    : m_capacity(capacity) {}
+BoundedQueue::BoundedQueue(std::size_t capacity) : m_capacity(capacity) {}
 
 bool BoundedQueue::try_push(Task task) {
     if (m_queue.size() >= m_capacity) {
@@ -30,21 +29,13 @@ std::optional<Task> BoundedQueue::try_pop() {
     return task;
 }
 
-std::size_t BoundedQueue::size() const {
-    return m_queue.size();
-}
+std::size_t BoundedQueue::size() const { return m_queue.size(); }
 
-std::size_t BoundedQueue::capacity() const {
-    return m_capacity;
-}
+std::size_t BoundedQueue::capacity() const { return m_capacity; }
 
-bool BoundedQueue::empty() const {
-    return m_queue.empty();
-}
+bool BoundedQueue::empty() const { return m_queue.empty(); }
 
-bool BoundedQueue::full() const {
-    return m_queue.size() >= m_capacity;
-}
+bool BoundedQueue::full() const { return m_queue.size() >= m_capacity; }
 
 std::uint64_t BoundedQueue::rejected_count() const {
     return m_rejected_count.load(std::memory_order_relaxed);

@@ -1,7 +1,8 @@
 /**
  * \file rate_limiter.hpp
  * \brief Sliding-window rate limiter с ленивой очисткой устаревших записей.
- * \details Хранит состояние per-fingerprint и использует steady_clock для стабильного времени.
+ * \details Хранит состояние per-fingerprint и использует steady_clock для
+ * стабильного времени.
  */
 #pragma once
 
@@ -16,12 +17,14 @@ namespace dfh_node {
 
 /// \brief Состояние rate limit для одного fingerprint.
 struct RateLimitState {
-    std::deque<std::int64_t> timestamps; ///< Метки времени запросов в рамках окна.
+    std::deque<std::int64_t>
+        timestamps; ///< Метки времени запросов в рамках окна.
 };
 
-/// \brief Потокобезопасный rate limiter с sliding window и opportunistic cleanup.
+/// \brief Потокобезопасный rate limiter с sliding window и opportunistic
+/// cleanup.
 class RateLimiter {
-public:
+  public:
     /// \brief Конструктор.
     /// \param default_rps Дефолтный лимит запросов в секунду.
     /// \param window_ms Размер окна в миллисекундах (steady_clock).
@@ -29,11 +32,12 @@ public:
 
     /// \brief Проверяет лимит и записывает текущий запрос.
     /// \param fingerprint Идентификатор клиента.
-    /// \param limit Индивидуальный лимит клиента (если <=0, используется default_rps).
+    /// \param limit Индивидуальный лимит клиента (если <=0, используется
+    /// default_rps).
     /// \return true, если запрос разрешён; false, если лимит превышен.
-    bool check_and_record(const std::string& fingerprint, std::int64_t limit);
+    bool check_and_record(const std::string &fingerprint, std::int64_t limit);
 
-private:
+  private:
     std::int64_t m_default_rps;
     std::int64_t m_window_ms;
     std::unordered_map<std::string, RateLimitState> m_states;

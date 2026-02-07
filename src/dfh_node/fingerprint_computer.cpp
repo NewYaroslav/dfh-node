@@ -32,7 +32,8 @@ std::string FingerprintComputer::compute(const std::string &token) const {
         reinterpret_cast<const unsigned char *>(m_server_secret.data());
 
     if (HMAC(EVP_sha256(), key_data, static_cast<int>(m_server_secret.size()),
-             token_data, token.size(), digest.data(), &digest_size) == nullptr) {
+             token_data, token.size(), digest.data(),
+             &digest_size) == nullptr) {
         throw std::runtime_error("HMAC(EVP_sha256) failed");
     }
 

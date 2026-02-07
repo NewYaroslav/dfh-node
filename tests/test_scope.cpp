@@ -1,7 +1,8 @@
 /**
  * \file test_scope.cpp
  * \brief Unit-тесты для Scope и функций авторизации.
- * \details Проверяет комбинирование битмаски, Admin override, парсинг и маппинг TaskKind.
+ * \details Проверяет комбинирование битмаски, Admin override, парсинг и маппинг
+ * TaskKind.
  */
 #include "scope.hpp"
 #include "test_helpers.hpp"

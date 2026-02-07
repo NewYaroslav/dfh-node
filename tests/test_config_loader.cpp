@@ -90,7 +90,8 @@ int main() {
         CHECK_EQ(result.config->auth.rps_limit, 222);
         CHECK_EQ(result.config->auth.ws_max_connections, 333);
         CHECK_EQ(result.config->auth.rate_limit_window_ms, 444);
-        CHECK_EQ(result.config->auth.api_keys.size(), static_cast<std::size_t>(2));
+        CHECK_EQ(result.config->auth.api_keys.size(),
+                 static_cast<std::size_t>(2));
 
         const dfh_node::FingerprintComputer computer("secret-key");
         const auto expected_fp_1 = computer.compute("token-1");

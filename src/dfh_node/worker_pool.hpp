@@ -19,11 +19,11 @@ namespace dfh_node {
 /// Метрики обработки: total_processed, total_wait_ms, avg_wait_ms (per-lane).
 /// Shutdown семантика: graceful = join потоков без зависаний (не drain).
 class WorkerPool {
-public:
+  public:
     /// \brief Конструктор.
     /// \param num_workers Количество воркеров.
     /// \param scheduler Ссылка на TaskScheduler.
-    WorkerPool(std::size_t num_workers, TaskScheduler& scheduler);
+    WorkerPool(std::size_t num_workers, TaskScheduler &scheduler);
 
     /// \brief Деструктор (вызывает shutdown, если не был вызван вручную).
     ~WorkerPool();
@@ -46,16 +46,18 @@ public:
 
     /// \brief Среднее время ожидания в очереди (мс, по лейну планировщика).
     /// \param lane Лейн планировщика.
-    /// \return avg_wait_ms = total_wait_ms / total_processed (или 0.0 если processed == 0).
+    /// \return avg_wait_ms = total_wait_ms / total_processed (или 0.0 если
+    /// processed == 0).
     double avg_wait_ms(TaskLane lane) const;
 
-private:
+  private:
     /// \brief Рабочий цикл воркера.
     void worker_loop();
 
-    TaskScheduler& m_scheduler; ///< Ссылка на планировщик.
+    TaskScheduler &m_scheduler;         ///< Ссылка на планировщик.
     std::vector<std::thread> m_workers; ///< Пул потоков.
-    std::atomic<std::uint64_t> m_total_processed[2]{0, 0}; ///< [High, Low] (C++17: fetch_add).
+    std::atomic<std::uint64_t> m_total_processed[2]{
+        0, 0}; ///< [High, Low] (C++17: fetch_add).
     std::atomic<std::uint64_t> m_total_wait_ms[2]{0, 0}; ///< [High, Low].
 };
 

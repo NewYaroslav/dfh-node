@@ -1,7 +1,8 @@
 /**
  * \file auth_cache.hpp
  * \brief Кэш контекстов авторизации с TTL и периодической очисткой.
- * \details Предназначен для ускорения проверок fingerprint без повторного чтения store.
+ * \details Предназначен для ускорения проверок fingerprint без повторного
+ * чтения store.
  */
 #pragma once
 
@@ -18,23 +19,25 @@ namespace dfh_node {
 
 /// \brief Контекст авторизованного клиента.
 struct AuthContext {
-    std::string fingerprint; ///< Fingerprint токена (hex HMAC-SHA256).
-    ScopeMask scope_mask = 0; ///< Разрешённые права доступа.
+    std::string fingerprint;    ///< Fingerprint токена (hex HMAC-SHA256).
+    ScopeMask scope_mask = 0;   ///< Разрешённые права доступа.
     std::int64_t rps_limit = 0; ///< Лимит запросов в секунду.
     std::int64_t ws_max_connections = 0; ///< Лимит одновременных WS-соединений.
-    std::optional<std::int64_t> expires_at_ms; ///< Время истечения токена (epoch ms).
+    std::optional<std::int64_t>
+        expires_at_ms; ///< Время истечения токена (epoch ms).
 };
 
 /// \brief Запись кэша для AuthContext.
 struct CachedAuthContext {
-    AuthContext context; ///< Кэшируемый контекст.
+    AuthContext context;           ///< Кэшируемый контекст.
     std::int64_t cached_at_ms = 0; ///< Время помещения в кэш (steady_clock ms).
-    std::int64_t updated_at_ms = 0; ///< Резерв под future invalidation/revision.
+    std::int64_t updated_at_ms =
+        0; ///< Резерв под future invalidation/revision.
 };
 
 /// \brief Потокобезопасный auth-кэш с TTL и opportunistic cleanup.
 class AuthCache {
-public:
+  public:
     /// \brief Создаёт кэш с заданным TTL.
     /// \param ttl_ms Время жизни записи в миллисекундах по steady_clock.
     explicit AuthCache(std::int64_t ttl_ms);
@@ -42,21 +45,21 @@ public:
     /// \brief Читает контекст по fingerprint с проверкой TTL.
     /// \param fingerprint Ключ кэша.
     /// \return Контекст при наличии и неистёкшем TTL, иначе std::nullopt.
-    std::optional<AuthContext> get(const std::string& fingerprint) const;
+    std::optional<AuthContext> get(const std::string &fingerprint) const;
 
     /// \brief Обновляет/добавляет контекст в кэш.
     /// \param fingerprint Ключ кэша.
     /// \param context Контекст авторизации.
-    void put(const std::string& fingerprint, const AuthContext& context);
+    void put(const std::string &fingerprint, const AuthContext &context);
 
     /// \brief Удаляет запись по fingerprint.
     /// \param fingerprint Ключ кэша.
-    void invalidate(const std::string& fingerprint);
+    void invalidate(const std::string &fingerprint);
 
     /// \brief Полностью очищает кэш.
     void clear();
 
-private:
+  private:
     std::int64_t m_ttl_ms;
     std::unordered_map<std::string, CachedAuthContext> m_cache;
     mutable std::shared_mutex m_mutex;

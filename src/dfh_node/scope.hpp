@@ -1,7 +1,8 @@
 /**
  * \file scope.hpp
  * \brief Определения scope и утилиты авторизации.
- * \details Содержит битмаску Scope, парсинг из конфигурации и маппинг TaskKind в требуемый scope.
+ * \details Содержит битмаску Scope, парсинг из конфигурации и маппинг TaskKind
+ * в требуемый scope.
  */
 #pragma once
 
@@ -46,14 +47,14 @@ constexpr ScopeMask operator|(ScopeMask mask, Scope scope) {
 /// \param required Требуемый scope.
 /// \return true, если scope присутствует или включён Admin override.
 inline bool has_scope(ScopeMask mask, Scope required) {
-    return (mask & static_cast<ScopeMask>(required)) != 0
-        || (mask & static_cast<ScopeMask>(Scope::Admin)) != 0;
+    return (mask & static_cast<ScopeMask>(required)) != 0 ||
+           (mask & static_cast<ScopeMask>(Scope::Admin)) != 0;
 }
 
 /// \brief Преобразовать строку scope из конфига в enum.
 /// \param value Строковое имя scope ("read", "write", "admin", "sync").
 /// \return Scope при валидном значении, иначе std::nullopt.
-inline std::optional<Scope> parse_scope(const std::string& value) {
+inline std::optional<Scope> parse_scope(const std::string &value) {
     if (value == "read") {
         return Scope::Read;
     }

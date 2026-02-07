@@ -16,17 +16,18 @@ namespace dfh_node {
 
 /// \brief Реализация IApiKeyStore на базе записей из config.
 class ConfigApiKeyStore final : public IApiKeyStore {
-public:
+  public:
     /// \brief Строит store из списка ключей конфигурации.
     /// \param entries Записи config::ApiKeyEntry.
-    explicit ConfigApiKeyStore(const std::vector<config::ApiKeyEntry>& entries);
+    explicit ConfigApiKeyStore(const std::vector<config::ApiKeyEntry> &entries);
 
     /// \brief Ищет ключ по fingerprint.
     /// \param fingerprint HMAC-SHA256(server_secret, token) в hex.
     /// \return Запись ключа, если fingerprint найден, иначе std::nullopt.
-    std::optional<ApiKeyRecord> lookup(const std::string& fingerprint) const override;
+    std::optional<ApiKeyRecord>
+    lookup(const std::string &fingerprint) const override;
 
-private:
+  private:
     std::unordered_map<std::string, ApiKeyRecord> m_records;
 };
 
