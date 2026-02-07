@@ -5,6 +5,7 @@ find_package(OpenSSL REQUIRED)
 add_library(dfh_node STATIC
     bounded_queue.cpp
     config.cpp
+    config_api_key_store.cpp
     config_loader.cpp
     config_validator.cpp
     fingerprint_computer.cpp
