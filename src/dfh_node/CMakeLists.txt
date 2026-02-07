@@ -10,6 +10,7 @@ add_library(dfh_node STATIC
     config_loader.cpp
     config_validator.cpp
     fingerprint_computer.cpp
+    rate_limiter.cpp
     status.cpp
     task_scheduler.cpp
     worker_pool.cpp

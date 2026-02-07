@@ -115,3 +115,14 @@ target_link_libraries(test_auth_cache
 )
 
 add_test(NAME test_auth_cache COMMAND test_auth_cache)
+
+add_executable(test_rate_limiter
+    test_rate_limiter.cpp
+)
+
+target_link_libraries(test_rate_limiter
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_rate_limiter COMMAND test_rate_limiter)
