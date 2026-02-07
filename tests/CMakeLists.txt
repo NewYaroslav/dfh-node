@@ -137,3 +137,14 @@ target_link_libraries(test_ws_connection_limiter
 )
 
 add_test(NAME test_ws_connection_limiter COMMAND test_ws_connection_limiter)
+
+add_executable(test_auth_service
+    test_auth_service.cpp
+)
+
+target_link_libraries(test_auth_service
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_auth_service COMMAND test_auth_service)
