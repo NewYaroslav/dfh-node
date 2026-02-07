@@ -217,6 +217,26 @@ LoadResult load_from_file(const std::filesystem::path &path) {
         }
     }
 
+    if (auto it = root.find("auth"); it != root.end()) {
+        if (!it->is_object()) {
+            add_error(result.errors, "auth", "type_mismatch", "Expected object");
+        } else {
+            const auto &obj = *it;
+            read_int64(obj, "cache_ttl_ms", cfg.auth.cache_ttl_ms,
+                       result.errors, "auth");
+            read_int64(obj, "rps_limit", cfg.auth.rps_limit, result.errors,
+                       "auth");
+            read_int64(obj, "ws_max_connections", cfg.auth.ws_max_connections,
+                       result.errors, "auth");
+            read_int64(obj, "rate_limit_window_ms",
+                       cfg.auth.rate_limit_window_ms, result.errors, "auth");
+
+            // TODO(dfh-node, stage-3.2): добавить FingerprintComputer и
+            // преобразование auth.api_keys[*].token -> ApiKeyEntry::fingerprint.
+            // До внедрения fingerprint-пайплайна api_keys намеренно не парсится.
+        }
+    }
+
     if (auto it = root.find("storage"); it != root.end()) {
         if (!it->is_object()) {
             add_error(result.errors, "storage", "type_mismatch",

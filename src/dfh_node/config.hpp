@@ -5,7 +5,10 @@
  */
 #pragma once
 
+#include "scope.hpp"
+
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -51,6 +54,26 @@ struct SecurityConfig {
     AntiReplayConfig anti_replay{}; ///< Параметры anti-replay.
 };
 
+/// \brief API key запись в конфиге без plaintext-токена.
+/// \details Токен преобразуется в fingerprint на этапе загрузки конфига.
+struct ApiKeyEntry {
+    std::string fingerprint; ///< HMAC-SHA256(server_secret, token) в hex.
+    ScopeMask scope_mask = 0; ///< Битовая маска разрешённых scope.
+    std::optional<std::int64_t> expires_at_ms; ///< Время истечения Unix epoch ms.
+    std::int64_t rps_limit = 100; ///< Индивидуальный лимит запросов в секунду.
+    std::int64_t ws_max_connections = 10; ///< Лимит одновременных WS-соединений.
+};
+
+/// \brief Конфигурация авторизации и rate-limits.
+/// \details Значения по умолчанию применяются к ключам без переопределений.
+struct AuthConfig {
+    std::int64_t cache_ttl_ms = 60000; ///< TTL auth-кэша в миллисекундах.
+    std::int64_t rps_limit = 100; ///< Дефолтный лимит запросов в секунду.
+    std::int64_t ws_max_connections = 10; ///< Дефолтный лимит WS-соединений.
+    std::int64_t rate_limit_window_ms = 1000; ///< Окно rate-limit в миллисекундах.
+    std::vector<ApiKeyEntry> api_keys{}; ///< Ключи в виде fingerprint без plaintext.
+};
+
 /// \brief Параметры хранения на диске.
 /// \details min_free_bytes используется для защиты от переполнения диска.
 struct StorageConfig {
@@ -83,6 +106,7 @@ struct Config {
     WsConfig ws{}; ///< WS-настройки.
     QueuesConfig queues{}; ///< Очереди и воркеры.
     SecurityConfig security{}; ///< Безопасность и секреты.
+    AuthConfig auth{}; ///< Авторизация и rate limiting.
     std::vector<PeerConfig> peers{}; ///< Список peer-нод.
     StorageConfig storage{}; ///< Настройки хранения.
     LoggingConfig logging{}; ///< Настройки логирования.
