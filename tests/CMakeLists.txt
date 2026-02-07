@@ -159,3 +159,14 @@ target_link_libraries(test_unified_gate
 )
 
 add_test(NAME test_unified_gate COMMAND test_unified_gate)
+
+add_executable(test_gate_e2e
+    test_gate_e2e.cpp
+)
+
+target_link_libraries(test_gate_e2e
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_gate_e2e COMMAND test_gate_e2e)

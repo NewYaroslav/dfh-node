@@ -66,11 +66,18 @@
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
 - src/dfh_node/ — библиотека ноды: `.cpp` и соответствующие `.hpp` рядом
-  (`version.*`, `config.*`, `config_loader.*`, `config_validator.*`, `logging.hpp`,
-  `status.*`, `task.*`, `task_scheduler.*`, `worker_pool.*`, `internal/bounded_queue.hpp`).
+  (`version.*`, `config.*`, `config_loader.*`, `config_validator.*`, `scope.hpp`,
+  `fingerprint_computer.*`, `api_key_store.hpp`, `config_api_key_store.*`,
+  `auth_cache.*`, `rate_limiter.*`, `ws_connection_limiter.*`, `auth_service.*`,
+  `unified_gate.*`, `status.*`, `task.*`, `task_scheduler.*`, `worker_pool.*`,
+  `internal/bounded_queue.hpp`, `logging.hpp`).
 - src/app/ — приложение: `main.cpp`.
-- tests/ — тесты: `test_smoke.cpp`, `test_config_defaults.cpp`,
-  `test_config_loader.cpp`, `test_config_validator.cpp`.
+- tests/ — тесты: smoke + config + scheduler/worker + auth/rate-limit/gate
+  (`test_smoke.cpp`, `test_config_defaults.cpp`, `test_config_loader.cpp`,
+  `test_config_validator.cpp`, `test_task_scheduler.cpp`, `test_worker_pool.cpp`,
+  `test_scope.cpp`, `test_fingerprint_computer.cpp`, `test_auth_cache.cpp`,
+  `test_rate_limiter.cpp`, `test_ws_connection_limiter.cpp`,
+  `test_auth_service.cpp`, `test_unified_gate.cpp`, `test_gate_e2e.cpp`).
 - examples/ — примеры: `config_minimal.json`.
 - third_party/ — каталог для submodules (см. docs/third_party.md).
 - cmake/ — CMake-скрипты (Options/Warnings/ThirdParty).
@@ -78,7 +85,11 @@
 ### 4.1 Таргеты CMake
 - Библиотека: `dfh_node` (STATIC).
 - Приложение: `dfh_node_app`.
-- Тесты: `dfh_node_smoke`, `test_config_defaults`, `test_config_loader`, `test_config_validator` (CTest).
+- Тесты (CTest): `dfh_node_smoke`, `test_config_defaults`, `test_config_loader`,
+  `test_config_validator`, `test_task_scheduler`, `test_worker_pool`, `test_scope`,
+  `test_fingerprint_computer`, `test_auth_cache`, `test_rate_limiter`,
+  `test_ws_connection_limiter`, `test_auth_service`, `test_unified_gate`,
+  `test_gate_e2e`, а также smoke-тесты `dfh_node_app`.
 
 ### 4.2 Опции CMake (реальные)
 - `DFH_NODE_BUILD_TESTS` (ON) — включить тесты.
@@ -110,7 +121,11 @@
 
 ### 5.4 Тесты
 - Сейчас включены тесты: `dfh_node_smoke`, `test_config_defaults`,
-  `test_config_loader`, `test_config_validator`, а также smoke-тесты приложения через CTest.
+  `test_config_loader`, `test_config_validator`, `test_task_scheduler`,
+  `test_worker_pool`, `test_scope`, `test_fingerprint_computer`,
+  `test_auth_cache`, `test_rate_limiter`, `test_ws_connection_limiter`,
+  `test_auth_service`, `test_unified_gate`, `test_gate_e2e`,
+  а также smoke-тесты приложения через CTest.
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
 
 ## 6. Процесс разработки
@@ -126,9 +141,9 @@
 - Подключенные deps:
   - nlohmann/json (JSON).
   - log-it-cpp (logging).
+  - OpenSSL (HMAC/хэши, token wipe через `OPENSSL_cleanse`).
 - Планируемые ключевые deps (TODO до подключения):
   - Simple-Web-Server (HTTP), Simple-WebSocket-Server (WS).
-  - OpenSSL (HMAC/хэши).
   - Boost (минимальные компоненты).
   - MessagePack (контрольные сообщения в WS).
 

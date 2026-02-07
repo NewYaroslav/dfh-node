@@ -44,8 +44,14 @@ dfh-node — это сервер (“нода”) для хранения и р�
 
 ## Project status
 
-Сейчас репозиторий содержит только skeleton/каркас.
-Реализация будет добавляться пошагово: сборка, очереди, auth, HTTP/WS, sync, тесты.
+Репозиторий уже содержит рабочее ядро:
+
+- конфигурация/валидация/загрузка конфига;
+- очереди и worker pool (high/low lane);
+- auth/rate-limit ядро (scope, fingerprint, auth cache, API key store, unified gate);
+- unit/smoke/E2E тесты через CTest.
+
+HTTP/WS транспорт и sync-протокол остаются следующими этапами.
 
 ## Quick Start
 
