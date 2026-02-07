@@ -82,3 +82,14 @@ target_link_libraries(test_worker_pool
 )
 
 add_test(NAME test_worker_pool COMMAND test_worker_pool)
+
+add_executable(test_scope
+    test_scope.cpp
+)
+
+target_link_libraries(test_scope
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_scope COMMAND test_scope)
