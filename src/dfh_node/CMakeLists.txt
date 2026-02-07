@@ -14,6 +14,7 @@ add_library(dfh_node STATIC
     status.cpp
     task_scheduler.cpp
     worker_pool.cpp
+    ws_connection_limiter.cpp
     version.cpp
 )
 

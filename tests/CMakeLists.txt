@@ -126,3 +126,14 @@ target_link_libraries(test_rate_limiter
 )
 
 add_test(NAME test_rate_limiter COMMAND test_rate_limiter)
+
+add_executable(test_ws_connection_limiter
+    test_ws_connection_limiter.cpp
+)
+
+target_link_libraries(test_ws_connection_limiter
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_connection_limiter COMMAND test_ws_connection_limiter)
