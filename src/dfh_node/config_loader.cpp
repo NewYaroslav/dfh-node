@@ -6,11 +6,14 @@
 #include "config_loader.hpp"
 
 #include "config.hpp"
+#include "fingerprint_computer.hpp"
 
+#include <exception>
 #include <fstream>
 #include <sstream>
 
 #include <nlohmann/json.hpp>
+#include <openssl/crypto.h>
 
 namespace dfh_node::config {
 namespace {
@@ -221,7 +224,7 @@ LoadResult load_from_file(const std::filesystem::path &path) {
         if (!it->is_object()) {
             add_error(result.errors, "auth", "type_mismatch", "Expected object");
         } else {
-            const auto &obj = *it;
+            auto &obj = *it;
             read_int64(obj, "cache_ttl_ms", cfg.auth.cache_ttl_ms,
                        result.errors, "auth");
             read_int64(obj, "rps_limit", cfg.auth.rps_limit, result.errors,
@@ -231,9 +234,154 @@ LoadResult load_from_file(const std::filesystem::path &path) {
             read_int64(obj, "rate_limit_window_ms",
                        cfg.auth.rate_limit_window_ms, result.errors, "auth");
 
-            // TODO(dfh-node, stage-3.2): добавить FingerprintComputer и
-            // преобразование auth.api_keys[*].token -> ApiKeyEntry::fingerprint.
-            // До внедрения fingerprint-пайплайна api_keys намеренно не парсится.
+            if (auto keys_it = obj.find("api_keys"); keys_it != obj.end()) {
+                if (!keys_it->is_array()) {
+                    add_error(result.errors, "auth.api_keys", "type_mismatch",
+                              "Expected array");
+                } else {
+                    cfg.auth.api_keys.clear();
+                    cfg.auth.api_keys.reserve(keys_it->size());
+
+                    FingerprintComputer computer(cfg.security.server_secret);
+                    for (std::size_t i = 0; i < keys_it->size(); ++i) {
+                        auto &key_json = keys_it->at(i);
+                        if (!key_json.is_object()) {
+                            add_error(result.errors,
+                                      "auth.api_keys[" + std::to_string(i) + "]",
+                                      "type_mismatch", "Expected object");
+                            continue;
+                        }
+
+                        if (!key_json.contains("token") ||
+                            !key_json.at("token").is_string()) {
+                            add_error(result.errors,
+                                      "auth.api_keys[" + std::to_string(i) +
+                                          "].token",
+                                      key_json.contains("token")
+                                          ? "type_mismatch"
+                                          : "missing",
+                                      key_json.contains("token")
+                                          ? "Expected string"
+                                          : "Missing required field");
+                            continue;
+                        }
+
+                        std::string token =
+                            key_json.at("token").get<std::string>();
+                        std::string fingerprint;
+                        try {
+                            fingerprint = computer.compute(token);
+                        } catch (const std::exception &) {
+                            add_error(result.errors,
+                                      "auth.api_keys[" + std::to_string(i) +
+                                          "].token",
+                                      "invalid_value",
+                                      "Failed to compute fingerprint");
+                        }
+
+                        if (!token.empty()) {
+                            OPENSSL_cleanse(token.data(), token.size());
+                        }
+                        token.clear();
+                        key_json["token"] = "";
+
+                        if (fingerprint.empty()) {
+                            continue;
+                        }
+
+                        ScopeMask scope_mask = 0;
+                        if (auto scopes_it = key_json.find("scopes");
+                            scopes_it != key_json.end()) {
+                            if (!scopes_it->is_array()) {
+                                add_error(result.errors,
+                                          "auth.api_keys[" + std::to_string(i) +
+                                              "].scopes",
+                                          "type_mismatch", "Expected array");
+                            } else {
+                                for (std::size_t si = 0; si < scopes_it->size();
+                                     ++si) {
+                                    const auto &scope_json = scopes_it->at(si);
+                                    if (!scope_json.is_string()) {
+                                        add_error(
+                                            result.errors,
+                                            "auth.api_keys[" +
+                                                std::to_string(i) +
+                                                "].scopes[" +
+                                                std::to_string(si) + "]",
+                                            "type_mismatch",
+                                            "Expected string");
+                                        continue;
+                                    }
+
+                                    auto parsed = parse_scope(
+                                        scope_json.get<std::string>());
+                                    if (!parsed.has_value()) {
+                                        add_error(
+                                            result.errors,
+                                            "auth.api_keys[" +
+                                                std::to_string(i) +
+                                                "].scopes[" +
+                                                std::to_string(si) + "]",
+                                            "invalid_value",
+                                            "Unknown scope");
+                                        continue;
+                                    }
+
+                                    scope_mask = scope_mask | *parsed;
+                                }
+                            }
+                        }
+
+                        std::optional<std::int64_t> expires_at_ms;
+                        if (auto expires_it = key_json.find("expires_at");
+                            expires_it != key_json.end()) {
+                            if (!expires_it->is_null()) {
+                                if (!expires_it->is_number_integer()) {
+                                    add_error(result.errors,
+                                              "auth.api_keys[" +
+                                                  std::to_string(i) +
+                                                  "].expires_at",
+                                              "type_mismatch",
+                                              "Expected integer");
+                                } else {
+                                    expires_at_ms =
+                                        expires_it->get<std::int64_t>();
+                                }
+                            }
+                        }
+
+                        std::int64_t rps_limit = cfg.auth.rps_limit;
+                        std::int64_t ws_max_connections =
+                            cfg.auth.ws_max_connections;
+                        if (auto rl_it = key_json.find("rate_limit");
+                            rl_it != key_json.end()) {
+                            if (!rl_it->is_object()) {
+                                add_error(result.errors,
+                                          "auth.api_keys[" + std::to_string(i) +
+                                              "].rate_limit",
+                                          "type_mismatch", "Expected object");
+                            } else {
+                                read_int64(*rl_it, "rps", rps_limit,
+                                           result.errors,
+                                           "auth.api_keys[" + std::to_string(i) +
+                                               "].rate_limit");
+                                read_int64(*rl_it, "ws_max_connections",
+                                           ws_max_connections, result.errors,
+                                           "auth.api_keys[" + std::to_string(i) +
+                                               "].rate_limit");
+                            }
+                        }
+
+                        cfg.auth.api_keys.push_back(ApiKeyEntry{
+                            fingerprint,
+                            scope_mask,
+                            expires_at_ms,
+                            rps_limit,
+                            ws_max_connections,
+                        });
+                    }
+                }
+            }
         }
     }
 
