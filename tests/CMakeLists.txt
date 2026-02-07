@@ -104,3 +104,14 @@ target_link_libraries(test_fingerprint_computer
 )
 
 add_test(NAME test_fingerprint_computer COMMAND test_fingerprint_computer)
+
+add_executable(test_auth_cache
+    test_auth_cache.cpp
+)
+
+target_link_libraries(test_auth_cache
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_auth_cache COMMAND test_auth_cache)

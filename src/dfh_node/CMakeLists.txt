@@ -3,6 +3,7 @@
 find_package(OpenSSL REQUIRED)
 
 add_library(dfh_node STATIC
+    auth_cache.cpp
     bounded_queue.cpp
     config.cpp
     config_api_key_store.cpp
