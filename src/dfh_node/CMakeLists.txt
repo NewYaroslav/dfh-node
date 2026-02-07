@@ -14,6 +14,7 @@ add_library(dfh_node STATIC
     rate_limiter.cpp
     status.cpp
     task_scheduler.cpp
+    unified_gate.cpp
     worker_pool.cpp
     ws_connection_limiter.cpp
     version.cpp

@@ -148,3 +148,14 @@ target_link_libraries(test_auth_service
 )
 
 add_test(NAME test_auth_service COMMAND test_auth_service)
+
+add_executable(test_unified_gate
+    test_unified_gate.cpp
+)
+
+target_link_libraries(test_unified_gate
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_unified_gate COMMAND test_unified_gate)
