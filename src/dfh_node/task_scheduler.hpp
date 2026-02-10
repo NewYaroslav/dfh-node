@@ -1,9 +1,8 @@
-/**
- * \file task_scheduler.hpp
- * \brief Приоритетный планировщик задач и метрики очередей.
- * \details Определяет публичный API TaskScheduler для high/low priority
- * очередей.
- */
+/// \file task_scheduler.hpp
+/// \brief Приоритетный планировщик задач и метрики очередей.
+/// \details Определяет публичный API TaskScheduler для high/low priority
+/// очередей.
+
 #pragma once
 
 #include "internal/bounded_queue.hpp"
@@ -24,7 +23,7 @@ namespace dfh_node {
 /// Shutdown семантика: stop-now (не drain, tasks могут остаться
 /// необработанными).
 class TaskScheduler {
-  public:
+public:
     /// \brief Конструктор.
     /// \param high_capacity Вместимость high-priority очереди.
     /// \param low_capacity Вместимость low-priority очереди.
@@ -61,11 +60,9 @@ class TaskScheduler {
     /// \return Снимок метрик low-priority очереди.
     QueueMetrics low_metrics() const;
 
-  private:
-    BoundedQueue
-        m_high_queue; ///< High-priority очередь (БЕЗ собственного mutex/cv).
-    BoundedQueue
-        m_low_queue; ///< Low-priority очередь (БЕЗ собственного mutex/cv).
+private:
+    BoundedQueue m_high_queue; ///< High-priority очередь (БЕЗ собственного mutex/cv).
+    BoundedQueue m_low_queue;  ///< Low-priority очередь (БЕЗ собственного mutex/cv).
     mutable std::mutex m_mutex;   ///< ЕДИНЫЙ mutex для обеих очередей.
     std::condition_variable m_cv; ///< ЕДИНЫЙ notifier для воркеров.
     std::atomic<bool> m_shutdown_flag{false}; ///< Флаг остановки.
