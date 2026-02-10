@@ -19,11 +19,15 @@ namespace dfh_node {
 
 /// \brief Код ошибки авторизации.
 enum class GateErrorCode : std::uint8_t {
-    Unauthorized,        ///< Токен невалиден или истёк.
-    Forbidden,           ///< Недостаточно scope для операции.
-    RateLimited,         ///< Превышен rate-limit.
-    ConnectionLimited,   ///< Превышен лимит WS-соединений.
-    UnsupportedOperation ///< Неизвестный/неподдерживаемый тип операции.
+    Unauthorized = 0,             ///< Токен невалиден или истёк.
+    Forbidden = 1,                ///< Недостаточно scope для операции.
+    RateLimited = 2,              ///< Превышен rate-limit.
+    ConnectionLimited = 3,        ///< Превышен лимит WS-соединений.
+    UnsupportedOperation = 4,     ///< Неизвестный/неподдерживаемый тип операции.
+    AntiReplayFailed = 5,         ///< Ошибка anti-replay (skew/signature/nonce reuse).
+    AntiReplayRequired = 6,       ///< Anti-replay отключен, но обязателен для scope.
+    MissingAntiReplayHeaders = 7, ///< Нет обязательных anti-replay HTTP заголовков.
+    MissingAntiReplayFields = 8   ///< Нет обязательных anti-replay WS полей.
 };
 
 /// \brief Ошибка авторизации без HTTP-статуса.
@@ -32,12 +36,13 @@ struct GateError {
     std::string message; ///< Человекочитаемое описание.
 };
 
-/// \brief Результат авторизации.
-using GateResult = std::variant<AuthContext, GateError>;
+/// \brief Результат авторизации/gate-проверки.
+/// \details std::monostate используется в anti-replay проверках без AuthContext.
+using GateResult = std::variant<std::monostate, AuthContext, GateError>;
 
 /// \brief Сервис аутентификации и проверки прав.
 class AuthService {
-  public:
+public:
     /// \brief Конструктор.
     /// \param store Хранилище API-ключей.
     /// \param cache Кэш авторизационных контекстов.
@@ -63,7 +68,7 @@ class AuthService {
     GateResult authorize_fingerprint(const std::string &fingerprint,
                                      TaskKind kind);
 
-  private:
+private:
     IApiKeyStore &m_store;
     AuthCache &m_cache;
     const FingerprintComputer &m_fingerprint_computer;
