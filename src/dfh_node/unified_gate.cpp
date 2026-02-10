@@ -9,11 +9,12 @@
 namespace dfh_node {
 
 UnifiedGate::UnifiedGate(AuthService &auth_service, RateLimiter &rate_limiter, WsConnectionLimiter &ws_limiter,
-                         AntiReplayValidator *anti_replay_validator)
+                         AntiReplayValidator *anti_replay_validator, const ScopeMask require_for_scopes)
     : m_auth_service(auth_service),
       m_rate_limiter(rate_limiter),
       m_ws_limiter(ws_limiter),
-      m_anti_replay_validator(anti_replay_validator) {}
+      m_anti_replay_validator(anti_replay_validator),
+      m_require_for_scopes(require_for_scopes) {}
 
 GateResult UnifiedGate::authorize_http(const std::string &token, const TaskKind kind,
                                        const HttpAntiReplayFields *ar_fields) {
@@ -144,7 +145,7 @@ GateResult UnifiedGate::validate_anti_replay_requirement(const TaskKind kind) co
     }
 
     const Scope scope = *scope_opt;
-    if (scope == Scope::Write || scope == Scope::Admin || scope == Scope::Sync) {
+    if (has_scope(m_require_for_scopes, scope)) {
         return GateError{GateErrorCode::AntiReplayRequired, "Anti-replay is disabled but required for operation"};
     }
 
@@ -152,4 +153,3 @@ GateResult UnifiedGate::validate_anti_replay_requirement(const TaskKind kind) co
 }
 
 } // namespace dfh_node
-

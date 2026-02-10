@@ -1,8 +1,8 @@
 /**
  * \file test_unified_gate.cpp
  * \brief Unit-тесты для UnifiedGate.
- * \details Проверяет HTTP auth, WS upgrade без kind и WS message с проверкой
- * scope.
+ * \details Проверяет HTTP auth, WS upgrade без kind, WS message и
+ * anti-replay requirement policy.
  */
 #include "config.hpp"
 #include "config_api_key_store.hpp"
@@ -84,9 +84,33 @@ void test_ws_message_scope_check() {
     CHECK(error.code == GateErrorCode::Forbidden);
 }
 
+void test_http_rejects_when_antireplay_required_mask_contains_read() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string fingerprint = computer.compute("token-read");
+
+    entries.push_back(config::ApiKeyEntry{fingerprint,
+                                          static_cast<ScopeMask>(Scope::Read),
+                                          std::nullopt, 100, 10});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+    RateLimiter limiter(100, 1000);
+    WsConnectionLimiter ws_limiter;
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr,
+                     to_scope_mask(Scope::Read));
+
+    const auto result = gate.authorize_http("token-read", TaskKind::History);
+    CHECK(std::holds_alternative<GateError>(result));
+    const auto &error = std::get<GateError>(result);
+    CHECK(error.code == GateErrorCode::AntiReplayRequired);
+}
+
 int main() {
     test_http_authorize();
     test_ws_upgrade_no_kind();
     test_ws_message_scope_check();
+    test_http_rejects_when_antireplay_required_mask_contains_read();
     return 0;
 }

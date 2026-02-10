@@ -23,8 +23,11 @@ public:
     /// \param rate_limiter Лимитер запросов.
     /// \param ws_limiter Лимитер WS-соединений.
     /// \param anti_replay_validator Валидатор anti-replay (nullable).
+    /// \param require_for_scopes Битмаска scope, где anti-replay обязателен при отключенном валидаторе.
     UnifiedGate(AuthService &auth_service, RateLimiter &rate_limiter, WsConnectionLimiter &ws_limiter,
-                AntiReplayValidator *anti_replay_validator = nullptr);
+                AntiReplayValidator *anti_replay_validator = nullptr,
+                ScopeMask require_for_scopes = to_scope_mask(Scope::Write) | to_scope_mask(Scope::Admin) |
+                                               to_scope_mask(Scope::Sync));
 
     /// \brief Авторизует HTTP-запрос по токену и типу операции.
     /// \param token Plaintext токен.
@@ -63,7 +66,7 @@ private:
     RateLimiter &m_rate_limiter; ///< Лимитер частоты запросов.
     WsConnectionLimiter &m_ws_limiter; ///< Лимитер WS-соединений.
     AntiReplayValidator *m_anti_replay_validator; ///< Nullable при отключённом anti-replay.
+    ScopeMask m_require_for_scopes; ///< Scope, для которых anti-replay обязателен.
 };
 
 } // namespace dfh_node
-
