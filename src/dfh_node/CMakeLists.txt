@@ -12,6 +12,7 @@ add_library(dfh_node STATIC
     config_validator.cpp
     fingerprint_computer.cpp
     rate_limiter.cpp
+    sha256_utils.cpp
     status.cpp
     task_scheduler.cpp
     unified_gate.cpp
