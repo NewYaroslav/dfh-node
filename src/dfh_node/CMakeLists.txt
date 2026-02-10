@@ -12,6 +12,7 @@ add_library(dfh_node STATIC
     config_loader.cpp
     config_validator.cpp
     fingerprint_computer.cpp
+    nonce_store.cpp
     rate_limiter.cpp
     sha256_utils.cpp
     status.cpp
