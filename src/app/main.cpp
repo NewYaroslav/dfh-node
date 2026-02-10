@@ -30,7 +30,8 @@ logit::LogLevel parse_level(const std::string &level) {
     std::string lower;
     lower.reserve(level.size());
     for (char ch : level) {
-        // Приводим к unsigned char, чтобы избежать UB на отрицательных значениях.
+        // Приводим к unsigned char, чтобы избежать UB на отрицательных
+        // значениях.
         lower.push_back(
             static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
     }
@@ -142,9 +143,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    dfh_node::TaskScheduler scheduler(
-        result.config->queues.high_capacity,
-        result.config->queues.low_capacity);
+    dfh_node::TaskScheduler scheduler(result.config->queues.high_capacity,
+                                      result.config->queues.low_capacity);
 
     dfh_node::WorkerPool pool(
         static_cast<std::size_t>(result.config->queues.workers), scheduler);
@@ -169,15 +169,12 @@ int main(int argc, char **argv) {
     auto high_metrics = scheduler.high_metrics();
     high_metrics.total_processed =
         pool.total_processed(dfh_node::TaskLane::High);
-    high_metrics.avg_wait_ms =
-        pool.avg_wait_ms(dfh_node::TaskLane::High);
+    high_metrics.avg_wait_ms = pool.avg_wait_ms(dfh_node::TaskLane::High);
     status.high_priority_queue = high_metrics;
 
     auto low_metrics = scheduler.low_metrics();
-    low_metrics.total_processed =
-        pool.total_processed(dfh_node::TaskLane::Low);
-    low_metrics.avg_wait_ms =
-        pool.avg_wait_ms(dfh_node::TaskLane::Low);
+    low_metrics.total_processed = pool.total_processed(dfh_node::TaskLane::Low);
+    low_metrics.avg_wait_ms = pool.avg_wait_ms(dfh_node::TaskLane::Low);
     status.low_priority_queue = low_metrics;
 
     status.workers_count = result.config->queues.workers;
@@ -194,22 +191,34 @@ int main(int argc, char **argv) {
         "Queues: high(size=%zu, cap=%zu, rej=%llu, drop=%llu, enq=%llu, "
         "proc=%llu, wait=%.2fms), low(size=%zu, cap=%zu, rej=%llu, "
         "drop=%llu, enq=%llu, proc=%llu, wait=%.2fms), workers=%d",
-        status.high_priority_queue.current_size, status.high_priority_queue.capacity,
-        static_cast<unsigned long long>(status.high_priority_queue.rejected_count),
-        static_cast<unsigned long long>(status.high_priority_queue.dropped_count),
-        static_cast<unsigned long long>(status.high_priority_queue.total_enqueued),
-        static_cast<unsigned long long>(status.high_priority_queue.total_processed),
-        status.high_priority_queue.avg_wait_ms, status.low_priority_queue.current_size,
+        status.high_priority_queue.current_size,
+        status.high_priority_queue.capacity,
+        static_cast<unsigned long long>(
+            status.high_priority_queue.rejected_count),
+        static_cast<unsigned long long>(
+            status.high_priority_queue.dropped_count),
+        static_cast<unsigned long long>(
+            status.high_priority_queue.total_enqueued),
+        static_cast<unsigned long long>(
+            status.high_priority_queue.total_processed),
+        status.high_priority_queue.avg_wait_ms,
+        status.low_priority_queue.current_size,
         status.low_priority_queue.capacity,
-        static_cast<unsigned long long>(status.low_priority_queue.rejected_count),
-        static_cast<unsigned long long>(status.low_priority_queue.dropped_count),
-        static_cast<unsigned long long>(status.low_priority_queue.total_enqueued),
-        static_cast<unsigned long long>(status.low_priority_queue.total_processed),
+        static_cast<unsigned long long>(
+            status.low_priority_queue.rejected_count),
+        static_cast<unsigned long long>(
+            status.low_priority_queue.dropped_count),
+        static_cast<unsigned long long>(
+            status.low_priority_queue.total_enqueued),
+        static_cast<unsigned long long>(
+            status.low_priority_queue.total_processed),
         status.low_priority_queue.avg_wait_ms, status.workers_count);
 
     // One-shot mode: остановить воркеры (graceful).
-    // TODO: daemon mode / event-loop для долгоживущего процесса (при HTTP/WS транспорте).
-    // TODO: signal handler для Ctrl+C (при долгоживущем режиме через флаг --run).
+    // TODO: daemon mode / event-loop для долгоживущего процесса (при HTTP/WS
+    // транспорте).
+    // TODO: signal handler для Ctrl+C (при долгоживущем режиме через флаг
+    // --run).
     // TODO: режим --print-status-json для машинного чтения статуса.
     pool.shutdown();
 

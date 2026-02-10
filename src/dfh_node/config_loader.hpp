@@ -17,15 +17,16 @@ namespace dfh_node::config {
 /// \brief Описание ошибки загрузки конфигурации.
 /// \details path содержит путь к полю в JSON (например, "http.port").
 struct LoadError {
-    std::string path; ///< JSON-путь до проблемного поля.
-    std::string code; ///< Машиночитаемый код ошибки.
+    std::string path;    ///< JSON-путь до проблемного поля.
+    std::string code;    ///< Машиночитаемый код ошибки.
     std::string message; ///< Человекочитаемое сообщение.
 };
 
 /// \brief Результат загрузки конфигурации из файла.
 /// \details При наличии ошибок config может отсутствовать.
 struct LoadResult {
-    std::optional<Config> config; ///< Загруженная конфигурация или std::nullopt.
+    std::optional<Config>
+        config; ///< Загруженная конфигурация или std::nullopt.
     std::vector<LoadError> errors; ///< Список ошибок парсинга/валидации.
 
     /// \brief Быстрая проверка успешности загрузки.

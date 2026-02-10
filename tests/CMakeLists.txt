@@ -82,3 +82,91 @@ target_link_libraries(test_worker_pool
 )
 
 add_test(NAME test_worker_pool COMMAND test_worker_pool)
+
+add_executable(test_scope
+    test_scope.cpp
+)
+
+target_link_libraries(test_scope
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_scope COMMAND test_scope)
+
+add_executable(test_fingerprint_computer
+    test_fingerprint_computer.cpp
+)
+
+target_link_libraries(test_fingerprint_computer
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_fingerprint_computer COMMAND test_fingerprint_computer)
+
+add_executable(test_auth_cache
+    test_auth_cache.cpp
+)
+
+target_link_libraries(test_auth_cache
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_auth_cache COMMAND test_auth_cache)
+
+add_executable(test_rate_limiter
+    test_rate_limiter.cpp
+)
+
+target_link_libraries(test_rate_limiter
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_rate_limiter COMMAND test_rate_limiter)
+
+add_executable(test_ws_connection_limiter
+    test_ws_connection_limiter.cpp
+)
+
+target_link_libraries(test_ws_connection_limiter
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_connection_limiter COMMAND test_ws_connection_limiter)
+
+add_executable(test_auth_service
+    test_auth_service.cpp
+)
+
+target_link_libraries(test_auth_service
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_auth_service COMMAND test_auth_service)
+
+add_executable(test_unified_gate
+    test_unified_gate.cpp
+)
+
+target_link_libraries(test_unified_gate
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_unified_gate COMMAND test_unified_gate)
+
+add_executable(test_gate_e2e
+    test_gate_e2e.cpp
+)
+
+target_link_libraries(test_gate_e2e
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_gate_e2e COMMAND test_gate_e2e)

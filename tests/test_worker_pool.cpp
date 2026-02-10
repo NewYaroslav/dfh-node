@@ -3,8 +3,8 @@
  * \brief Unit-тесты для WorkerPool.
  * \details Проверяет shutdown и сбор метрик обработки.
  */
-#include "worker_pool.hpp"
 #include "test_helpers.hpp"
+#include "worker_pool.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -23,8 +23,9 @@ void test_shutdown_stop_now() {
     // Enqueue несколько задач.
     for (int i = 0; i < 5; ++i) {
         Task task{TaskKind::Ingest, "req" + std::to_string(i), 0, []() {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }};
+                      std::this_thread::sleep_for(
+                          std::chrono::milliseconds(10));
+                  }};
         scheduler.enqueue_high(std::move(task));
     }
 
@@ -46,13 +47,15 @@ void test_metrics_collection() {
 
     // Enqueue 10 ingest jobs (monotonic clock timestamp).
     auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
+                      std::chrono::steady_clock::now().time_since_epoch())
+                      .count();
 
     std::atomic<int> executed{0};
     for (int i = 0; i < 10; ++i) {
-        Task task{TaskKind::Ingest, "req" + std::to_string(i), static_cast<std::uint64_t>(now_ms), [&executed]() {
-            executed.fetch_add(1, std::memory_order_relaxed);
-        }};
+        Task task{TaskKind::Ingest, "req" + std::to_string(i),
+                  static_cast<std::uint64_t>(now_ms), [&executed]() {
+                      executed.fetch_add(1, std::memory_order_relaxed);
+                  }};
         auto result = scheduler.enqueue_high(std::move(task));
         CHECK(result.status == EnqueueStatus::Ok);
     }

@@ -1,13 +1,13 @@
-/**
- * \file task_scheduler.hpp
- * \brief Приоритетный планировщик задач и метрики очередей.
- * \details Определяет публичный API TaskScheduler для high/low priority очередей.
- */
+/// \file task_scheduler.hpp
+/// \brief Приоритетный планировщик задач и метрики очередей.
+/// \details Определяет публичный API TaskScheduler для high/low priority
+/// очередей.
+
 #pragma once
 
-#include "task.hpp"
-#include "status.hpp"
 #include "internal/bounded_queue.hpp"
+#include "status.hpp"
+#include "task.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
@@ -20,7 +20,8 @@ namespace dfh_node {
 ///
 /// Единая точка enqueue для обеих очередей, владеет единым mutex + cv.
 /// pop_next_task() реализует приоритет: сначала high, затем low.
-/// Shutdown семантика: stop-now (не drain, tasks могут остаться необработанными).
+/// Shutdown семантика: stop-now (не drain, tasks могут остаться
+/// необработанными).
 class TaskScheduler {
 public:
     /// \brief Конструктор.
@@ -61,8 +62,8 @@ public:
 
 private:
     BoundedQueue m_high_queue; ///< High-priority очередь (БЕЗ собственного mutex/cv).
-    BoundedQueue m_low_queue; ///< Low-priority очередь (БЕЗ собственного mutex/cv).
-    mutable std::mutex m_mutex; ///< ЕДИНЫЙ mutex для обеих очередей.
+    BoundedQueue m_low_queue;  ///< Low-priority очередь (БЕЗ собственного mutex/cv).
+    mutable std::mutex m_mutex;   ///< ЕДИНЫЙ mutex для обеих очередей.
     std::condition_variable m_cv; ///< ЕДИНЫЙ notifier для воркеров.
     std::atomic<bool> m_shutdown_flag{false}; ///< Флаг остановки.
 };

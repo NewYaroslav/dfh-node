@@ -15,8 +15,8 @@ namespace dfh_node::config {
 /// \brief Описание ошибки валидации конфигурации.
 /// \details path содержит путь к полю (например, "logging.level").
 struct ValidationError {
-    std::string path; ///< Путь к полю конфигурации.
-    std::string code; ///< Машиночитаемый код ошибки.
+    std::string path;    ///< Путь к полю конфигурации.
+    std::string code;    ///< Машиночитаемый код ошибки.
     std::string message; ///< Человекочитаемое сообщение.
 };
 
