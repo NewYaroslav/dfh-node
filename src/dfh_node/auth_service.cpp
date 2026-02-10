@@ -1,23 +1,19 @@
-/**
- * \file auth_service.cpp
- * \brief Реализация сервиса аутентификации/авторизации.
- * \details Сначала выполняет lookup в cache/store, затем проверяет срок
- * действия и scope.
- */
+/// \file auth_service.cpp
+/// \brief Реализация сервиса аутентификации/авторизации.
+/// \details Сначала выполняет lookup в cache/store, затем проверяет срок
+/// действия и scope.
+///
 #include "auth_service.hpp"
 
 #include <chrono>
 
 namespace dfh_node {
 
-AuthService::AuthService(IApiKeyStore &store, AuthCache &cache,
-                         const FingerprintComputer &fingerprint_computer)
-    : m_store(store), m_cache(cache),
-      m_fingerprint_computer(fingerprint_computer) {}
+AuthService::AuthService(IApiKeyStore &store, AuthCache &cache, const FingerprintComputer &fingerprint_computer)
+    : m_store(store), m_cache(cache), m_fingerprint_computer(fingerprint_computer) {}
 
 std::int64_t AuthService::system_clock_epoch_ms() const {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::chrono::system_clock::now().time_since_epoch())
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
         .count();
 }
 
@@ -36,8 +32,7 @@ GateResult AuthService::authorize(const std::string &token, TaskKind kind) {
     return check_scope(context, kind);
 }
 
-GateResult AuthService::authorize_fingerprint(const std::string &fingerprint,
-                                              TaskKind kind) {
+GateResult AuthService::authorize_fingerprint(const std::string &fingerprint, TaskKind kind) {
     GateResult lookup_result = lookup_and_validate(fingerprint);
     if (std::holds_alternative<GateError>(lookup_result)) {
         return lookup_result;
@@ -62,13 +57,11 @@ GateResult AuthService::lookup_and_validate(const std::string &fingerprint) {
         return GateError{GateErrorCode::Unauthorized, "Invalid token"};
     }
 
-    if (record->expires_at_ms.has_value() &&
-        record->expires_at_ms.value() < system_clock_epoch_ms()) {
+    if (record->expires_at_ms.has_value() && record->expires_at_ms.value() < system_clock_epoch_ms()) {
         return GateError{GateErrorCode::Unauthorized, "Token expired"};
     }
 
-    const AuthContext context{fingerprint, record->scope_mask,
-                              record->rps_limit, record->ws_max_connections,
+    const AuthContext context{fingerprint, record->scope_mask, record->rps_limit, record->ws_max_connections,
                               record->expires_at_ms};
     m_cache.put(fingerprint, context);
     return context;
@@ -77,8 +70,7 @@ GateResult AuthService::lookup_and_validate(const std::string &fingerprint) {
 GateResult AuthService::check_scope(const AuthContext &context, TaskKind kind) {
     const auto required = required_scope(kind);
     if (!required.has_value()) {
-        return GateError{GateErrorCode::UnsupportedOperation,
-                         "Unknown operation type"};
+        return GateError{GateErrorCode::UnsupportedOperation, "Unknown operation type"};
     }
 
     if (!has_scope(context.scope_mask, required.value())) {

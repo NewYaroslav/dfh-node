@@ -1,12 +1,11 @@
-/**
- * \file test_unified_gate.cpp
- * \brief Юнит-тесты для UnifiedGate.
- * \details Проверяет HTTP auth, WS upgrade без kind, WS message и
- * anti-replay requirement policy.
- */
+/// \file test_unified_gate.cpp
+/// \brief Юнит-тесты для UnifiedGate.
+/// \details Проверяет HTTP auth, WS upgrade без kind, WS message и
+/// anti-replay requirement policy.
+///
+#include "anti_replay_validator.hpp"
 #include "config.hpp"
 #include "config_api_key_store.hpp"
-#include "anti_replay_validator.hpp"
 #include "nonce_store.hpp"
 #include "sha256_utils.hpp"
 #include "test_helpers.hpp"
@@ -25,8 +24,7 @@ void test_http_authorize() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token1");
 
-    entries.push_back(config::ApiKeyEntry{
-        fingerprint, Scope::Read | Scope::Write, std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, Scope::Read | Scope::Write, std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -44,9 +42,7 @@ void test_ws_upgrade_no_kind() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token1");
 
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Write),
-                                          std::nullopt, 100, 1});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 1});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -64,9 +60,7 @@ void test_ws_message_scope_check() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token1");
 
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Write),
-                                          std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -77,12 +71,10 @@ void test_ws_message_scope_check() {
 
     (void)gate.authorize_ws_upgrade("token1");
 
-    const auto allowed =
-        gate.authorize_ws_message(fingerprint, TaskKind::Ingest);
+    const auto allowed = gate.authorize_ws_message(fingerprint, TaskKind::Ingest);
     CHECK(std::holds_alternative<AuthContext>(allowed));
 
-    const auto forbidden =
-        gate.authorize_ws_message(fingerprint, TaskKind::History);
+    const auto forbidden = gate.authorize_ws_message(fingerprint, TaskKind::History);
     CHECK(std::holds_alternative<GateError>(forbidden));
     const auto &error = std::get<GateError>(forbidden);
     CHECK(error.code == GateErrorCode::Forbidden);
@@ -93,17 +85,14 @@ void test_http_rejects_when_antireplay_required_mask_contains_read() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token-read");
 
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Read),
-                                          std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Read), std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
     AuthService service(store, cache, computer);
     RateLimiter limiter(100, 1000);
     WsConnectionLimiter ws_limiter;
-    UnifiedGate gate(service, limiter, ws_limiter, nullptr,
-                     to_scope_mask(Scope::Read));
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, to_scope_mask(Scope::Read));
 
     const auto result = gate.authorize_http("token-read", TaskKind::History);
     CHECK(std::holds_alternative<GateError>(result));
@@ -116,9 +105,7 @@ void test_http_history_allowed_with_default_required_mask() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token-read-default");
 
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Read),
-                                          std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Read), std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -127,8 +114,7 @@ void test_http_history_allowed_with_default_required_mask() {
     WsConnectionLimiter ws_limiter;
     UnifiedGate gate(service, limiter, ws_limiter);
 
-    const auto result =
-        gate.authorize_http("token-read-default", TaskKind::History);
+    const auto result = gate.authorize_http("token-read-default", TaskKind::History);
     CHECK(std::holds_alternative<AuthContext>(result));
 }
 
@@ -137,9 +123,7 @@ void test_ws_upgrade_connection_limited() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token-ws-limit");
 
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Write),
-                                          std::nullopt, 100, 1});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 1});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -160,9 +144,7 @@ void test_http_missing_antireplay_headers_when_validator_enabled() {
     std::vector<config::ApiKeyEntry> entries;
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token-ar-http");
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Write),
-                                          std::nullopt, 100, 5});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 5});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -190,9 +172,7 @@ void test_ws_missing_antireplay_fields_when_validator_enabled() {
     FingerprintComputer computer("secret");
     const std::string token = "token-ar-ws";
     const std::string fingerprint = computer.compute(token);
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Write),
-                                          std::nullopt, 100, 5});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 5});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -225,9 +205,7 @@ void test_http_antireplay_error_propagates() {
     FingerprintComputer computer("secret");
     const std::string token = "token-ar-http-invalid-sig";
     const std::string fingerprint = computer.compute(token);
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Write),
-                                          std::nullopt, 100, 5});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 5});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -265,9 +243,7 @@ void test_ws_antireplay_error_propagates() {
     FingerprintComputer computer("secret");
     const std::string token = "token-ar-ws-invalid";
     const std::string fingerprint = computer.compute(token);
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Write),
-                                          std::nullopt, 100, 5});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 5});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);

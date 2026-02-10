@@ -1,8 +1,7 @@
-/**
- * \file config_loader.hpp
- * \brief Загрузка конфигурации из JSON-файла.
- * \details Возвращает результат с перечнем ошибок, без исключений парсинга.
- */
+/// \file config_loader.hpp
+/// \brief Загрузка конфигурации из JSON-файла.
+/// \details Возвращает результат с перечнем ошибок, без исключений парсинга.
+///
 #pragma once
 
 #include "config.hpp"
@@ -25,8 +24,7 @@ struct LoadError {
 /// \brief Результат загрузки конфигурации из файла.
 /// \details При наличии ошибок config может отсутствовать.
 struct LoadResult {
-    std::optional<Config>
-        config; ///< Загруженная конфигурация или std::nullopt.
+    std::optional<Config> config;  ///< Загруженная конфигурация или std::nullopt.
     std::vector<LoadError> errors; ///< Список ошибок парсинга/валидации.
 
     /// \brief Быстрая проверка успешности загрузки.

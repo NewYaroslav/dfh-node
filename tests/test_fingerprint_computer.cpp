@@ -1,9 +1,8 @@
-/**
- * \file test_fingerprint_computer.cpp
- * \brief Юнит-тесты для FingerprintComputer.
- * \details Проверяет детерминированность, формат и различие fingerprint у
- * разных токенов.
- */
+/// \file test_fingerprint_computer.cpp
+/// \brief Юнит-тесты для FingerprintComputer.
+/// \details Проверяет детерминированность, формат и различие fingerprint у
+/// разных токенов.
+///
 #include "fingerprint_computer.hpp"
 #include "test_helpers.hpp"
 

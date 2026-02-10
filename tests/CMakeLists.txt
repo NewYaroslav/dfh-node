@@ -7,6 +7,13 @@ add_test(
             -P ${CMAKE_SOURCE_DIR}/scripts/check-tests-registered.cmake
 )
 
+add_test(
+    NAME test_comment_style
+    COMMAND ${CMAKE_COMMAND}
+            -DPROJECT_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+            -P ${CMAKE_SOURCE_DIR}/cmake/CheckDoxygenStyle.cmake
+)
+
 add_executable(dfh_node_smoke
     test_smoke.cpp
 )

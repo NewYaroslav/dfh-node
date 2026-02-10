@@ -1,17 +1,15 @@
-/**
- * \file worker_pool.cpp
- * \brief Реализация пула воркеров для выполнения задач.
- * \details Использует TaskScheduler для получения задач и собирает метрики
- * ожидания.
- */
+/// \file worker_pool.cpp
+/// \brief Реализация пула воркеров для выполнения задач.
+/// \details Использует TaskScheduler для получения задач и собирает метрики
+/// ожидания.
+///
 #include "worker_pool.hpp"
 
 #include <chrono>
 
 namespace dfh_node {
 
-WorkerPool::WorkerPool(std::size_t num_workers, TaskScheduler &scheduler)
-    : m_scheduler(scheduler) {
+WorkerPool::WorkerPool(std::size_t num_workers, TaskScheduler &scheduler) : m_scheduler(scheduler) {
     m_workers.reserve(num_workers);
 }
 
@@ -49,9 +47,7 @@ void WorkerPool::worker_loop() {
         // КРИТИЧНО: monotonic clock (steady_clock, НЕ system_clock).
         const auto now = std::chrono::steady_clock::now();
         const std::uint64_t now_ms = static_cast<std::uint64_t>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                now.time_since_epoch())
-                .count());
+            std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
         const std::uint64_t wait_ms = now_ms - task_opt->enqueue_ts_ms;
 
         const int lane_idx = to_index(task_opt->lane);
@@ -79,8 +75,7 @@ std::uint64_t WorkerPool::total_wait_ms(TaskLane lane) const {
 
 double WorkerPool::avg_wait_ms(TaskLane lane) const {
     const int idx = to_index(lane);
-    const auto processed =
-        m_total_processed[idx].load(std::memory_order_relaxed);
+    const auto processed = m_total_processed[idx].load(std::memory_order_relaxed);
     if (processed == 0) {
         return 0.0;
     }

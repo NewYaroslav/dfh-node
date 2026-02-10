@@ -1,9 +1,8 @@
-/**
- * \file scope.hpp
- * \brief Определения scope и утилиты авторизации.
- * \details Содержит битмаску Scope, парсинг из конфигурации и маппинг TaskKind
- * в требуемый scope.
- */
+/// \file scope.hpp
+/// \brief Определения scope и утилиты авторизации.
+/// \details Содержит битмаску Scope, парсинг из конфигурации и маппинг TaskKind
+/// в требуемый scope.
+///
 #pragma once
 
 #include "task.hpp"
@@ -43,17 +42,14 @@ constexpr ScopeMask operator|(const Scope left, const Scope right) {
 /// \param mask Текущая маска.
 /// \param scope Добавляемый scope.
 /// \return Новая маска с добавленным scope.
-constexpr ScopeMask operator|(const ScopeMask mask, const Scope scope) {
-    return mask | to_scope_mask(scope);
-}
+constexpr ScopeMask operator|(const ScopeMask mask, const Scope scope) { return mask | to_scope_mask(scope); }
 
 /// \brief Проверить наличие требуемого scope в маске.
 /// \param mask Маска прав.
 /// \param required Требуемый scope.
 /// \return true, если scope присутствует или включён Admin override.
 inline bool has_scope(const ScopeMask mask, const Scope required) {
-    return (mask & to_scope_mask(required)) != 0 ||
-           (mask & to_scope_mask(Scope::Admin)) != 0;
+    return (mask & to_scope_mask(required)) != 0 || (mask & to_scope_mask(Scope::Admin)) != 0;
 }
 
 /// \brief Преобразовать строку scope из конфига в enum.

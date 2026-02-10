@@ -1,16 +1,14 @@
-/**
- * \file task_scheduler.cpp
- * \brief Реализация приоритетного планировщика задач.
- * \details Включает семантику `stop-now` и базовый сбор метрик очередей.
- */
+/// \file task_scheduler.cpp
+/// \brief Реализация приоритетного планировщика задач.
+/// \details Включает семантику `stop-now` и базовый сбор метрик очередей.
+///
 #include "task_scheduler.hpp"
 
 #include <utility>
 
 namespace dfh_node {
 
-TaskScheduler::TaskScheduler(std::size_t high_capacity,
-                             std::size_t low_capacity)
+TaskScheduler::TaskScheduler(std::size_t high_capacity, std::size_t low_capacity)
     : m_high_queue(high_capacity), m_low_queue(low_capacity) {}
 
 EnqueueResult TaskScheduler::enqueue_high(Task task) {
@@ -20,8 +18,7 @@ EnqueueResult TaskScheduler::enqueue_high(Task task) {
     // очередей, чтобы исключить гонки и пропущенные пробуждения между
     // постановкой и извлечением задач.
     if (!m_high_queue.try_push(std::move(task))) {
-        return {EnqueueStatus::Rejected, "overload.high_priority_queue_full",
-                "High-priority queue is full"};
+        return {EnqueueStatus::Rejected, "overload.high_priority_queue_full", "High-priority queue is full"};
     }
     // Пробуждаем только одного воркера: одной новой задачи достаточно для
     // одного потока.
@@ -35,8 +32,7 @@ EnqueueResult TaskScheduler::enqueue_low(Task task) {
     // Единый mutex для обеих очередей гарантирует корректный приоритет в
     // pop_next_task().
     if (!m_low_queue.try_push(std::move(task))) {
-        return {EnqueueStatus::Rejected, "overload.low_priority_queue_full",
-                "Low-priority queue is full"};
+        return {EnqueueStatus::Rejected, "overload.low_priority_queue_full", "Low-priority queue is full"};
     }
     m_cv.notify_one();
     return {EnqueueStatus::Ok, "", ""};

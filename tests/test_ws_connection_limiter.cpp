@@ -1,9 +1,8 @@
-/**
- * \file test_ws_connection_limiter.cpp
- * \brief Юнит-тесты для WsConnectionLimiter.
- * \details Проверяет базовый лимит, снятие регистрации и чтение активных
- * соединений.
- */
+/// \file test_ws_connection_limiter.cpp
+/// \brief Юнит-тесты для WsConnectionLimiter.
+/// \details Проверяет базовый лимит, снятие регистрации и чтение активных
+/// соединений.
+///
 #include "test_helpers.hpp"
 #include "ws_connection_limiter.hpp"
 

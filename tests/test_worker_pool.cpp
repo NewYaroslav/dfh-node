@@ -1,8 +1,7 @@
-/**
- * \file test_worker_pool.cpp
- * \brief Юнит-тесты для WorkerPool.
- * \details Проверяет остановку и сбор метрик обработки.
- */
+/// \file test_worker_pool.cpp
+/// \brief Юнит-тесты для WorkerPool.
+/// \details Проверяет остановку и сбор метрик обработки.
+///
 #include "test_helpers.hpp"
 #include "worker_pool.hpp"
 
@@ -22,10 +21,8 @@ void test_shutdown_stop_now() {
 
     // Добавляем несколько задач.
     for (int i = 0; i < 5; ++i) {
-        Task task{TaskKind::Ingest, "req" + std::to_string(i), 0, []() {
-                      std::this_thread::sleep_for(
-                          std::chrono::milliseconds(10));
-                  }};
+        Task task{TaskKind::Ingest, "req" + std::to_string(i), 0,
+                  []() { std::this_thread::sleep_for(std::chrono::milliseconds(10)); }};
         scheduler.enqueue_high(std::move(task));
     }
 
@@ -46,16 +43,14 @@ void test_metrics_collection() {
     pool.start();
 
     // Добавляем 10 ingest-задач с меткой времени от монотонных часов.
-    auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::steady_clock::now().time_since_epoch())
-                      .count();
+    auto now_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+            .count();
 
     std::atomic<int> executed{0};
     for (int i = 0; i < 10; ++i) {
-        Task task{TaskKind::Ingest, "req" + std::to_string(i),
-                  static_cast<std::uint64_t>(now_ms), [&executed]() {
-                      executed.fetch_add(1, std::memory_order_relaxed);
-                  }};
+        Task task{TaskKind::Ingest, "req" + std::to_string(i), static_cast<std::uint64_t>(now_ms),
+                  [&executed]() { executed.fetch_add(1, std::memory_order_relaxed); }};
         auto result = scheduler.enqueue_high(std::move(task));
         CHECK(result.status == EnqueueStatus::Ok);
     }

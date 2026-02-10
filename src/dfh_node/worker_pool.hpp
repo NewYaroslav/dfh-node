@@ -1,8 +1,7 @@
-/**
- * \file worker_pool.hpp
- * \brief Пул воркеров для выполнения задач из TaskScheduler.
- * \details Содержит API для запуска воркеров и получения метрик обработки.
- */
+/// \file worker_pool.hpp
+/// \brief Пул воркеров для выполнения задач из TaskScheduler.
+/// \details Содержит API для запуска воркеров и получения метрик обработки.
+///
 #pragma once
 
 #include "task_scheduler.hpp"
@@ -19,7 +18,7 @@ namespace dfh_node {
 /// Метрики обработки: total_processed, total_wait_ms, avg_wait_ms (по лейну).
 /// остановка семантика: мягкая остановка = join потоков без зависаний (не drain).
 class WorkerPool {
-  public:
+public:
     /// \brief Конструктор.
     /// \param num_workers Количество воркеров.
     /// \param scheduler Ссылка на TaskScheduler.
@@ -50,15 +49,14 @@ class WorkerPool {
     /// processed == 0).
     double avg_wait_ms(TaskLane lane) const;
 
-  private:
+private:
     /// \brief Рабочий цикл воркера.
     void worker_loop();
 
-    TaskScheduler &m_scheduler;         ///< Ссылка на планировщик.
-    std::vector<std::thread> m_workers; ///< Пул потоков.
-    std::atomic<std::uint64_t> m_total_processed[2]{
-        0, 0}; ///< [High, Low] (C++17: fetch_add).
-    std::atomic<std::uint64_t> m_total_wait_ms[2]{0, 0}; ///< [High, Low].
+    TaskScheduler &m_scheduler;                            ///< Ссылка на планировщик.
+    std::vector<std::thread> m_workers;                    ///< Пул потоков.
+    std::atomic<std::uint64_t> m_total_processed[2]{0, 0}; ///< [High, Low] (C++17: fetch_add).
+    std::atomic<std::uint64_t> m_total_wait_ms[2]{0, 0};   ///< [High, Low].
 };
 
 } // namespace dfh_node

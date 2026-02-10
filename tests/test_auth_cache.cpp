@@ -1,8 +1,7 @@
-/**
- * \file test_auth_cache.cpp
- * \brief Юнит-тесты для AuthCache.
- * \details Покрывает базовый put/get, TTL и периодическую очистку.
- */
+/// \file test_auth_cache.cpp
+/// \brief Юнит-тесты для AuthCache.
+/// \details Покрывает базовый put/get, TTL и периодическую очистку.
+///
 #include "auth_cache.hpp"
 #include "test_helpers.hpp"
 
@@ -14,8 +13,7 @@ using namespace dfh_node;
 
 void test_put_get() {
     AuthCache cache(60000);
-    const AuthContext context{"fp1", static_cast<ScopeMask>(Scope::Read), 100,
-                              10, std::nullopt};
+    const AuthContext context{"fp1", static_cast<ScopeMask>(Scope::Read), 100, 10, std::nullopt};
 
     cache.put("fp1", context);
     const auto result = cache.get("fp1");
@@ -25,8 +23,7 @@ void test_put_get() {
 
 void test_ttl_expiry() {
     AuthCache cache(100);
-    const AuthContext context{"fp1", static_cast<ScopeMask>(Scope::Read), 100,
-                              10, std::nullopt};
+    const AuthContext context{"fp1", static_cast<ScopeMask>(Scope::Read), 100, 10, std::nullopt};
 
     cache.put("fp1", context);
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
@@ -40,9 +37,7 @@ void test_opportunistic_cleanup() {
 
     for (int index = 0; index < 2000; ++index) {
         const std::string fingerprint = "fp" + std::to_string(index);
-        const AuthContext context{fingerprint,
-                                  static_cast<ScopeMask>(Scope::Read), 100, 10,
-                                  std::nullopt};
+        const AuthContext context{fingerprint, static_cast<ScopeMask>(Scope::Read), 100, 10, std::nullopt};
         cache.put(fingerprint, context);
     }
 
@@ -50,9 +45,7 @@ void test_opportunistic_cleanup() {
 
     for (int index = 2000; index < 3000; ++index) {
         const std::string fingerprint = "fp" + std::to_string(index);
-        const AuthContext context{fingerprint,
-                                  static_cast<ScopeMask>(Scope::Read), 100, 10,
-                                  std::nullopt};
+        const AuthContext context{fingerprint, static_cast<ScopeMask>(Scope::Read), 100, 10, std::nullopt};
         cache.put(fingerprint, context);
     }
 

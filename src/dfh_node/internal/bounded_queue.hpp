@@ -1,8 +1,7 @@
-/**
- * \file bounded_queue.hpp
- * \brief Внутренняя ограниченная очередь без синхронизации.
- * \details Используется `TaskScheduler` при внешнем удержании блокировки.
- */
+/// \file bounded_queue.hpp
+/// \brief Внутренняя ограниченная очередь без синхронизации.
+/// \details Используется `TaskScheduler` при внешнем удержании блокировки.
+///
 #pragma once
 
 #include "task.hpp"
@@ -21,7 +20,7 @@ namespace dfh_node {
 /// `TaskScheduler` (единый `mutex` + `cv` для обеих очередей). Вызывающая
 /// сторона обязана держать блокировку при вызове `try_push`/`try_pop`.
 class BoundedQueue {
-  public:
+public:
     /// \brief Конструктор.
     /// \param capacity Максимальная вместимость очереди.
     explicit BoundedQueue(std::size_t capacity);
@@ -54,13 +53,11 @@ class BoundedQueue {
     /// \brief Всего задач поставлено в очередь (`atomic`, thread-safe).
     std::uint64_t total_enqueued() const;
 
-  private:
-    std::deque<Task> m_queue; ///< Очередь задач (FIFO).
-    std::size_t m_capacity;   ///< Максимальная вместимость.
-    std::atomic<std::uint64_t> m_rejected_count{
-        0}; ///< Счётчик отклонённых задач.
-    std::atomic<std::uint64_t> m_total_enqueued{
-        0}; ///< Счётчик поставленных в очередь задач.
+private:
+    std::deque<Task> m_queue;                       ///< Очередь задач (FIFO).
+    std::size_t m_capacity;                         ///< Максимальная вместимость.
+    std::atomic<std::uint64_t> m_rejected_count{0}; ///< Счётчик отклонённых задач.
+    std::atomic<std::uint64_t> m_total_enqueued{0}; ///< Счётчик поставленных в очередь задач.
 };
 
 } // namespace dfh_node

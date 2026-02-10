@@ -1,5 +1,5 @@
-# Проверка стиля Doxygen-комментариев.
-# Запрещает блочный стиль /** ... */ в исходниках проекта.
+# Проверка стиля комментариев в C/C++ исходниках проекта.
+# Запрещает блочный стиль /* ... */; допускаются только // и ///.
 
 if(NOT DEFINED PROJECT_SOURCE_DIR)
     message(FATAL_ERROR "PROJECT_SOURCE_DIR is not set")
@@ -27,8 +27,8 @@ foreach(_dir IN LISTS _scan_dirs)
 
     foreach(_file IN LISTS _files)
         file(READ "${_file}" _content)
-        string(FIND "${_content}" "/**" _pos)
-        if(NOT _pos EQUAL -1)
+        string(FIND "${_content}" "/*" _block_pos)
+        if(NOT _block_pos EQUAL -1)
             list(APPEND _violations "${_file}")
         endif()
     endforeach()
@@ -38,11 +38,11 @@ if(_violations)
     list(REMOVE_DUPLICATES _violations)
     string(JOIN "\n  - " _joined ${_violations})
     message(FATAL_ERROR
-        "Обнаружены запрещенные Doxygen-комментарии в стиле '/** ... */'.\n"
-        "Используйте только '///'.\n"
+        "Обнаружены запрещенные блочные комментарии в стиле '/* ... */'.\n"
+        "Используйте только '//' и '///'.\n"
         "Файлы:\n"
         "  - ${_joined}\n"
     )
 endif()
 
-message(STATUS "Doxygen comment style check passed: only '///' style is used.")
+message(STATUS "Проверка стиля комментариев пройдена: используются только '//' и '///'.")
