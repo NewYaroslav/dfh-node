@@ -29,7 +29,7 @@ void test_http_authorize() {
     AuthService service(store, cache, computer);
     RateLimiter limiter(100, 1000);
     WsConnectionLimiter ws_limiter;
-    UnifiedGate gate(service, limiter, ws_limiter);
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
 
     const auto result = gate.authorize_http("token1", TaskKind::Ingest);
     CHECK(std::holds_alternative<AuthContext>(result));
@@ -49,7 +49,7 @@ void test_ws_upgrade_no_kind() {
     AuthService service(store, cache, computer);
     RateLimiter limiter(100, 1000);
     WsConnectionLimiter ws_limiter;
-    UnifiedGate gate(service, limiter, ws_limiter);
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
 
     const auto result = gate.authorize_ws_upgrade("token1");
     CHECK(std::holds_alternative<AuthContext>(result));
@@ -69,7 +69,7 @@ void test_ws_message_scope_check() {
     AuthService service(store, cache, computer);
     RateLimiter limiter(100, 1000);
     WsConnectionLimiter ws_limiter;
-    UnifiedGate gate(service, limiter, ws_limiter);
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
 
     (void)gate.authorize_ws_upgrade("token1");
 
@@ -107,10 +107,32 @@ void test_http_rejects_when_antireplay_required_mask_contains_read() {
     CHECK(error.code == GateErrorCode::AntiReplayRequired);
 }
 
+void test_http_history_allowed_with_default_required_mask() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string fingerprint = computer.compute("token-read-default");
+
+    entries.push_back(config::ApiKeyEntry{fingerprint,
+                                          static_cast<ScopeMask>(Scope::Read),
+                                          std::nullopt, 100, 10});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+    RateLimiter limiter(100, 1000);
+    WsConnectionLimiter ws_limiter;
+    UnifiedGate gate(service, limiter, ws_limiter);
+
+    const auto result =
+        gate.authorize_http("token-read-default", TaskKind::History);
+    CHECK(std::holds_alternative<AuthContext>(result));
+}
+
 int main() {
     test_http_authorize();
     test_ws_upgrade_no_kind();
     test_ws_message_scope_check();
     test_http_rejects_when_antireplay_required_mask_contains_read();
+    test_http_history_allowed_with_default_required_mask();
     return 0;
 }

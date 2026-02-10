@@ -30,7 +30,7 @@ void test_gate_e2e() {
     AuthService service(store, cache, computer);
     RateLimiter limiter(2, 1000);
     WsConnectionLimiter ws_limiter;
-    UnifiedGate gate(service, limiter, ws_limiter);
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
 
     const auto http_ok = gate.authorize_http("write-token", TaskKind::Ingest);
     CHECK(std::holds_alternative<AuthContext>(http_ok));
@@ -44,7 +44,7 @@ void test_gate_e2e() {
     // Для WS-сценария берём отдельный лимитер, чтобы не зависеть от уже
     // исчерпанного HTTP-окна и проверить именно WS upgrade/message цепочку.
     RateLimiter ws_limiter_rps(100, 1000);
-    UnifiedGate ws_gate(service, ws_limiter_rps, ws_limiter);
+    UnifiedGate ws_gate(service, ws_limiter_rps, ws_limiter, nullptr, 0);
 
     const auto upgrade = ws_gate.authorize_ws_upgrade("write-token");
     CHECK(std::holds_alternative<AuthContext>(upgrade));

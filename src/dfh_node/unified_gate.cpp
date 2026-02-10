@@ -142,7 +142,9 @@ GateResult UnifiedGate::validate_anti_replay_requirement(const TaskKind kind) co
     }
 
     const Scope scope = *scope_opt;
-    if (has_scope(m_require_for_scopes, scope)) {
+    // Для require_for_scopes проверяем только прямое вхождение бита,
+    // без admin-override из has_scope().
+    if ((m_require_for_scopes & to_scope_mask(scope)) != 0) {
         return GateError{GateErrorCode::AntiReplayRequired, "Anti-replay is disabled but required for operation"};
     }
 

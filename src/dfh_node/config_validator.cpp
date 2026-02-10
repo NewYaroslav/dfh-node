@@ -131,14 +131,14 @@ std::vector<ValidationError> validate(const Config &cfg) {
                       "require_for_scopes must not be empty when anti_replay is enabled");
         }
 
-        // Мягкая рекомендация по ёмкости nonce-хранилища при baseline 1 req/sec.
-        constexpr std::int64_t kBaselinePeakRps = 1;
+        // Мягкая рекомендация по ёмкости nonce-хранилища.
+        // Формула: peak_rps_per_fingerprint * ttl_seconds * 1.5.
         const std::int64_t ttl_seconds = cfg.security.anti_replay.nonce_ttl_ms / 1000;
-        const std::int64_t min_capacity = kBaselinePeakRps * ttl_seconds * 3 / 2;
-        if (ttl_seconds > 0 && cfg.security.anti_replay.nonce_capacity < min_capacity) {
+        const std::int64_t min_capacity = cfg.auth.rps_limit * ttl_seconds * 3 / 2;
+        if (cfg.auth.rps_limit > 0 && ttl_seconds > 0 && cfg.security.anti_replay.nonce_capacity < min_capacity) {
             std::clog << "WARN: security.anti_replay.nonce_capacity (" << cfg.security.anti_replay.nonce_capacity
                       << ") < recommended (" << min_capacity
-                      << ") for baseline peak_rps_per_fingerprint * nonce_ttl_seconds * 1.5\n";
+                      << ") for auth.rps_limit * nonce_ttl_seconds * 1.5\n";
         }
     }
 
