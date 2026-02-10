@@ -1,8 +1,7 @@
-/**
- * \file build_info.hpp
- * \brief Сведения о сборке, используемые для диагностики.
- * \details Источник строки сборки фиксируется на этапе компоновки.
- */
+/// \file build_info.hpp
+/// \brief Сведения о сборке, используемые для диагностики.
+/// \details Источник строки сборки фиксируется на этапе компоновки.
+///
 #pragma once
 
 #include <string>
@@ -16,3 +15,5 @@ namespace dfh_node {
 inline std::string build_info_string() { return "0.1.0-dev"; }
 
 } // namespace dfh_node
+
+

@@ -1,8 +1,7 @@
-/**
- * \file test_config_loader.cpp
- * \brief Проверка загрузки конфигурации из файла.
- * \details Тестирует успешный путь, отсутствие файла и ошибку парсинга.
- */
+/// \file test_config_loader.cpp
+/// \brief Проверка загрузки конфигурации из файла.
+/// \details Тестирует успешный путь, отсутствие файла и ошибку парсинга.
+///
 #include "config_loader.hpp"
 #include "fingerprint_computer.hpp"
 #include "test_helpers.hpp"
@@ -145,3 +144,5 @@ int main() {
 
     return 0;
 }
+
+

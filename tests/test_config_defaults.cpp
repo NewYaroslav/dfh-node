@@ -1,8 +1,7 @@
-/**
- * \file test_config_defaults.cpp
- * \brief Проверка значений конфигурации по умолчанию.
- * \details Убеждается, что дефолты не меняются без явной правки.
- */
+/// \file test_config_defaults.cpp
+/// \brief Проверка значений конфигурации по умолчанию.
+/// \details Убеждается, что дефолты не меняются без явной правки.
+///
 #include "config.hpp"
 #include "test_helpers.hpp"
 
@@ -21,3 +20,5 @@ int main() {
              dfh_node::to_scope_mask(dfh_node::Scope::Sync));
     return 0;
 }
+
+

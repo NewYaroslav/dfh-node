@@ -1,8 +1,7 @@
-/**
- * \file interfaces.hpp
- * \brief Набор базовых интерфейсов и их системных реализаций.
- * \details Используются для инъекции времени, случайности и статуса.
- */
+/// \file interfaces.hpp
+/// \brief Набор базовых интерфейсов и их системных реализаций.
+/// \details Используются для инъекции времени, случайности и статуса.
+///
 #pragma once
 
 #include <cstdint>
@@ -15,7 +14,7 @@ namespace dfh_node {
 /// \details Реализация должна документировать потокобезопасность и
 /// монотонность.
 class IClock {
-  public:
+public:
     virtual ~IClock() = default;
     /// \brief Текущее время в миллисекундах.
     /// \return Время в мс; ожидается монотонность, если это требуется.
@@ -27,7 +26,7 @@ class IClock {
 /// \brief Абстрактный источник случайных чисел.
 /// \details Контракт по криптостойкости определяется реализацией.
 class IRandom {
-  public:
+public:
     virtual ~IRandom() = default;
     /// \brief Следующее 64-битное значение.
     /// \return Случайное число.
@@ -39,7 +38,7 @@ class IRandom {
 /// \brief Поставщик снимка статуса ноды.
 /// \details Снимок должен быть согласован на момент вызова.
 class IStatusProvider {
-  public:
+public:
     virtual ~IStatusProvider() = default;
     /// \brief Возвращает снимок статуса.
     /// \return Снимок статуса.
@@ -51,7 +50,7 @@ class IStatusProvider {
 /// \brief Системная реализация IClock на основе std::chrono.
 /// \details Использует монотонные часы.
 class SystemClock final : public IClock {
-  public:
+public:
     /// \brief Текущее время в миллисекундах монотонных часов.
     /// \return Значение в миллисекундах.
     /// \throws Не бросает.
@@ -62,7 +61,7 @@ class SystemClock final : public IClock {
 /// \brief Системная реализация IRandom на базе std::random_device.
 /// \details Подходит для генерации nonce без детерминизма.
 class SystemRandom final : public IRandom {
-  public:
+public:
     /// \brief Генерирует 64-битное значение из std::random_device.
     /// \return Случайное число.
     /// \throws Не бросает.
@@ -71,3 +70,5 @@ class SystemRandom final : public IRandom {
 };
 
 } // namespace dfh_node
+
+

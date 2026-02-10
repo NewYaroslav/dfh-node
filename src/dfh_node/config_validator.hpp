@@ -1,8 +1,7 @@
-/**
- * \file config_validator.hpp
- * \brief Проверка целостности и диапазонов параметров конфигурации.
- * \details Валидатор возвращает список ошибок без исключений.
- */
+/// \file config_validator.hpp
+/// \brief Проверка целостности и диапазонов параметров конфигурации.
+/// \details Валидатор возвращает список ошибок без исключений.
+///
 #pragma once
 
 #include "config.hpp"
@@ -28,3 +27,5 @@ struct ValidationError {
 std::vector<ValidationError> validate(const Config &cfg);
 
 } // namespace dfh_node::config
+
+

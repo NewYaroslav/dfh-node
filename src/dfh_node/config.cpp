@@ -1,8 +1,7 @@
-/**
- * \file config.cpp
- * \brief Реализация фабрики дефолтной конфигурации.
- * \details Значения соответствуют минимальному рабочему профилю.
- */
+/// \file config.cpp
+/// \brief Реализация фабрики дефолтной конфигурации.
+/// \details Значения соответствуют минимальному рабочему профилю.
+///
 #include "config.hpp"
 
 namespace dfh_node::config {
@@ -47,3 +46,5 @@ Config default_config() {
 }
 
 } // namespace dfh_node::config
+
+

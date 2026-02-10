@@ -1,8 +1,7 @@
-/**
- * \file logging.hpp
- * \brief Инициализация логирования и алиасы макросов log-it-cpp.
- * \details Макросы не оборачиваются функциями ради compile-time gating.
- */
+/// \file logging.hpp
+/// \brief Инициализация логирования и алиасы макросов log-it-cpp.
+/// \details Макросы не оборачиваются функциями ради compile-time gating.
+///
 #pragma once
 
 #include "config.hpp"
@@ -51,3 +50,5 @@ void init_logging(const config::LoggingConfig &log_cfg);
 #define DFH_PRINT_WARN(...) LOGIT_PRINT_WARN(__VA_ARGS__)
 #define DFH_PRINT_ERROR(...) LOGIT_PRINT_ERROR(__VA_ARGS__)
 #define DFH_PRINT_FATAL(...) LOGIT_PRINT_FATAL(__VA_ARGS__)
+
+

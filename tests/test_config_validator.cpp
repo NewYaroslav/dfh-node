@@ -1,8 +1,7 @@
-/**
- * \file test_config_validator.cpp
- * \brief Проверка правил валидации конфигурации.
- * \details Покрывает валидный случай и типовые ошибки.
- */
+/// \file test_config_validator.cpp
+/// \brief Проверка правил валидации конфигурации.
+/// \details Покрывает валидный случай и типовые ошибки.
+///
 #include "config_validator.hpp"
 #include "test_helpers.hpp"
 
@@ -85,3 +84,5 @@ int main() {
 
     return 0;
 }
+
+

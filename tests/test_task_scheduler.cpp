@@ -1,8 +1,7 @@
-/**
- * \file test_task_scheduler.cpp
- * \brief Unit-тесты для TaskScheduler.
- * \details Проверяет capacity, приоритет и корректное пробуждение при shutdown.
- */
+/// \file test_task_scheduler.cpp
+/// \brief Unit-тесты для TaskScheduler.
+/// \details Проверяет capacity, приоритет и корректное пробуждение при shutdown.
+///
 #include "task_scheduler.hpp"
 #include "test_helpers.hpp"
 
@@ -97,3 +96,5 @@ int main() {
     test_shutdown_unblocks();
     return 0;
 }
+
+

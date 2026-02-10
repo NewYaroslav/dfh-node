@@ -1,8 +1,7 @@
-/**
- * \file status.cpp
- * \brief Реализации системных источников времени и случайности.
- * \details Использует std::chrono и std::random_device без хранения состояния.
- */
+/// \file status.cpp
+/// \brief Реализации системных источников времени и случайности.
+/// \details Использует std::chrono и std::random_device без хранения состояния.
+///
 #include "interfaces.hpp"
 
 #include <chrono>
@@ -13,9 +12,7 @@ namespace dfh_node {
 std::uint64_t SystemClock::now_ms() const {
     using namespace std::chrono;
     // Используем монотонные часы для стабильного измерения аптайма.
-    return static_cast<std::uint64_t>(
-        duration_cast<milliseconds>(steady_clock::now().time_since_epoch())
-            .count());
+    return static_cast<std::uint64_t>(duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count());
 }
 
 std::uint64_t SystemRandom::next_uint64() {
@@ -27,3 +24,5 @@ std::uint64_t SystemRandom::next_uint64() {
 }
 
 } // namespace dfh_node
+
+

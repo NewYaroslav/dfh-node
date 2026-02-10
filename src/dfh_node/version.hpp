@@ -1,8 +1,7 @@
-/**
- * \file version.hpp
- * \brief Публичные идентификаторы версии и имени ноды.
- * \details Используется для логирования, диагностики и smoke-тестов.
- */
+/// \file version.hpp
+/// \brief Публичные идентификаторы версии и имени ноды.
+/// \details Используется для логирования, диагностики и smoke-тестов.
+///
 #pragma once
 
 #include <string_view>
@@ -28,3 +27,5 @@ std::string_view version();
 std::string_view name();
 
 } // namespace dfh_node
+
+
