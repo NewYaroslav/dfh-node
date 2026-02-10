@@ -85,7 +85,7 @@ inline std::optional<Scope> required_scope(const TaskKind kind) {
     case TaskKind::History:
         return Scope::Read;
     default:
-        // Runtime-safe поведение для будущих/неизвестных значений enum.
+        // Безопасное поведение в runtime для будущих/неизвестных значений enum.
         return std::nullopt;
     }
 }

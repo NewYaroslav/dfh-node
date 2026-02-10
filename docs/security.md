@@ -133,5 +133,5 @@ PAYLOAD_HASH
 
 **Валидация:** мягкая (WARNING в логе), НЕ жёсткая ошибка конфига.
 
-\* Примечание по текущей реализации: в `config_validator` warning считается по baseline `peak_rps_per_fingerprint = 1`
-и выводится в `std::clog`.
+\* Примечание по текущей реализации: в `config_validator` warning считается по baseline
+`peak_rps_per_fingerprint = auth.rps_limit` и выводится в `std::clog`.

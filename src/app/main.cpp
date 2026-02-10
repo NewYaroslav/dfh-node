@@ -214,10 +214,10 @@ int main(int argc, char **argv) {
             status.low_priority_queue.total_processed),
         status.low_priority_queue.avg_wait_ms, status.workers_count);
 
-    // One-shot mode: остановить воркеры (graceful).
-    // TODO: daemon mode / event-loop для долгоживущего процесса (при HTTP/WS
+    // Режим one-shot: остановить воркеры (мягкая остановка).
+    // TODO: режим демона / event-loop для долгоживущего процесса (при HTTP/WS
     // транспорте).
-    // TODO: signal handler для Ctrl+C (при долгоживущем режиме через флаг
+    // TODO: обработчик сигналов для Ctrl+C (при долгоживущем режиме через флаг
     // --run).
     // TODO: режим --print-status-json для машинного чтения статуса.
     pool.shutdown();

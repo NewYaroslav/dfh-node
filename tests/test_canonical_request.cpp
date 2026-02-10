@@ -1,6 +1,6 @@
 /// \file test_canonical_request.cpp
 /// \brief Тесты канонизации HTTP/WS и подписи HMAC-SHA256.
-/// \details Проверяет формат canonical string, сортировку query и верификацию подписи.
+/// \details Проверяет формат каноническая строка, сортировку query и верификацию подписи.
 ///
 #include "canonical_request.hpp"
 #include "sha256_utils.hpp"

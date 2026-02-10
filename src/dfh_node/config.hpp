@@ -54,7 +54,7 @@ struct SecurityConfig {
     AntiReplayConfig anti_replay{}; ///< Параметры anti-replay.
 };
 
-/// \brief API key запись в конфиге без plaintext-токена.
+/// \brief API key запись в конфиге без Открытый-токена.
 /// \details Токен преобразуется в fingerprint на этапе загрузки конфига.
 struct ApiKeyEntry {
     std::string fingerprint;  ///< HMAC-SHA256(server_secret, token) в hex.

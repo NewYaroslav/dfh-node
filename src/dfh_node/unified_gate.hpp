@@ -30,21 +30,21 @@ public:
                                                to_scope_mask(Scope::Sync));
 
     /// \brief Авторизует HTTP-запрос по токену и типу операции.
-    /// \param token Plaintext токен.
+    /// \param token Открытый токен.
     /// \param kind Тип операции.
     /// \param ar_fields Anti-replay поля (если anti-replay включён).
     /// \return `AuthContext` при успехе или `GateError` при отказе.
     GateResult authorize_http(const std::string &token, TaskKind kind, const HttpAntiReplayFields *ar_fields = nullptr);
 
     /// \brief Авторизует WS upgrade только по токену.
-    /// \param token Plaintext токен.
+    /// \param token Открытый токен.
     /// \return `AuthContext` при успехе или `GateError` при отказе.
     GateResult authorize_ws_upgrade(const std::string &token);
 
     /// \brief Авторизует WS-сообщение по fingerprint и типу операции.
     /// \param fingerprint HMAC-SHA256(server_secret, token) в hex.
     /// \param kind Тип операции.
-    /// \param signing_key Ключ подписи (32 raw bytes из контекста WS-сессии).
+    /// \param signing_key Ключ подписи (32 сырые байты из контекста WS-сессии).
     /// \param key_len Длина ключа подписи в байтах.
     /// \param ar_fields Anti-replay поля (если anti-replay включён).
     /// \return `AuthContext` при успехе или `GateError` при отказе.

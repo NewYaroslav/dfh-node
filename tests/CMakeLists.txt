@@ -1,5 +1,12 @@
 # CMake-описание тестовых таргетов и регистрации в CTest.
 # Содержит smoke-тесты и unit-тесты конфигурации.
+add_test(
+    NAME test_tests_registry_consistency
+    COMMAND ${CMAKE_COMMAND}
+            -DREPO_ROOT=${CMAKE_SOURCE_DIR}
+            -P ${CMAKE_SOURCE_DIR}/scripts/check-tests-registered.cmake
+)
+
 add_executable(dfh_node_smoke
     test_smoke.cpp
 )
@@ -83,6 +90,17 @@ target_link_libraries(test_worker_pool
 
 add_test(NAME test_worker_pool COMMAND test_worker_pool)
 
+add_executable(test_bounded_queue
+    test_bounded_queue.cpp
+)
+
+target_link_libraries(test_bounded_queue
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_bounded_queue COMMAND test_bounded_queue)
+
 add_executable(test_scope
     test_scope.cpp
 )
@@ -94,6 +112,17 @@ target_link_libraries(test_scope
 
 add_test(NAME test_scope COMMAND test_scope)
 
+add_executable(test_scope_auth
+    test_scope_auth.cpp
+)
+
+target_link_libraries(test_scope_auth
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_scope_auth COMMAND test_scope_auth)
+
 add_executable(test_fingerprint_computer
     test_fingerprint_computer.cpp
 )
@@ -104,6 +133,17 @@ target_link_libraries(test_fingerprint_computer
 )
 
 add_test(NAME test_fingerprint_computer COMMAND test_fingerprint_computer)
+
+add_executable(test_config_api_key_store
+    test_config_api_key_store.cpp
+)
+
+target_link_libraries(test_config_api_key_store
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_config_api_key_store COMMAND test_config_api_key_store)
 
 add_executable(test_auth_cache
     test_auth_cache.cpp
@@ -214,3 +254,14 @@ target_link_libraries(test_gate_e2e
 )
 
 add_test(NAME test_gate_e2e COMMAND test_gate_e2e)
+
+add_executable(test_status
+    test_status.cpp
+)
+
+target_link_libraries(test_status
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_status COMMAND test_status)

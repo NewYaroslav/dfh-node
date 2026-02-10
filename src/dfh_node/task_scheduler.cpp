@@ -1,7 +1,7 @@
 /**
  * \file task_scheduler.cpp
  * \brief Реализация приоритетного планировщика задач.
- * \details Включает stop-now shutdown и базовый сбор метрик очередей.
+ * \details Включает семантику `stop-now` и базовый сбор метрик очередей.
  */
 #include "task_scheduler.hpp"
 
@@ -16,8 +16,9 @@ TaskScheduler::TaskScheduler(std::size_t high_capacity,
 EnqueueResult TaskScheduler::enqueue_high(Task task) {
     std::lock_guard<std::mutex> lock(m_mutex);
     task.lane = TaskLane::High;
-    // Почему lock здесь: единственная точка синхронизации для обеих очередей,
-    // чтобы исключить гонки и missed wake-up между enqueue и pop.
+    // Почему держим блокировку здесь: это единая точка синхронизации для обеих
+    // очередей, чтобы исключить гонки и пропущенные пробуждения между
+    // постановкой и извлечением задач.
     if (!m_high_queue.try_push(std::move(task))) {
         return {EnqueueStatus::Rejected, "overload.high_priority_queue_full",
                 "High-priority queue is full"};
@@ -44,7 +45,7 @@ EnqueueResult TaskScheduler::enqueue_low(Task task) {
 std::optional<Task> TaskScheduler::pop_next_task() {
     std::unique_lock<std::mutex> lock(m_mutex);
     while (true) {
-        // Проверяем shutdown первым: stop-now семантика важнее любых задач.
+        // Проверяем остановку первой: семантика stop-now важнее любых задач.
         if (m_shutdown_flag.load(std::memory_order_relaxed)) {
             return std::nullopt;
         }
@@ -59,8 +60,8 @@ std::optional<Task> TaskScheduler::pop_next_task() {
             return m_low_queue.try_pop();
         }
 
-        // TODO: starvation guard для low (consecutive_high_count, force 1 low
-        // after N high). Используем m_cv.wait без polling: избегаем активного
+        // TODO: защита от голодания для low (consecutive_high_count, force 1 low
+        // after N high). Используем m_cv.wait без опроса: избегаем активного
         // ожидания и лишней нагрузки.
         m_cv.wait(lock);
     }

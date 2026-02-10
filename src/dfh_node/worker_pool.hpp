@@ -16,8 +16,8 @@ namespace dfh_node {
 /// \brief Пул воркеров для обработки задач.
 ///
 /// Воркеры получают задачи из TaskScheduler через pop_next_task().
-/// Метрики обработки: total_processed, total_wait_ms, avg_wait_ms (per-lane).
-/// Shutdown семантика: graceful = join потоков без зависаний (не drain).
+/// Метрики обработки: total_processed, total_wait_ms, avg_wait_ms (по лейну).
+/// остановка семантика: мягкая остановка = join потоков без зависаний (не drain).
 class WorkerPool {
   public:
     /// \brief Конструктор.
@@ -25,15 +25,15 @@ class WorkerPool {
     /// \param scheduler Ссылка на TaskScheduler.
     WorkerPool(std::size_t num_workers, TaskScheduler &scheduler);
 
-    /// \brief Деструктор (вызывает shutdown, если не был вызван вручную).
+    /// \brief Деструктор (вызывает остановка, если не был вызван вручную).
     ~WorkerPool();
 
     /// \brief Запустить воркеры.
     void start();
 
-    /// \brief Остановить воркеры (graceful = join без зависаний).
+    /// \brief Остановить воркеры (мягкая остановка = join без зависаний).
     ///
-    /// Вызывает scheduler.shutdown() и ждёт завершения всех потоков.
+    /// Вызывает scheduler.остановка() и ждёт завершения всех потоков.
     void shutdown();
 
     /// \brief Всего задач обработано (по лейну планировщика).

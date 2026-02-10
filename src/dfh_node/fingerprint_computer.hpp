@@ -1,7 +1,7 @@
 /**
  * \file fingerprint_computer.hpp
  * \brief Декларация вычислителя fingerprint для API-токенов.
- * \details Формирует стабильный HMAC-SHA256 в hex lowercase для хранения и
+ * \details Формирует стабильный HMAC-SHA256 в hex в нижнем регистре для хранения и
  * сравнения.
  */
 #pragma once
@@ -18,9 +18,9 @@ class FingerprintComputer {
     /// \param server_secret Секрет из config.security.server_secret.
     explicit FingerprintComputer(const std::string &server_secret);
 
-    /// \brief Вычисляет fingerprint для plaintext-токена.
+    /// \brief Вычисляет fingerprint для Открытый-токена.
     /// \param token Токен клиента в открытом виде (не логировать).
-    /// \return HMAC-SHA256(token) в hex lowercase длиной 64 символа.
+    /// \return HMAC-SHA256(token) в hex в нижнем регистре длиной 64 символа.
     std::string compute(const std::string &token) const;
 
   private:

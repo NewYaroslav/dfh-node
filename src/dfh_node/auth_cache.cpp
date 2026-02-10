@@ -1,6 +1,6 @@
 /**
  * \file auth_cache.cpp
- * \brief Реализация auth-кэша с TTL и opportunistic cleanup.
+ * \brief Реализация auth-кэша с TTL и периодической очисткой.
  * \details Использует steady_clock для устойчивости к изменениям системного
  * времени.
  */

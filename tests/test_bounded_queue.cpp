@@ -1,5 +1,5 @@
 /// \file test_bounded_queue.cpp
-/// \brief Unit-тесты для внутренней bounded-очереди.
+/// \brief Юнит-тесты для внутренней bounded-очереди.
 /// \details Проверяет capacity, FIFO-порядок и счётчики отклонений/enqueue.
 ///
 #include "internal/bounded_queue.hpp"

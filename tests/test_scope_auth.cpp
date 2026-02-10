@@ -1,5 +1,5 @@
 /// \file test_scope_auth.cpp
-/// \brief Unit-тесты inline-утилит scope и auth-контракта.
+/// \brief Юнит-тесты inline-утилит scope и auth-контракта.
 /// \details Проверяет parse_scope, required_scope и has_scope.
 ///
 #include "auth_service.hpp"

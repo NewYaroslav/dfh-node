@@ -13,13 +13,13 @@
 
 namespace dfh_node {
 
-/// \brief Потокобезопасный лимитер активных WS-соединений per-fingerprint.
+/// \brief Потокобезопасный лимитер активных WS-соединений по fingerprint.
 class WsConnectionLimiter {
   public:
     /// \brief Регистрирует новое соединение.
     /// \param fingerprint Идентификатор клиента.
     /// \param max_connections Максимально допустимое число соединений для
-    /// fingerprint.
+    /// данного fingerprint.
     /// \return true, если соединение разрешено; false, если лимит превышен.
     bool register_connection(const std::string &fingerprint,
                              std::int64_t max_connections);

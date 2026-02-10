@@ -185,5 +185,9 @@
 ## Примечание по capacity rule
 Рекомендация из протокола: `nonce_capacity >= peak_rps_per_fingerprint * nonce_ttl_seconds * 1.5`.
 
-Текущая реализация валидатора использует baseline-оценку `peak_rps_per_fingerprint = 1` и пишет `WARN` в `std::clog`,
-если `nonce_capacity < nonce_ttl_seconds * 1.5`. Это предупреждение, не ошибка валидации.
+Текущая реализация валидатора использует `auth.rps_limit` как baseline-оценку `peak_rps_per_fingerprint`
+и пишет `WARN` в `std::clog`, если:
+
+`nonce_capacity < auth.rps_limit * nonce_ttl_seconds * 1.5`
+
+Это предупреждение, не ошибка валидации.

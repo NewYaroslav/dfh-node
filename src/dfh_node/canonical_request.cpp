@@ -1,6 +1,6 @@
 /// \file canonical_request.cpp
 /// \brief Реализация канонизации HTTP/WS запросов и подписи HMAC-SHA256.
-/// \details Содержит RFC3986-канонизацию query и constant-time проверку подписи.
+/// \details Содержит RFC3986-канонизацию query и константное время проверку подписи.
 ///
 #include "canonical_request.hpp"
 

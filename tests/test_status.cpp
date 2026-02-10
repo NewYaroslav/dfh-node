@@ -1,5 +1,5 @@
 /// \file test_status.cpp
-/// \brief Unit-тесты системных реализаций времени и случайности.
+/// \brief Юнит-тесты системных реализаций времени и случайности.
 /// \details Проверяет базовые инварианты SystemClock и SystemRandom.
 ///
 #include "interfaces.hpp"

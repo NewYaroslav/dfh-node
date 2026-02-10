@@ -1,8 +1,8 @@
 /**
  * \file auth_service.hpp
  * \brief Сервис аутентификации/авторизации и типы ошибок gate.
- * \details Поддерживает три сценария: token-only auth, token+scope auth и
- * fingerprint+scope auth.
+ * \details Поддерживает три сценария: аутентификация только по токену,
+ * авторизация токена по scope и авторизация fingerprint по scope.
  */
 #pragma once
 
@@ -46,17 +46,17 @@ public:
     /// \brief Конструктор.
     /// \param store Хранилище API-ключей.
     /// \param cache Кэш авторизационных контекстов.
-    /// \param fingerprint_computer Вычислитель fingerprint из plaintext-токена.
+    /// \param fingerprint_computer Вычислитель fingerprint из открытого токена.
     AuthService(IApiKeyStore &store, AuthCache &cache,
                 const FingerprintComputer &fingerprint_computer);
 
     /// \brief Аутентифицирует токен без проверки scope.
-    /// \param token Plaintext токен.
+    /// \param token Открытый токен.
     /// \return AuthContext при успехе или GateError при неуспехе.
     GateResult authenticate_token(const std::string &token);
 
     /// \brief Авторизует токен с проверкой scope для операции.
-    /// \param token Plaintext токен.
+    /// \param token Открытый токен.
     /// \param kind Тип операции.
     /// \return AuthContext при успехе или GateError при неуспехе.
     GateResult authorize(const std::string &token, TaskKind kind);

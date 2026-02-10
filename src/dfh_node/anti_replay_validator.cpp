@@ -28,7 +28,7 @@ bool is_decimal_string(const std::string &value) {
     return true;
 }
 
-/// Проверяет hex lowercase строку ожидаемой длины.
+/// Проверяет hex в нижнем регистре строку ожидаемой длины.
 bool is_hex_lower_string(const std::string &value, const std::size_t expected_len) {
     if (value.size() != expected_len) {
         return false;

@@ -1,8 +1,8 @@
 /**
  * \file auth_cache.hpp
  * \brief Кэш контекстов авторизации с TTL и периодической очисткой.
- * \details Предназначен для ускорения проверок fingerprint без повторного
- * чтения store.
+ * \details Предназначен для ускорения проверок `fingerprint` без повторного
+ * чтения хранилища.
  */
 #pragma once
 
@@ -19,27 +19,27 @@ namespace dfh_node {
 
 /// \brief Контекст авторизованного клиента.
 struct AuthContext {
-    std::string fingerprint;    ///< Fingerprint токена (hex HMAC-SHA256).
+    std::string fingerprint;    ///< Отпечаток токена (hex HMAC-SHA256).
     ScopeMask scope_mask = 0;   ///< Разрешённые права доступа.
     std::int64_t rps_limit = 0; ///< Лимит запросов в секунду.
     std::int64_t ws_max_connections = 0; ///< Лимит одновременных WS-соединений.
     std::optional<std::int64_t>
-        expires_at_ms; ///< Время истечения токена (epoch ms).
+        expires_at_ms; ///< Время истечения токена (Unix epoch, мс).
 };
 
 /// \brief Запись кэша для AuthContext.
 struct CachedAuthContext {
     AuthContext context;           ///< Кэшируемый контекст.
-    std::int64_t cached_at_ms = 0; ///< Время помещения в кэш (steady_clock ms).
+    std::int64_t cached_at_ms = 0; ///< Время помещения в кэш (мс `steady_clock`).
     std::int64_t updated_at_ms =
-        0; ///< Резерв под future invalidation/revision.
+        0; ///< Резерв под будущую инвалидацию/ревизию.
 };
 
-/// \brief Потокобезопасный auth-кэш с TTL и opportunistic cleanup.
+/// \brief Потокобезопасный auth-кэш с TTL и периодической очисткой.
 class AuthCache {
   public:
     /// \brief Создаёт кэш с заданным TTL.
-    /// \param ttl_ms Время жизни записи в миллисекундах по steady_clock.
+    /// \param ttl_ms Время жизни записи в миллисекундах по `steady_clock`.
     explicit AuthCache(std::int64_t ttl_ms);
 
     /// \brief Читает контекст по fingerprint с проверкой TTL.
