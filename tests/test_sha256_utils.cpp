@@ -32,9 +32,7 @@ void test_verify_sha256_mismatch() {
     CHECK(!dfh_node::verify_sha256(input, wrong_hash));
 }
 
-void test_verify_sha256_invalid_length() {
-    CHECK(!dfh_node::verify_sha256("test data", "12345"));
-}
+void test_verify_sha256_invalid_length() { CHECK(!dfh_node::verify_sha256("test data", "12345")); }
 
 } // namespace
 

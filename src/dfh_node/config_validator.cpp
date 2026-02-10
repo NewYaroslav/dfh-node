@@ -136,8 +136,7 @@ std::vector<ValidationError> validate(const Config &cfg) {
         const std::int64_t ttl_seconds = cfg.security.anti_replay.nonce_ttl_ms / 1000;
         const std::int64_t min_capacity = kBaselinePeakRps * ttl_seconds * 3 / 2;
         if (ttl_seconds > 0 && cfg.security.anti_replay.nonce_capacity < min_capacity) {
-            std::clog << "WARN: security.anti_replay.nonce_capacity ("
-                      << cfg.security.anti_replay.nonce_capacity
+            std::clog << "WARN: security.anti_replay.nonce_capacity (" << cfg.security.anti_replay.nonce_capacity
                       << ") < recommended (" << min_capacity
                       << ") for baseline peak_rps_per_fingerprint * nonce_ttl_seconds * 1.5\n";
         }

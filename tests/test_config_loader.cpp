@@ -12,8 +12,7 @@
 int main() {
     {
         // Успешная загрузка минимального конфига.
-        auto config_path = std::filesystem::path(__FILE__).parent_path() /
-                           ".." / "examples" / "config_minimal.json";
+        auto config_path = std::filesystem::path(__FILE__).parent_path() / ".." / "examples" / "config_minimal.json";
         auto result = dfh_node::config::load_from_file(config_path);
         CHECK(result.is_ok());
         CHECK(result.config.has_value());
@@ -31,8 +30,7 @@ int main() {
 
     {
         // Ошибка парсинга JSON.
-        auto temp_path = std::filesystem::temp_directory_path() /
-                         "dfh_node_invalid_config.json";
+        auto temp_path = std::filesystem::temp_directory_path() / "dfh_node_invalid_config.json";
         {
             std::ofstream out(temp_path, std::ios::out | std::ios::binary);
             out << "{";
@@ -112,8 +110,7 @@ int main() {
 
     {
         // anti_replay.require_for_scopes читается из массива строк.
-        auto temp_path = std::filesystem::temp_directory_path() /
-                         "dfh_node_scopes_config.json";
+        auto temp_path = std::filesystem::temp_directory_path() / "dfh_node_scopes_config.json";
         {
             std::ofstream out(temp_path, std::ios::out | std::ios::binary);
             out << R"({
@@ -136,13 +133,10 @@ int main() {
         CHECK(result.is_ok());
         CHECK(result.config.has_value());
         CHECK_EQ(result.config->security.anti_replay.require_for_scopes,
-                 dfh_node::to_scope_mask(dfh_node::Scope::Write) |
-                 dfh_node::to_scope_mask(dfh_node::Scope::Sync));
+                 dfh_node::to_scope_mask(dfh_node::Scope::Write) | dfh_node::to_scope_mask(dfh_node::Scope::Sync));
         std::error_code ec;
         std::filesystem::remove(temp_path, ec);
     }
 
     return 0;
 }
-
-

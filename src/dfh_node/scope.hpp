@@ -29,9 +29,7 @@ using ScopeMask = std::uint8_t;
 /// \brief Преобразует scope в битовую маску.
 /// \param scope Значение scope.
 /// \return Битовая маска соответствующего scope.
-constexpr ScopeMask to_scope_mask(const Scope scope) {
-    return static_cast<ScopeMask>(scope);
-}
+constexpr ScopeMask to_scope_mask(const Scope scope) { return static_cast<ScopeMask>(scope); }
 
 /// \brief Объединить два scope в одну маску.
 /// \param left Левый scope.

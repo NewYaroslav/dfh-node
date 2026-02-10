@@ -12,5 +12,3 @@ int main() {
     assert(dfh_node::name() == dfh_node::kNodeName);
     return 0;
 }
-
-

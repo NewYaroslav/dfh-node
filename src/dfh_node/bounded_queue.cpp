@@ -41,5 +41,3 @@ std::uint64_t BoundedQueue::rejected_count() const { return m_rejected_count.loa
 std::uint64_t BoundedQueue::total_enqueued() const { return m_total_enqueued.load(std::memory_order_relaxed); }
 
 } // namespace dfh_node
-
-

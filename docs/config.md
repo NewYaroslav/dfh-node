@@ -29,7 +29,8 @@
       "enabled": true,
       "max_skew_ms": 5000,
       "nonce_ttl_ms": 60000,
-      "nonce_capacity": 10000
+      "nonce_capacity": 10000,
+      "require_for_scopes": ["write", "admin", "sync"]
     }
   },
   "peers": [],
@@ -72,7 +73,8 @@
       "enabled": true,
       "max_skew_ms": 5000,
       "nonce_ttl_ms": 60000,
-      "nonce_capacity": 20000
+      "nonce_capacity": 20000,
+      "require_for_scopes": ["write", "admin", "sync"]
     }
   },
   "peers": [
@@ -135,6 +137,7 @@
 - `max_skew_ms` (int, default: `5000`).
 - `nonce_ttl_ms` (int, default: `60000`).
 - `nonce_capacity` (int, default: `10000`).
+- `require_for_scopes` (array<string>, default: `["write","admin","sync"]`).
 
 ### peers
 Массив объектов:
@@ -160,6 +163,7 @@
 - `queues.high_capacity`, `queues.low_capacity`, `queues.workers`: > 0
 - `security.server_secret`: не пустой, длина >= 16
 - `security.anti_replay.max_skew_ms`, `nonce_ttl_ms`, `nonce_capacity`: > 0
+- `security.anti_replay.require_for_scopes`: при `enabled=true` не должен быть пустым
 - `storage.path`: не пустой
 - `storage.min_free_bytes`: >= 0
 - `logging.level`: `trace|debug|info|warn|error`
@@ -177,3 +181,9 @@
 
 ## Безопасность
 `server_secret` никогда не логируется. В логах присутствуют только безопасные поля (node_id, env, порты и т.д.).
+
+## Примечание по capacity rule
+Рекомендация из протокола: `nonce_capacity >= peak_rps_per_fingerprint * nonce_ttl_seconds * 1.5`.
+
+Текущая реализация валидатора использует baseline-оценку `peak_rps_per_fingerprint = 1` и пишет `WARN` в `std::clog`,
+если `nonce_capacity < nonce_ttl_seconds * 1.5`. Это предупреждение, не ошибка валидации.

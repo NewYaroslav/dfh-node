@@ -1,8 +1,12 @@
-# Модель безопасности (черновик)
+# Модель безопасности
 
 ## Назначение
 Документ описывает модель безопасности: API-ключи, scope-права, rate limiting, anti-replay и правила хранения секретов.
 Цель — зафиксировать базовые принципы и согласовать минимальный обязательный набор мер.
+
+Статус на текущий момент:
+- Core-часть безопасности (scope, rate limiting, anti-replay, nonce store, canonical request, подписи) реализована в библиотеке `dfh_node`.
+- HTTP/WS транспорт ещё не подключён в runtime (`dfh_node_app` работает в one-shot режиме), поэтому transport-часть ниже описывает контракт интеграции.
 
 ## Структура
 1. Модель угроз (кратко)
@@ -60,6 +64,8 @@
 **WS-поток:**
 1. Handshake/upgrade: извлечь token → вычислить fingerprint → найти AuthContext → вычислить signing_key = SHA256(token) → сохранить в WsConnectionContext (32 байта)
 2. WS message: извлечь signing_key из connection context → проверить HMAC(signing_key, canonical_string) == signature
+
+\* Примечание: это целевой контракт для transport-слоя. В текущем runtime WS handshake/message pipeline ещё не активирован.
 
 ### Порядок валидации
 
@@ -125,4 +131,7 @@ PAYLOAD_HASH
 
 **Пример:** rps=100, ttl=60s → capacity >= 100 * 60 * 1.5 = 9000
 
-**Валидация:** мягкая (WARNING в логе), НЕ жёсткая ошибка конфига
+**Валидация:** мягкая (WARNING в логе), НЕ жёсткая ошибка конфига.
+
+\* Примечание по текущей реализации: в `config_validator` warning считается по baseline `peak_rps_per_fingerprint = 1`
+и выводится в `std::clog`.

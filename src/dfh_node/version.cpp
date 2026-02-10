@@ -11,5 +11,3 @@ std::string_view version() { return kVersion; }
 std::string_view name() { return kNodeName; }
 
 } // namespace dfh_node
-
-

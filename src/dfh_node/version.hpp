@@ -27,5 +27,3 @@ std::string_view version();
 std::string_view name();
 
 } // namespace dfh_node
-
-

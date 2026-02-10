@@ -24,5 +24,3 @@ std::uint64_t SystemRandom::next_uint64() {
 }
 
 } // namespace dfh_node
-
-

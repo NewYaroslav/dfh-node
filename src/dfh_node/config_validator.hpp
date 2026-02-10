@@ -27,5 +27,3 @@ struct ValidationError {
 std::vector<ValidationError> validate(const Config &cfg);
 
 } // namespace dfh_node::config
-
-

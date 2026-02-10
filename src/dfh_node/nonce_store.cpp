@@ -8,16 +8,16 @@
 
 namespace dfh_node {
 
-std::size_t NonceKeyHash::operator()(const std::pair<std::string, std::string>& key) const {
+std::size_t NonceKeyHash::operator()(const std::pair<std::string, std::string> &key) const {
     const std::size_t first_hash = std::hash<std::string>{}(key.first);
     const std::size_t second_hash = std::hash<std::string>{}(key.second);
     return first_hash ^ (second_hash << 1);
 }
 
-NonceStore::NonceStore(IClock& clock, std::int64_t ttl_ms, std::int64_t capacity)
+NonceStore::NonceStore(IClock &clock, std::int64_t ttl_ms, std::int64_t capacity)
     : m_clock(clock), m_ttl_ms(ttl_ms), m_capacity(capacity) {}
 
-bool NonceStore::check_and_record(const std::string& fingerprint, const std::string& nonce,
+bool NonceStore::check_and_record(const std::string &fingerprint, const std::string &nonce,
                                   const std::int64_t insertion_time_ms) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -83,4 +83,3 @@ void NonceStore::cleanup_expired_locked() {
 }
 
 } // namespace dfh_node
-

@@ -62,11 +62,11 @@ private:
     /// \return `std::monostate` если проверка пройдена, иначе `GateError`.
     GateResult validate_anti_replay_requirement(TaskKind kind) const;
 
-    AuthService &m_auth_service; ///< Сервис авторизации.
-    RateLimiter &m_rate_limiter; ///< Лимитер частоты запросов.
-    WsConnectionLimiter &m_ws_limiter; ///< Лимитер WS-соединений.
+    AuthService &m_auth_service;                  ///< Сервис авторизации.
+    RateLimiter &m_rate_limiter;                  ///< Лимитер частоты запросов.
+    WsConnectionLimiter &m_ws_limiter;            ///< Лимитер WS-соединений.
     AntiReplayValidator *m_anti_replay_validator; ///< Nullable при отключённом anti-replay.
-    ScopeMask m_require_for_scopes; ///< Scope, для которых anti-replay обязателен.
+    ScopeMask m_require_for_scopes;               ///< Scope, для которых anti-replay обязателен.
 };
 
 } // namespace dfh_node

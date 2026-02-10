@@ -96,5 +96,3 @@ int main() {
     test_shutdown_unblocks();
     return 0;
 }
-
-
