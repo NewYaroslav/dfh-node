@@ -6,6 +6,7 @@ add_library(dfh_node STATIC
     auth_service.cpp
     auth_cache.cpp
     bounded_queue.cpp
+    canonical_request.cpp
     config.cpp
     config_api_key_store.cpp
     config_loader.cpp
