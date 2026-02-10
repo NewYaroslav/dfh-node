@@ -1,8 +1,7 @@
-/**
- * \file fingerprint_computer.cpp
- * \brief Реализация вычисления fingerprint для API-токенов.
- * \details Использует OpenSSL HMAC-SHA256 и кодирует результат в lowercase hex.
- */
+/// \file fingerprint_computer.cpp
+/// \brief Реализация вычисления fingerprint для API-токенов.
+/// \details Использует OpenSSL HMAC-SHA256 и кодирует результат в lowercase hex.
+
 #include "fingerprint_computer.hpp"
 
 #include <openssl/evp.h>
@@ -13,16 +12,11 @@
 
 namespace dfh_node {
 
-namespace {
-
-constexpr char k_hex_digits[] = "0123456789abcdef";
-
-} // namespace
-
 FingerprintComputer::FingerprintComputer(const std::string &server_secret)
     : m_server_secret(server_secret) {}
 
 std::string FingerprintComputer::compute(const std::string &token) const {
+    static constexpr char k_hex_digits[] = "0123456789abcdef";
     std::array<unsigned char, EVP_MAX_MD_SIZE> digest{};
     unsigned int digest_size = 0;
 
