@@ -160,6 +160,50 @@ target_link_libraries(test_unified_gate
 
 add_test(NAME test_unified_gate COMMAND test_unified_gate)
 
+add_executable(test_sha256_utils
+    test_sha256_utils.cpp
+)
+
+target_link_libraries(test_sha256_utils
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_sha256_utils COMMAND test_sha256_utils)
+
+add_executable(test_canonical_request
+    test_canonical_request.cpp
+)
+
+target_link_libraries(test_canonical_request
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_canonical_request COMMAND test_canonical_request)
+
+add_executable(test_nonce_store
+    test_nonce_store.cpp
+)
+
+target_link_libraries(test_nonce_store
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_nonce_store COMMAND test_nonce_store)
+
+add_executable(test_anti_replay_validator
+    test_anti_replay_validator.cpp
+)
+
+target_link_libraries(test_anti_replay_validator
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_anti_replay_validator COMMAND test_anti_replay_validator)
+
 add_executable(test_gate_e2e
     test_gate_e2e.cpp
 )
