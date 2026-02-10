@@ -166,6 +166,76 @@
 - Rate limit: req/sec + max ws connections.
 - Anti-replay: canonical string, окно времени, nonce store (TTL/LRU).
 
+### 9.5 Протокол anti-replay
+
+**Ключ подписи:** `signing_key = SHA256(token)` (32 сырых байта)
+- HTTP: вычисляется на лету из заголовка Authorization
+- WS: вычисляется при handshake/upgrade, хранится в WsConnectionContext (32 байта)
+- Plaintext token НЕ хранится долго (требование этапа 4)
+
+**HTTP хедеры:**
+- `Authorization: Bearer <token>` (как в этапе 4)
+- `X-DFH-Timestamp` (Unix epoch ms, 13 цифр)
+- `X-DFH-Nonce` (hex lowercase, 16 символов = 8 случайных байт)
+- `X-DFH-Signature` (HMAC-SHA256 в hex lowercase, 64 символа)
+
+**Поля WS control-message:**
+- `timestamp` (Unix epoch ms, 13 цифр)
+- `nonce` (hex lowercase, 16 символов)
+- `signature` (HMAC-SHA256 в hex lowercase, 64 символа)
+- `endpoint` (например, `/ws/msgpack`)
+- `op` (операция: ingest/history/subscribe)
+- `msg_id` (идентификатор сообщения)
+- `payload_sha256` (для dfhbin: SHA-256 бинарного кадра в hex, 64 символа)
+
+**Канонический формат HTTP:**
+```
+METHOD\n
+PATH\n
+QUERY_STRING\n
+TIMESTAMP\n
+NONCE\n
+BODY_HASH
+```
+(Последний `\n` НЕ включается)
+
+**Канонический формат WS:**
+```
+ENDPOINT\n
+OP\n
+MSG_ID\n
+TIMESTAMP\n
+NONCE\n
+PAYLOAD_HASH
+```
+(Последний `\n` НЕ включается)
+
+**Порядок проверок:**
+1. Parse (проверка формата: timestamp число, nonce 16 hex, signature 64 hex, signing_key 32 bytes)
+2. Timestamp skew: `abs(now_ms - request_ts) <= max_skew_ms` (разрешает будущее в пределах окна)
+3. Проверка подписи: `HMAC-SHA256(signing_key, canonical_string) == signature` (constant-time compare)
+4. Уникальность nonce: `NonceStore.check_and_record(fingerprint, nonce, server_now)` (TTL от server_now)
+
+**Политика require_for_scopes:**
+- По умолчанию: write/admin/sync обязательны
+- Если disabled + required scope → REJECT с AntiReplayRequired (НЕ skip)
+
+**Формат nonce:** hex lowercase, 16 символов (8 случайных байт, crypto.randomBytes)
+
+**Правило capacity:** `nonce_capacity >= peak_rps_per_fingerprint * nonce_ttl_seconds * 1.5` (запас 50%)
+
+**Хеш пустого тела:** `sha256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+
+**WS payload_hash:**
+- dfhbin: sha256(binary_frame_bytes)
+- json/msgpack: sha256(payload_bytes_raw) (как передано по сети, ДО парсинга)
+- history/subscribe: sha256("") (нет payload)
+
+**Канонизация query-параметров:**
+- Декодировать URL-encoding (`+` → пробел, `%2F` → `/`)
+- Отсортировать по (key, value) в лексикографическом порядке
+- Канонически перекодировать (RFC3986: пробел → `%20`, НЕ `+`)
+
 ## 10. Sync v1
 - Pull-модель, peers статически в конфиге.
 - Diff по meta/hash/revision: сначала `end_ts`, затем `count`.
