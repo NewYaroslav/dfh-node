@@ -31,6 +31,10 @@ Config default_config() {
     cfg.security.anti_replay.max_skew_ms = 5000;
     cfg.security.anti_replay.nonce_ttl_ms = 60000;
     cfg.security.anti_replay.nonce_capacity = 10000;
+    cfg.security.anti_replay.require_for_scopes =
+        to_scope_mask(Scope::Write) |
+        to_scope_mask(Scope::Admin) |
+        to_scope_mask(Scope::Sync);
 
     cfg.storage.path = "./data";
     cfg.storage.min_free_bytes = 2000000000;

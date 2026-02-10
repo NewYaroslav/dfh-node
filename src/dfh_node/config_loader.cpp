@@ -10,6 +10,7 @@
 
 #include <exception>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 #include <nlohmann/json.hpp>
@@ -216,6 +217,42 @@ LoadResult load_from_file(const std::filesystem::path &path) {
                 read_int64(ar_obj, "nonce_capacity",
                            cfg.security.anti_replay.nonce_capacity,
                            result.errors, "security.anti_replay");
+
+                if (auto scopes_it = ar_obj.find("require_for_scopes");
+                    scopes_it != ar_obj.end()) {
+                    if (!scopes_it->is_array()) {
+                        add_error(result.errors,
+                                  "security.anti_replay.require_for_scopes",
+                                  "type_mismatch", "Expected array");
+                    } else {
+                        ScopeMask mask = 0;
+                        const auto &scopes_arr = *scopes_it;
+                        for (std::size_t i = 0; i < scopes_arr.size(); ++i) {
+                            const auto &scope_value = scopes_arr.at(i);
+                            if (!scope_value.is_string()) {
+                                add_error(
+                                    result.errors,
+                                    "security.anti_replay.require_for_scopes[" +
+                                        std::to_string(i) + "]",
+                                    "type_mismatch", "Expected string");
+                                continue;
+                            }
+
+                            const std::string scope_name =
+                                scope_value.get<std::string>();
+                            const auto parsed_scope = parse_scope(scope_name);
+                            if (!parsed_scope.has_value()) {
+                                std::clog
+                                    << "WARN: unknown scope in "
+                                       "require_for_scopes: "
+                                    << scope_name << '\n';
+                                continue;
+                            }
+                            mask |= to_scope_mask(*parsed_scope);
+                        }
+                        cfg.security.anti_replay.require_for_scopes = mask;
+                    }
+                }
             }
         }
     }

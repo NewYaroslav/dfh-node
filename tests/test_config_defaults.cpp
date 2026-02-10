@@ -15,5 +15,9 @@ int main() {
     CHECK(cfg.node_id.empty());
     CHECK(cfg.env.empty());
     CHECK(cfg.security.server_secret.empty());
+    CHECK_EQ(cfg.security.anti_replay.require_for_scopes,
+             dfh_node::to_scope_mask(dfh_node::Scope::Write) |
+             dfh_node::to_scope_mask(dfh_node::Scope::Admin) |
+             dfh_node::to_scope_mask(dfh_node::Scope::Sync));
     return 0;
 }
