@@ -12,21 +12,17 @@
 
 namespace dfh_node {
 
-FingerprintComputer::FingerprintComputer(const std::string &server_secret)
-    : m_server_secret(server_secret) {}
+FingerprintComputer::FingerprintComputer(const std::string &server_secret) : m_server_secret(server_secret) {}
 
 std::string FingerprintComputer::compute(const std::string &token) const {
     static constexpr char k_hex_digits[] = "0123456789abcdef";
     std::array<unsigned char, EVP_MAX_MD_SIZE> digest{};
     unsigned int digest_size = 0;
 
-    const unsigned char *token_data =
-        reinterpret_cast<const unsigned char *>(token.data());
-    const auto key_data =
-        reinterpret_cast<const unsigned char *>(m_server_secret.data());
+    const unsigned char *token_data = reinterpret_cast<const unsigned char *>(token.data());
+    const auto key_data = reinterpret_cast<const unsigned char *>(m_server_secret.data());
 
-    if (HMAC(EVP_sha256(), key_data, static_cast<int>(m_server_secret.size()),
-             token_data, token.size(), digest.data(),
+    if (HMAC(EVP_sha256(), key_data, static_cast<int>(m_server_secret.size()), token_data, token.size(), digest.data(),
              &digest_size) == nullptr) {
         throw std::runtime_error("HMAC(EVP_sha256) failed");
     }

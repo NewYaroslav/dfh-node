@@ -174,8 +174,7 @@ void test_ws_payload_hash_mismatch() {
     auto input_tampered = input_signed;
     input_tampered.payload_hash = dfh_node::compute_sha256_hex("payload-tampered");
 
-    const auto result =
-        validator.validate_ws("fp1", signing_key.data(), signing_key.size(), input_tampered, signature);
+    const auto result = validator.validate_ws("fp1", signing_key.data(), signing_key.size(), input_tampered, signature);
     CHECK(std::holds_alternative<dfh_node::GateError>(result));
     CHECK_EQ(std::get<dfh_node::GateError>(result).code, dfh_node::GateErrorCode::AntiReplayFailed);
 }

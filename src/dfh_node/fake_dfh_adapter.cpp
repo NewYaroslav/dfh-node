@@ -78,19 +78,14 @@ std::unique_ptr<IngestResponse> FakeDfhAdapter::ingest_structured(std::unique_pt
     m_storage[req->key] = req->payload;
     m_hashes[req->key] = new_hash;
     m_meta[req->key] = BlockMeta{
-        req->key,
-        req->key.block_ts,
-        req->key.block_ts,
-        0,
-        now_ms(),
+        req->key, req->key.block_ts, req->key.block_ts, 0, now_ms(),
     };
 
     resp->status = AdapterStatus::Ok;
     return resp;
 }
 
-std::unique_ptr<QueryHistoryResponse>
-FakeDfhAdapter::query_history(std::unique_ptr<QueryHistoryRequest> req) {
+std::unique_ptr<QueryHistoryResponse> FakeDfhAdapter::query_history(std::unique_ptr<QueryHistoryRequest> req) {
     auto resp = std::make_unique<QueryHistoryResponse>();
     if (!req) {
         resp->status = AdapterStatus::Error;
@@ -131,8 +126,7 @@ FakeDfhAdapter::query_history(std::unique_ptr<QueryHistoryRequest> req) {
     return resp;
 }
 
-std::unique_ptr<GetBlockDfhbinResponse>
-FakeDfhAdapter::get_block_dfhbin(std::unique_ptr<GetBlockDfhbinRequest> req) {
+std::unique_ptr<GetBlockDfhbinResponse> FakeDfhAdapter::get_block_dfhbin(std::unique_ptr<GetBlockDfhbinRequest> req) {
     auto resp = std::make_unique<GetBlockDfhbinResponse>();
     if (!req) {
         resp->status = AdapterStatus::Error;
@@ -153,8 +147,7 @@ FakeDfhAdapter::get_block_dfhbin(std::unique_ptr<GetBlockDfhbinRequest> req) {
     return resp;
 }
 
-std::unique_ptr<ListBlockMetaResponse>
-FakeDfhAdapter::list_block_meta(std::unique_ptr<ListBlockMetaRequest> req) {
+std::unique_ptr<ListBlockMetaResponse> FakeDfhAdapter::list_block_meta(std::unique_ptr<ListBlockMetaRequest> req) {
     auto resp = std::make_unique<ListBlockMetaResponse>();
     if (!req) {
         resp->status = AdapterStatus::Error;
@@ -191,8 +184,7 @@ FakeDfhAdapter::list_block_meta(std::unique_ptr<ListBlockMetaRequest> req) {
     return resp;
 }
 
-std::unique_ptr<GetBlockHashResponse>
-FakeDfhAdapter::get_block_hash(std::unique_ptr<GetBlockHashRequest> req) {
+std::unique_ptr<GetBlockHashResponse> FakeDfhAdapter::get_block_hash(std::unique_ptr<GetBlockHashRequest> req) {
     auto resp = std::make_unique<GetBlockHashResponse>();
     if (!req) {
         resp->status = AdapterStatus::Error;

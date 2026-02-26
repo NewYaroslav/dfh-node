@@ -1,9 +1,26 @@
 /// \file test_config_validator.cpp
 /// \brief Проверка правил валидации конфигурации.
-/// \details Покрывает валидный случай и типовые ошибки.
+/// \details Покрывает валидный случай и набор негативных сценариев по полям.
 ///
 #include "config_validator.hpp"
 #include "test_helpers.hpp"
+
+#include <string>
+#include <vector>
+
+namespace {
+
+bool has_error(const std::vector<dfh_node::config::ValidationError> &errors, const std::string &path,
+               const std::string &code) {
+    for (const auto &error : errors) {
+        if (error.path == path && error.code == code) {
+            return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
 
 int main() {
     {
@@ -17,69 +34,146 @@ int main() {
     }
 
     {
-        // Некорректный порт.
+        // Покрываем большинство правил валидации в одном сценарии.
         auto cfg = dfh_node::config::default_config();
-        cfg.node_id = "node-01";
-        cfg.env = "dev";
-        cfg.security.server_secret = "test-secret-key-16chars";
+        cfg.schema_version = 2;
+        cfg.node_id = "invalid node id";
+        cfg.env = "qa";
+
         cfg.http.port = 0;
-        auto errors = dfh_node::config::validate(cfg);
-        CHECK(!errors.empty());
-        CHECK_EQ(errors[0].code, "out_of_range");
-    }
+        cfg.ws.port = 0;
+        cfg.http.bind_host.clear();
+        cfg.ws.bind_host.clear();
+        cfg.http.max_payload_bytes = 0;
+        cfg.ws.max_payload_bytes = 0;
 
-    {
-        // Пустой node_id должен валидироваться как ошибка.
-        auto cfg = dfh_node::config::default_config();
-        cfg.env = "dev";
-        cfg.security.server_secret = "test-secret-key-16chars";
-        cfg.node_id = "";
-        auto errors = dfh_node::config::validate(cfg);
-        CHECK(!errors.empty());
-        CHECK_EQ(errors[0].code, "missing");
-    }
+        cfg.queues.high_capacity = 0;
+        cfg.queues.low_capacity = 0;
+        cfg.queues.workers = 0;
 
-    {
-        // При включенном anti_replay маска обязательных scope не должна быть пустой.
-        auto cfg = dfh_node::config::default_config();
-        cfg.node_id = "node-01";
-        cfg.env = "dev";
-        cfg.security.server_secret = "test-secret-key-16chars";
+        cfg.security.server_secret = "short";
         cfg.security.anti_replay.enabled = true;
+        cfg.security.anti_replay.max_skew_ms = 0;
+        cfg.security.anti_replay.nonce_ttl_ms = 0;
+        cfg.security.anti_replay.nonce_capacity = 0;
         cfg.security.anti_replay.require_for_scopes = 0;
 
-        auto errors = dfh_node::config::validate(cfg);
+        cfg.storage.path.clear();
+        cfg.storage.min_free_bytes = -1;
+
+        cfg.logging.level = "verbose";
+
+        cfg.peers = {
+            {"peer-1", "http://peer-1.local"},
+            {"peer-1", "ftp://peer-2.local"},
+            {"", ""},
+        };
+
+        const auto errors = dfh_node::config::validate(cfg);
         CHECK(!errors.empty());
 
-        bool found = false;
-        for (const auto &error : errors) {
-            if (error.path == "security.anti_replay.require_for_scopes") {
-                found = true;
-                break;
-            }
-        }
-        CHECK(found);
+        CHECK(has_error(errors, "schema_version", "out_of_range"));
+        CHECK(has_error(errors, "node_id", "invalid_format"));
+        CHECK(has_error(errors, "env", "invalid_format"));
+        CHECK(has_error(errors, "http.port", "out_of_range"));
+        CHECK(has_error(errors, "ws.port", "out_of_range"));
+        CHECK(has_error(errors, "http.port", "conflict"));
+        CHECK(has_error(errors, "http.bind_host", "missing"));
+        CHECK(has_error(errors, "ws.bind_host", "missing"));
+        CHECK(has_error(errors, "http.max_payload_bytes", "out_of_range"));
+        CHECK(has_error(errors, "ws.max_payload_bytes", "out_of_range"));
+        CHECK(has_error(errors, "queues.high_capacity", "out_of_range"));
+        CHECK(has_error(errors, "queues.low_capacity", "out_of_range"));
+        CHECK(has_error(errors, "queues.workers", "out_of_range"));
+        CHECK(has_error(errors, "security.server_secret", "out_of_range"));
+        CHECK(has_error(errors, "security.anti_replay.max_skew_ms", "out_of_range"));
+        CHECK(has_error(errors, "security.anti_replay.nonce_ttl_ms", "out_of_range"));
+        CHECK(has_error(errors, "security.anti_replay.nonce_capacity", "out_of_range"));
+        CHECK(has_error(errors, "security.anti_replay.require_for_scopes", "missing"));
+        CHECK(has_error(errors, "storage.path", "missing"));
+        CHECK(has_error(errors, "storage.min_free_bytes", "out_of_range"));
+        CHECK(has_error(errors, "logging.level", "invalid_format"));
+        CHECK(has_error(errors, "peers[1].id", "conflict"));
+        CHECK(has_error(errors, "peers[1].url", "invalid_format"));
+        CHECK(has_error(errors, "peers[2].id", "missing"));
+        CHECK(has_error(errors, "peers[2].url", "missing"));
     }
 
     {
-        // При выключенном anti_replay пустая маска допустима.
+        // Пустой node_id валидируется как missing.
+        auto cfg = dfh_node::config::default_config();
+        cfg.env = "dev";
+        cfg.security.server_secret = "test-secret-key-16chars";
+        cfg.node_id.clear();
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(has_error(errors, "node_id", "missing"));
+    }
+
+    {
+        // node_id длиннее 64 символов валидируется как out_of_range.
+        auto cfg = dfh_node::config::default_config();
+        cfg.node_id = std::string(65, 'a');
+        cfg.env = "dev";
+        cfg.security.server_secret = "test-secret-key-16chars";
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(has_error(errors, "node_id", "out_of_range"));
+    }
+
+    {
+        // Пустой env валидируется отдельно как missing.
+        auto cfg = dfh_node::config::default_config();
+        cfg.node_id = "node-01";
+        cfg.env.clear();
+        cfg.security.server_secret = "test-secret-key-16chars";
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(has_error(errors, "env", "missing"));
+    }
+
+    {
+        // Пустой server_secret валидируется отдельно как missing.
+        auto cfg = dfh_node::config::default_config();
+        cfg.node_id = "node-01";
+        cfg.env = "dev";
+        cfg.security.server_secret.clear();
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(has_error(errors, "security.server_secret", "missing"));
+    }
+
+    {
+        // При выключенном anti_replay нулевые значения не должны давать ошибок anti_replay.
         auto cfg = dfh_node::config::default_config();
         cfg.node_id = "node-01";
         cfg.env = "dev";
         cfg.security.server_secret = "test-secret-key-16chars";
         cfg.security.anti_replay.enabled = false;
+        cfg.security.anti_replay.max_skew_ms = 0;
+        cfg.security.anti_replay.nonce_ttl_ms = 0;
+        cfg.security.anti_replay.nonce_capacity = 0;
         cfg.security.anti_replay.require_for_scopes = 0;
 
-        auto errors = dfh_node::config::validate(cfg);
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(!has_error(errors, "security.anti_replay.max_skew_ms", "out_of_range"));
+        CHECK(!has_error(errors, "security.anti_replay.nonce_ttl_ms", "out_of_range"));
+        CHECK(!has_error(errors, "security.anti_replay.nonce_capacity", "out_of_range"));
+        CHECK(!has_error(errors, "security.anti_replay.require_for_scopes", "missing"));
+    }
 
-        bool found = false;
-        for (const auto &error : errors) {
-            if (error.path == "security.anti_replay.require_for_scopes") {
-                found = true;
-                break;
-            }
-        }
-        CHECK(!found);
+    {
+        // Проверяем ветку warning по capacity-rule: ошибок быть не должно.
+        auto cfg = dfh_node::config::default_config();
+        cfg.node_id = "node-01";
+        cfg.env = "dev";
+        cfg.security.server_secret = "test-secret-key-16chars";
+        cfg.auth.rps_limit = 100;
+        cfg.security.anti_replay.enabled = true;
+        cfg.security.anti_replay.max_skew_ms = 5000;
+        cfg.security.anti_replay.nonce_ttl_ms = 60000;
+        cfg.security.anti_replay.nonce_capacity = 1;
+        cfg.security.anti_replay.require_for_scopes =
+            dfh_node::to_scope_mask(dfh_node::Scope::Write) | dfh_node::to_scope_mask(dfh_node::Scope::Admin);
+
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(errors.empty());
     }
 
     return 0;

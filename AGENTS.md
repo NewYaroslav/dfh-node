@@ -75,18 +75,26 @@
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
 - src/dfh_node/ — библиотека ноды: `.cpp` и соответствующие `.hpp` рядом
-  (`version.*`, `config.*`, `config_loader.*`, `config_validator.*`, `scope.hpp`,
-  `fingerprint_computer.*`, `api_key_store.hpp`, `config_api_key_store.*`,
-  `auth_cache.*`, `rate_limiter.*`, `ws_connection_limiter.*`, `auth_service.*`,
-  `unified_gate.*`, `status.*`, `task.*`, `task_scheduler.*`, `worker_pool.*`,
+  (`version.*`, `build_info.hpp`, `config.*`, `config_loader.*`, `config_validator.*`,
+  `scope.hpp`, `interfaces.hpp`, `fingerprint_computer.*`, `api_key_store.hpp`,
+  `config_api_key_store.*`, `auth_cache.*`, `auth_service.*`, `rate_limiter.*`,
+  `ws_connection_limiter.*`, `canonical_request.*`, `sha256_utils.*`,
+  `nonce_store.*`, `anti_replay_fields.hpp`, `anti_replay_validator.*`,
+  `dfh_adapter.hpp`, `dfh_adapter_dto.*`, `fake_dfh_adapter.*`, `unified_gate.*`,
+  `status.*`, `task.*`, `task_scheduler.*`, `worker_pool.*`, `bounded_queue.cpp`,
   `internal/bounded_queue.hpp`, `logging.hpp`).
 - src/app/ — приложение: `main.cpp`.
-- tests/ — тесты: smoke + config + scheduler/worker + auth/rate-limit/gate
+- tests/ — тесты: smoke + config + scheduler/worker + auth/rate-limit/gate + anti-replay + adapter
   (`test_smoke.cpp`, `test_config_defaults.cpp`, `test_config_loader.cpp`,
   `test_config_validator.cpp`, `test_task_scheduler.cpp`, `test_worker_pool.cpp`,
-  `test_scope.cpp`, `test_fingerprint_computer.cpp`, `test_auth_cache.cpp`,
-  `test_rate_limiter.cpp`, `test_ws_connection_limiter.cpp`,
-  `test_auth_service.cpp`, `test_unified_gate.cpp`, `test_gate_e2e.cpp`).
+  `test_bounded_queue.cpp`, `test_scope.cpp`, `test_scope_auth.cpp`,
+  `test_fingerprint_computer.cpp`, `test_config_api_key_store.cpp`,
+  `test_auth_cache.cpp`, `test_rate_limiter.cpp`, `test_ws_connection_limiter.cpp`,
+  `test_auth_service.cpp`, `test_unified_gate.cpp`, `test_sha256_utils.cpp`,
+  `test_canonical_request.cpp`, `test_nonce_store.cpp`, `test_anti_replay_validator.cpp`,
+  `test_gate_e2e.cpp`, `test_status.cpp`, `test_dfh_adapter_dto.cpp`,
+  `test_fake_dfh_adapter.cpp`, `test_dfh_adapter_e2e.cpp`).
+- tests/app_configs/ — фикстуры конфигов для CTest-сценариев приложения.
 - examples/ — примеры: `config_minimal.json`.
 - third_party/ — каталог для submodules (см. docs/third_party.md).
 - cmake/ — CMake-скрипты (Options/Warnings/ThirdParty).
@@ -94,11 +102,19 @@
 ### 4.1 Таргеты CMake
 - Библиотека: `dfh_node` (STATIC).
 - Приложение: `dfh_node_app`.
-- Тесты (CTest): `dfh_node_smoke`, `test_config_defaults`, `test_config_loader`,
-  `test_config_validator`, `test_task_scheduler`, `test_worker_pool`, `test_scope`,
-  `test_fingerprint_computer`, `test_auth_cache`, `test_rate_limiter`,
-  `test_ws_connection_limiter`, `test_auth_service`, `test_unified_gate`,
-  `test_gate_e2e`, а также smoke-тесты `dfh_node_app`.
+- Тесты (CTest): `test_tests_registry_consistency`, `test_comment_style`,
+  `dfh_node_smoke`, `app_no_args`, `app_valid_config`, `app_missing_config`,
+  `app_config_without_value`, `app_invalid_validation_config`,
+  `app_valid_config_trace`, `app_valid_config_debug`,
+  `app_valid_config_warn_upper`, `app_valid_config_error`,
+  `test_config_defaults`, `test_config_loader`, `test_config_validator`,
+  `test_task_scheduler`, `test_worker_pool`, `test_bounded_queue`, `test_scope`,
+  `test_scope_auth`, `test_fingerprint_computer`, `test_config_api_key_store`,
+  `test_auth_cache`, `test_rate_limiter`, `test_ws_connection_limiter`,
+  `test_auth_service`, `test_unified_gate`, `test_sha256_utils`,
+  `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`,
+  `test_gate_e2e`, `test_status`, `test_dfh_adapter_dto`, `test_fake_dfh_adapter`,
+  `test_dfh_adapter_e2e`.
 
 ### 4.2 Опции CMake (реальные)
 - `DFH_NODE_BUILD_TESTS` (ON) — включить тесты.
@@ -129,12 +145,13 @@
   3) Вызывает `build-tests-mingw.bat`.
 
 ### 5.4 Тесты
-- Сейчас включены тесты: `dfh_node_smoke`, `test_config_defaults`,
-  `test_config_loader`, `test_config_validator`, `test_task_scheduler`,
-  `test_worker_pool`, `test_scope`, `test_fingerprint_computer`,
-  `test_auth_cache`, `test_rate_limiter`, `test_ws_connection_limiter`,
-  `test_auth_service`, `test_unified_gate`, `test_gate_e2e`,
-  а также smoke-тесты приложения через CTest.
+- Сейчас включены тесты (полный список см. раздел 4.1), включая:
+  smoke/стиль/регистрацию (`test_tests_registry_consistency`, `test_comment_style`, `dfh_node_smoke`, `app_*`),
+  core/config/scheduler (`test_config_*`, `test_task_scheduler`, `test_worker_pool`, `test_bounded_queue`, `test_status`),
+  auth/security (`test_scope*`, `test_fingerprint_computer`, `test_auth_cache`, `test_auth_service`,
+  `test_rate_limiter`, `test_ws_connection_limiter`, `test_unified_gate`, `test_sha256_utils`,
+  `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`, `test_gate_e2e`),
+  adapter (`test_dfh_adapter_dto`, `test_fake_dfh_adapter`, `test_dfh_adapter_e2e`).
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
 
 ## 6. Процесс разработки

@@ -32,6 +32,36 @@ configure_file(
     COPYONLY
 )
 
+configure_file(
+    ${CMAKE_SOURCE_DIR}/tests/app_configs/config_logging_trace.json
+    ${CMAKE_BINARY_DIR}/test_configs/config_logging_trace.json
+    COPYONLY
+)
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/tests/app_configs/config_logging_debug.json
+    ${CMAKE_BINARY_DIR}/test_configs/config_logging_debug.json
+    COPYONLY
+)
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/tests/app_configs/config_logging_warn_upper.json
+    ${CMAKE_BINARY_DIR}/test_configs/config_logging_warn_upper.json
+    COPYONLY
+)
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/tests/app_configs/config_logging_error.json
+    ${CMAKE_BINARY_DIR}/test_configs/config_logging_error.json
+    COPYONLY
+)
+
+configure_file(
+    ${CMAKE_SOURCE_DIR}/tests/app_configs/config_invalid_env.json
+    ${CMAKE_BINARY_DIR}/test_configs/config_invalid_env.json
+    COPYONLY
+)
+
 add_test(NAME app_no_args COMMAND $<TARGET_FILE:dfh_node_app>)
 set_tests_properties(app_no_args PROPERTIES WILL_FAIL TRUE)
 
@@ -41,6 +71,30 @@ add_test(NAME app_valid_config
 
 add_test(NAME app_missing_config COMMAND $<TARGET_FILE:dfh_node_app> --config missing.json)
 set_tests_properties(app_missing_config PROPERTIES WILL_FAIL TRUE)
+
+add_test(NAME app_config_without_value COMMAND $<TARGET_FILE:dfh_node_app> --config)
+set_tests_properties(app_config_without_value PROPERTIES WILL_FAIL TRUE)
+
+add_test(NAME app_invalid_validation_config
+    COMMAND $<TARGET_FILE:dfh_node_app> --config ${CMAKE_BINARY_DIR}/test_configs/config_invalid_env.json
+)
+set_tests_properties(app_invalid_validation_config PROPERTIES WILL_FAIL TRUE)
+
+add_test(NAME app_valid_config_trace
+    COMMAND $<TARGET_FILE:dfh_node_app> --config ${CMAKE_BINARY_DIR}/test_configs/config_logging_trace.json
+)
+
+add_test(NAME app_valid_config_debug
+    COMMAND $<TARGET_FILE:dfh_node_app> --config ${CMAKE_BINARY_DIR}/test_configs/config_logging_debug.json
+)
+
+add_test(NAME app_valid_config_warn_upper
+    COMMAND $<TARGET_FILE:dfh_node_app> --config ${CMAKE_BINARY_DIR}/test_configs/config_logging_warn_upper.json
+)
+
+add_test(NAME app_valid_config_error
+    COMMAND $<TARGET_FILE:dfh_node_app> --config ${CMAKE_BINARY_DIR}/test_configs/config_logging_error.json
+)
 
 add_executable(test_config_defaults
     test_config_defaults.cpp

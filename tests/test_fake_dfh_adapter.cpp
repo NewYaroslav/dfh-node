@@ -73,6 +73,14 @@ void test_ingest_overwrite() {
     CHECK_EQ(get_resp->payload, bytes({9, 8, 7, 6}));
 }
 
+void test_ingest_invalid_argument() {
+    FakeDfhAdapter adapter;
+    auto resp = adapter.ingest_structured(std::unique_ptr<IngestRequest>());
+
+    CHECK_EQ(resp->status, AdapterStatus::Error);
+    CHECK_EQ(resp->error_code, std::string("invalid_argument"));
+}
+
 void test_query_history_happy_path() {
     constexpr std::int64_t hour_ms = 3600LL * 1000;
     FakeDfhAdapter adapter;
@@ -130,6 +138,55 @@ void test_query_history_block_boundaries() {
     CHECK_EQ(resp->status, AdapterStatus::Ok);
     CHECK_EQ(resp->chunks.size(), static_cast<std::size_t>(1));
     CHECK_EQ(resp->chunks[0].key.block_ts, 10 * hour_ms);
+}
+
+void test_query_history_empty_range() {
+    FakeDfhAdapter adapter;
+
+    auto req = std::make_unique<QueryHistoryRequest>();
+    req->provider = "p1";
+    req->symbol = "s1";
+    req->source = "src";
+    req->tf = Timeframe::Ticks;
+    req->from_ms = 10;
+    req->to_ms = 10;
+
+    auto resp = adapter.query_history(std::move(req));
+    CHECK_EQ(resp->status, AdapterStatus::Ok);
+    CHECK(resp->error_code.empty());
+    CHECK(resp->chunks.empty());
+}
+
+void test_query_history_filters_and_m1_timeframe() {
+    constexpr std::int64_t day_ms = 86400LL * 1000;
+    FakeDfhAdapter adapter;
+
+    auto ingest = [&](BlockKey key) {
+        auto req = std::make_unique<IngestRequest>();
+        req->key = std::move(key);
+        req->payload = bytes({7, 7, 7});
+        CHECK_EQ(adapter.ingest_structured(std::move(req))->status, AdapterStatus::Ok);
+    };
+
+    ingest(make_key(2 * day_ms, Timeframe::M1, "p1", "s1", "src"));
+    ingest(make_key(2 * day_ms, Timeframe::M1, "p1", "other_symbol", "src"));
+    ingest(make_key(2 * day_ms, Timeframe::M1, "p1", "s1", "other_source"));
+    ingest(make_key(2 * day_ms, Timeframe::Ticks, "p1", "s1", "src"));
+    ingest(make_key(2 * day_ms, Timeframe::M1, "other_provider", "s1", "src"));
+
+    auto req = std::make_unique<QueryHistoryRequest>();
+    req->provider = "p1";
+    req->symbol = "s1";
+    req->source = "src";
+    req->tf = Timeframe::M1;
+    req->from_ms = 2 * day_ms + 1;
+    req->to_ms = 3 * day_ms;
+
+    auto resp = adapter.query_history(std::move(req));
+    CHECK_EQ(resp->status, AdapterStatus::Ok);
+    CHECK(resp->error_code.empty());
+    CHECK_EQ(resp->chunks.size(), static_cast<std::size_t>(1));
+    CHECK_EQ(resp->chunks[0].key.block_ts, 2 * day_ms);
 }
 
 void test_get_block_dfhbin_happy_path() {
@@ -228,6 +285,36 @@ void test_list_block_meta_bounds() {
     CHECK_EQ(unbounded_resp->blocks.size(), static_cast<std::size_t>(3));
 }
 
+void test_list_block_meta_filters_symbol_source_tf() {
+    FakeDfhAdapter adapter;
+
+    auto ingest = [&](BlockKey key) {
+        auto req = std::make_unique<IngestRequest>();
+        req->key = std::move(key);
+        req->payload = bytes({5, 5});
+        CHECK_EQ(adapter.ingest_structured(std::move(req))->status, AdapterStatus::Ok);
+    };
+
+    ingest(make_key(1000, Timeframe::Ticks, "p1", "s1", "src"));
+    ingest(make_key(1000, Timeframe::Ticks, "p1", "s2", "src"));
+    ingest(make_key(1000, Timeframe::Ticks, "p1", "s1", "other_source"));
+    ingest(make_key(1000, Timeframe::M1, "p1", "s1", "src"));
+
+    auto req = std::make_unique<ListBlockMetaRequest>();
+    req->provider = "p1";
+    req->symbol = "s1";
+    req->source = "src";
+    req->tf = Timeframe::Ticks;
+
+    auto resp = adapter.list_block_meta(std::move(req));
+    CHECK_EQ(resp->status, AdapterStatus::Ok);
+    CHECK(resp->error_code.empty());
+    CHECK_EQ(resp->blocks.size(), static_cast<std::size_t>(1));
+    CHECK_EQ(resp->blocks[0].key.symbol, std::string("s1"));
+    CHECK_EQ(resp->blocks[0].key.source, std::string("src"));
+    CHECK_EQ(resp->blocks[0].key.tf, Timeframe::Ticks);
+}
+
 void test_get_block_hash_happy_path() {
     FakeDfhAdapter adapter;
     const auto payload = bytes({0x10, 0x20, 0x30});
@@ -264,6 +351,32 @@ void test_get_block_hash_not_found() {
     CHECK_EQ(resp->hash, zero_hash);
 }
 
+void test_reset_clears_storage() {
+    FakeDfhAdapter adapter;
+
+    auto ingest_req = std::make_unique<IngestRequest>();
+    ingest_req->key = make_key(12345);
+    ingest_req->payload = bytes({1, 2, 3, 4});
+    CHECK_EQ(adapter.ingest_structured(std::move(ingest_req))->status, AdapterStatus::Ok);
+
+    adapter.reset();
+
+    auto get_req = std::make_unique<GetBlockDfhbinRequest>();
+    get_req->key = make_key(12345);
+    auto get_resp = adapter.get_block_dfhbin(std::move(get_req));
+    CHECK_EQ(get_resp->status, AdapterStatus::Error);
+    CHECK_EQ(get_resp->error_code, std::string("not_found"));
+
+    auto meta_req = std::make_unique<ListBlockMetaRequest>();
+    meta_req->provider = "p1";
+    meta_req->symbol = "s1";
+    meta_req->source = "src";
+    meta_req->tf = Timeframe::Ticks;
+    auto meta_resp = adapter.list_block_meta(std::move(meta_req));
+    CHECK_EQ(meta_resp->status, AdapterStatus::Ok);
+    CHECK(meta_resp->blocks.empty());
+}
+
 void test_error_invariants() {
     FakeDfhAdapter adapter;
     const std::array<std::uint8_t, 32> zero_hash{};
@@ -294,14 +407,19 @@ void test_error_invariants() {
 int main() {
     test_ingest_happy_path();
     test_ingest_overwrite();
+    test_ingest_invalid_argument();
     test_query_history_happy_path();
     test_query_history_block_boundaries();
+    test_query_history_empty_range();
+    test_query_history_filters_and_m1_timeframe();
     test_get_block_dfhbin_happy_path();
     test_get_block_dfhbin_not_found();
     test_list_block_meta_filter();
     test_list_block_meta_bounds();
+    test_list_block_meta_filters_symbol_source_tf();
     test_get_block_hash_happy_path();
     test_get_block_hash_not_found();
+    test_reset_clears_storage();
     test_error_invariants();
     return 0;
 }
