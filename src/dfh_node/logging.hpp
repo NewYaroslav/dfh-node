@@ -1,8 +1,7 @@
-/**
- * \file logging.hpp
- * \brief Инициализация логирования и алиасы макросов log-it-cpp.
- * \details Макросы не оборачиваются функциями ради compile-time gating.
- */
+/// \file logging.hpp
+/// \brief Инициализация логирования и алиасы макросов log-it-cpp.
+/// \details Макросы не оборачиваются функциями ради отключения на этапе компиляции.
+///
 #pragma once
 
 #include "config.hpp"

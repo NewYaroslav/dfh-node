@@ -3,15 +3,19 @@
 find_package(OpenSSL REQUIRED)
 
 add_library(dfh_node STATIC
+    anti_replay_validator.cpp
     auth_service.cpp
     auth_cache.cpp
     bounded_queue.cpp
+    canonical_request.cpp
     config.cpp
     config_api_key_store.cpp
     config_loader.cpp
     config_validator.cpp
     fingerprint_computer.cpp
+    nonce_store.cpp
     rate_limiter.cpp
+    sha256_utils.cpp
     status.cpp
     task_scheduler.cpp
     unified_gate.cpp

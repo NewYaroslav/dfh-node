@@ -1,9 +1,8 @@
-/**
- * \file task.hpp
- * \brief Модель задач и результаты постановки в очередь.
- * \details Содержит TaskLane/TaskKind, EnqueueResult и правила работы с
- * payload.
- */
+/// \file task.hpp
+/// \brief Модель задач и результаты постановки в очередь.
+/// \details Содержит TaskLane/TaskKind, EnqueueResult и правила работы с
+/// payload.
+///
 #pragma once
 
 #include <cstdint>
@@ -39,10 +38,9 @@ enum class EnqueueStatus {
 
 /// \brief Результат постановки задачи в очередь.
 struct EnqueueResult {
-    EnqueueStatus status; ///< Статус операции.
-    std::string
-        error_code; ///< Код ошибки ("overload.high_priority_queue_full",
-                    ///< "overload.low_priority_queue_full").
+    EnqueueStatus status;      ///< Статус операции.
+    std::string error_code;    ///< Код ошибки ("overload.high_priority_queue_full",
+                               ///< "overload.low_priority_queue_full").
     std::string error_message; ///< Человекочитаемое описание ошибки.
 };
 

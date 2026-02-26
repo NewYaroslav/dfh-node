@@ -1,8 +1,7 @@
-/**
- * \file test_auth_service.cpp
- * \brief Unit-тесты для AuthService.
- * \details Проверяет три публичных метода и обработку неизвестного TaskKind.
- */
+/// \file test_auth_service.cpp
+/// \brief Юнит-тесты для AuthService.
+/// \details Проверяет три публичных метода и обработку неизвестного TaskKind.
+///
 #include "auth_service.hpp"
 #include "config.hpp"
 #include "config_api_key_store.hpp"
@@ -20,9 +19,7 @@ void test_authenticate_token_no_scope_check() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token1");
 
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Write),
-                                          std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -37,8 +34,7 @@ void test_authorize_with_scope() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token1");
 
-    entries.push_back(config::ApiKeyEntry{
-        fingerprint, Scope::Read | Scope::Write, std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, Scope::Read | Scope::Write, std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -53,9 +49,7 @@ void test_authorize_insufficient_scope() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token1");
 
-    entries.push_back(config::ApiKeyEntry{fingerprint,
-                                          static_cast<ScopeMask>(Scope::Read),
-                                          std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Read), std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -72,8 +66,7 @@ void test_authorize_fingerprint() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token1");
 
-    entries.push_back(config::ApiKeyEntry{
-        fingerprint, Scope::Read | Scope::Write, std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, Scope::Read | Scope::Write, std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -81,8 +74,7 @@ void test_authorize_fingerprint() {
 
     (void)service.authenticate_token("token1");
 
-    const auto result =
-        service.authorize_fingerprint(fingerprint, TaskKind::History);
+    const auto result = service.authorize_fingerprint(fingerprint, TaskKind::History);
     CHECK(std::holds_alternative<AuthContext>(result));
 }
 
@@ -91,8 +83,7 @@ void test_unknown_task_kind() {
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token1");
 
-    entries.push_back(config::ApiKeyEntry{
-        fingerprint, Scope::Read | Scope::Write, std::nullopt, 100, 10});
+    entries.push_back(config::ApiKeyEntry{fingerprint, Scope::Read | Scope::Write, std::nullopt, 100, 10});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);
@@ -104,11 +95,48 @@ void test_unknown_task_kind() {
     CHECK(error.code == GateErrorCode::UnsupportedOperation);
 }
 
+void test_authenticate_invalid_token() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    entries.push_back(
+        config::ApiKeyEntry{computer.compute("token1"), Scope::Read | Scope::Write, std::nullopt, 100, 10});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+
+    const auto result = service.authenticate_token("unknown-token");
+    CHECK(std::holds_alternative<GateError>(result));
+    const auto &error = std::get<GateError>(result);
+    CHECK(error.code == GateErrorCode::Unauthorized);
+}
+
+void test_authenticate_expired_token() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string fingerprint = computer.compute("expired-token");
+
+    // Значение 0 гарантированно меньше текущего epoch времени.
+    entries.push_back(
+        config::ApiKeyEntry{fingerprint, Scope::Read | Scope::Write, static_cast<std::int64_t>(0), 100, 10});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+
+    const auto result = service.authenticate_token("expired-token");
+    CHECK(std::holds_alternative<GateError>(result));
+    const auto &error = std::get<GateError>(result);
+    CHECK(error.code == GateErrorCode::Unauthorized);
+}
+
 int main() {
     test_authenticate_token_no_scope_check();
     test_authorize_with_scope();
     test_authorize_insufficient_scope();
     test_authorize_fingerprint();
     test_unknown_task_kind();
+    test_authenticate_invalid_token();
+    test_authenticate_expired_token();
     return 0;
 }

@@ -23,7 +23,8 @@
       "enabled": true,
       "max_skew_ms": 5000,
       "nonce_ttl_ms": 60000,
-      "nonce_capacity": 10000
+      "nonce_capacity": 10000,
+      "require_for_scopes": ["write", "admin", "sync"]
     }
   },
   "peers": [],

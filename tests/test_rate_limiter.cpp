@@ -1,8 +1,7 @@
-/**
- * \file test_rate_limiter.cpp
- * \brief Unit-тесты для RateLimiter.
- * \details Покрывает базовый лимит, сдвиг окна и opportunistic cleanup.
- */
+/// \file test_rate_limiter.cpp
+/// \brief Юнит-тесты для RateLimiter.
+/// \details Покрывает базовый лимит, сдвиг окна и периодическую очистку.
+///
 #include "rate_limiter.hpp"
 #include "test_helpers.hpp"
 

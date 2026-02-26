@@ -5,7 +5,7 @@ dfh-node — это сервер (“нода”) для хранения и р�
 Внутреннее хранение и слияние данных реализуется в движке DataFeedHub (DFH), а dfh-node — это сетевой слой
 (transport, auth, лимиты, очереди).
 
-## Planned features (MVP)
+## Планируемые возможности (MVP)
 
 - HTTP: выгрузка истории (history download) в форматах CSV и dfhbin (сжатый бинарный формат блоков данных).
 - HTTP: прием новых данных (ingest) через POST — пачками или одиночными событиями.
@@ -19,20 +19,20 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - Синхронизация нод (pull): ноды могут подтягивать недостающие данные у peers для надежности
   и распределения нагрузки. Sync ориентирован на работу через интернет за прокси (TLS делает nginx/внешний сервис).
 
-## Why multiple nodes?
+## Зачем несколько нод?
 
 - Надежность: если одна нода недоступна, другие продолжают обслуживать запросы и хранить данные.
 - Восстановление: вернувшаяся нода подтягивает историю у соседей.
 - Масштабирование чтения: можно распределять нагрузку выгрузки истории между нодами.
 
-## Architecture
+## Архитектура
 
 - dfh-node (этот репозиторий): HTTP/WS транспорт, очередь задач, auth/лимиты, sync, status/admin API.
 - DFH engine (внешняя зависимость): хранение данных, слияние (merge), вычисление хэшей блоков,
   доступ к истории по from/to.
 - Форматы обмена: JSON/MessagePack для control, dfhbin для быстрых бинарных блоков, CSV для удобного экспорта.
 
-## Repository layout
+## Структура репозитория
 
 - docs/ — документация (API, конфиг, безопасность).
 - src/dfh_node/ — ядро ноды: заголовки `.hpp` лежат рядом с реализациями `.cpp`.
@@ -42,7 +42,7 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - third_party/ — зависимости (vendored/submodules).
 - cmake/ — CMake helper-скрипты.
 
-## Project status
+## Статус проекта
 
 Репозиторий уже содержит рабочее ядро:
 
@@ -53,7 +53,7 @@ dfh-node — это сервер (“нода”) для хранения и р�
 
 HTTP/WS транспорт и sync-протокол остаются следующими этапами.
 
-## Quick Start
+## Быстрый старт
 
 Сборка и запуск в режиме Debug:
 
@@ -68,12 +68,81 @@ build-msvc\src\app\dfh_node_app.exe --config examples\config_minimal.json
 - dfh_node (статическая библиотека)
 - dfh_node_app (исполняемый файл)
 
-## Configuration
+## Конфигурация
 
 Полный формат `config.json` описан в `docs/config.md`.
 Минимальный пример находится в `examples/config_minimal.json`.
 
-## Logging
+## Защита от replay-атак
+
+### Обзор протокола
+
+**Ключ подписи:** `signing_key = SHA256(token)` (32 сырых байта)
+- HTTP: вычисляется на лету из заголовка Authorization
+- WS: вычисляется при handshake/upgrade, хранится в WsConnectionContext
+
+**HTTP-заголовки:**
+- `Authorization: Bearer <token>`
+- `X-DFH-Timestamp`: Unix epoch в миллисекундах (13 цифр)
+- `X-DFH-Nonce`: hex lowercase (16 символов = 8 случайных байт)
+- `X-DFH-Signature`: HMAC-SHA256 в hex (64 символа)
+
+**Поля WS control-message:**
+- `timestamp`, `nonce`, `signature`, `endpoint`, `op`, `msg_id`, `payload_sha256`
+
+### Пример клиента (HTTP)
+
+```python
+import hashlib
+import hmac
+import time
+import secrets
+
+token = "your-api-token"
+method = "POST"
+path = "/v1/ingest"
+query_string = "exchange=binance&symbol=BTCUSD"
+timestamp = str(int(time.time() * 1000))
+nonce = secrets.token_hex(8)
+body_hash = hashlib.sha256(body_bytes).hexdigest()
+
+# Каноническая строка
+canonical = f"{method}\n{path}\n{query_string}\n{timestamp}\n{nonce}\n{body_hash}"
+
+# Ключ подписи
+signing_key = hashlib.sha256(token.encode()).digest()
+
+# Подпись
+signature = hmac.new(signing_key, canonical.encode(), hashlib.sha256).hexdigest()
+
+# Заголовки
+headers = {
+    "Authorization": f"Bearer {token}",
+    "X-DFH-Timestamp": timestamp,
+    "X-DFH-Nonce": nonce,
+    "X-DFH-Signature": signature
+}
+```
+
+### Конфигурация
+
+```json
+{
+  "security": {
+    "anti_replay": {
+      "enabled": true,
+      "max_skew_ms": 5000,
+      "nonce_ttl_ms": 60000,
+      "nonce_capacity": 10000,
+      "require_for_scopes": ["write", "admin", "sync"]
+    }
+  }
+}
+```
+
+**Правило capacity:** `nonce_capacity >= peak_rps_per_fingerprint * nonce_ttl_seconds * 1.5`
+
+## Логирование
 
 Поддерживаемые уровни: `trace`, `debug`, `info`, `warn`, `error`.
 Логирование в файл опционально через `logging.file_path`.

@@ -44,6 +44,7 @@ struct AntiReplayConfig {
     std::int64_t max_skew_ms  = 5000;    ///< Допустимое расхождение времени, мс.
     std::int64_t nonce_ttl_ms = 60000;   ///< Время жизни nonce, мс.
     std::int64_t nonce_capacity = 10000; ///< Максимум хранимых nonce.
+    ScopeMask require_for_scopes = 0;    ///< Битмаска scope, где anti-replay обязателен.
 };
 
 /// \brief Безопасность и секреты ноды.
@@ -53,7 +54,7 @@ struct SecurityConfig {
     AntiReplayConfig anti_replay{}; ///< Параметры anti-replay.
 };
 
-/// \brief API key запись в конфиге без plaintext-токена.
+/// \brief API key запись в конфиге без Открытый-токена.
 /// \details Токен преобразуется в fingerprint на этапе загрузки конфига.
 struct ApiKeyEntry {
     std::string fingerprint;  ///< HMAC-SHA256(server_secret, token) в hex.

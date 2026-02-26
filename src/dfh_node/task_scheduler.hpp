@@ -1,7 +1,6 @@
 /// \file task_scheduler.hpp
 /// \brief Приоритетный планировщик задач и метрики очередей.
-/// \details Определяет публичный API TaskScheduler для high/low priority
-/// очередей.
+/// \details Определяет публичный API `TaskScheduler` для high/low-приоритетных очередей.
 
 #pragma once
 
@@ -16,11 +15,11 @@
 
 namespace dfh_node {
 
-/// \brief Приоритетный планировщик задач (high > low).
+/// \brief Приоритетный планировщик задач (`high` > `low`).
 ///
-/// Единая точка enqueue для обеих очередей, владеет единым mutex + cv.
-/// pop_next_task() реализует приоритет: сначала high, затем low.
-/// Shutdown семантика: stop-now (не drain, tasks могут остаться
+/// Единая точка постановки задач для обеих очередей, владеет единым `mutex` + `cv`.
+/// `pop_next_task()` реализует приоритет: сначала `high`, затем `low`.
+/// Семантика остановки: `stop-now` (без `drain`, задачи могут остаться
 /// необработанными).
 class TaskScheduler {
 public:
@@ -30,25 +29,25 @@ public:
     TaskScheduler(std::size_t high_capacity, std::size_t low_capacity);
 
     /// \brief Поставить задачу в high-priority очередь.
-    /// \param task Задача (move).
-    /// \return EnqueueResult с status=Ok/Rejected.
+    /// \param task Задача (перемещается).
+    /// \return `EnqueueResult` со статусом `Ok`/`Rejected`.
     EnqueueResult enqueue_high(Task task);
 
     /// \brief Поставить задачу в low-priority очередь.
-    /// \param task Задача (move).
-    /// \return EnqueueResult с status=Ok/Rejected.
+    /// \param task Задача (перемещается).
+    /// \return `EnqueueResult` со статусом `Ok`/`Rejected`.
     EnqueueResult enqueue_low(Task task);
 
-    /// \brief Извлечь следующую задачу (blocking, приоритет high > low).
+    /// \brief Извлечь следующую задачу (блокирующий вызов, приоритет `high` > `low`).
     ///
     /// Блокирует вызывающий поток, если обе очереди пусты.
-    /// Возвращает std::nullopt только при shutdown.
-    /// \return Task или std::nullopt при shutdown.
+    /// Возвращает `std::nullopt` только при остановке.
+    /// \return `Task` или `std::nullopt` при остановке.
     std::optional<Task> pop_next_task();
 
-    /// \brief Остановить планировщик (stop-now, не drain).
+    /// \brief Остановить планировщик (`stop-now`, без `drain`).
     ///
-    /// Устанавливает m_shutdown_flag и пробуждает все ожидающие потоки.
+    /// Устанавливает `m_shutdown_flag` и пробуждает все ожидающие потоки.
     /// НЕ дожидается обработки оставшихся задач в очередях.
     void shutdown();
 
@@ -61,10 +60,10 @@ public:
     QueueMetrics low_metrics() const;
 
 private:
-    BoundedQueue m_high_queue; ///< High-priority очередь (БЕЗ собственного mutex/cv).
-    BoundedQueue m_low_queue;  ///< Low-priority очередь (БЕЗ собственного mutex/cv).
-    mutable std::mutex m_mutex;   ///< ЕДИНЫЙ mutex для обеих очередей.
-    std::condition_variable m_cv; ///< ЕДИНЫЙ notifier для воркеров.
+    BoundedQueue m_high_queue; ///< High-priority очередь (без собственного `mutex`/`cv`).
+    BoundedQueue m_low_queue;  ///< Low-priority очередь (без собственного `mutex`/`cv`).
+    mutable std::mutex m_mutex;   ///< Единый `mutex` для обеих очередей.
+    std::condition_variable m_cv; ///< Единый `notifier` для воркеров.
     std::atomic<bool> m_shutdown_flag{false}; ///< Флаг остановки.
 };
 

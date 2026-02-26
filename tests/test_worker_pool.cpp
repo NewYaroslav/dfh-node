@@ -1,8 +1,7 @@
-/**
- * \file test_worker_pool.cpp
- * \brief Unit-тесты для WorkerPool.
- * \details Проверяет shutdown и сбор метрик обработки.
- */
+/// \file test_worker_pool.cpp
+/// \brief Юнит-тесты для WorkerPool.
+/// \details Проверяет остановку и сбор метрик обработки.
+///
 #include "test_helpers.hpp"
 #include "worker_pool.hpp"
 
@@ -13,23 +12,21 @@
 
 using namespace dfh_node;
 
-// Тест: shutdown останавливает воркеры без зависаний (stop-now, не drain).
+// Тест: остановка завершает воркеры без зависаний (stop-now, без drain).
 void test_shutdown_stop_now() {
     TaskScheduler scheduler(10, 10);
     WorkerPool pool(2, scheduler);
 
     pool.start();
 
-    // Enqueue несколько задач.
+    // Добавляем несколько задач.
     for (int i = 0; i < 5; ++i) {
-        Task task{TaskKind::Ingest, "req" + std::to_string(i), 0, []() {
-                      std::this_thread::sleep_for(
-                          std::chrono::milliseconds(10));
-                  }};
+        Task task{TaskKind::Ingest, "req" + std::to_string(i), 0,
+                  []() { std::this_thread::sleep_for(std::chrono::milliseconds(10)); }};
         scheduler.enqueue_high(std::move(task));
     }
 
-    // Shutdown (stop-now, не дожидаемся пустых очередей).
+    // Остановка (stop-now, не дожидаемся пустых очередей).
     auto start = std::chrono::steady_clock::now();
     pool.shutdown();
     auto elapsed = std::chrono::steady_clock::now() - start;
@@ -38,29 +35,27 @@ void test_shutdown_stop_now() {
     CHECK(elapsed < std::chrono::seconds(1));
 }
 
-// Тест: метрики обработки (per-kind).
+// Тест: метрики обработки по типам задач.
 void test_metrics_collection() {
     TaskScheduler scheduler(10, 10);
     WorkerPool pool(2, scheduler);
 
     pool.start();
 
-    // Enqueue 10 ingest jobs (monotonic clock timestamp).
-    auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::steady_clock::now().time_since_epoch())
-                      .count();
+    // Добавляем 10 ingest-задач с меткой времени от монотонных часов.
+    auto now_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+            .count();
 
     std::atomic<int> executed{0};
     for (int i = 0; i < 10; ++i) {
-        Task task{TaskKind::Ingest, "req" + std::to_string(i),
-                  static_cast<std::uint64_t>(now_ms), [&executed]() {
-                      executed.fetch_add(1, std::memory_order_relaxed);
-                  }};
+        Task task{TaskKind::Ingest, "req" + std::to_string(i), static_cast<std::uint64_t>(now_ms),
+                  [&executed]() { executed.fetch_add(1, std::memory_order_relaxed); }};
         auto result = scheduler.enqueue_high(std::move(task));
         CHECK(result.status == EnqueueStatus::Ok);
     }
 
-    // Ждём обработки всех задач (polling на executed).
+    // Ждём обработки всех задач (опрос счетчика executed).
     while (executed.load(std::memory_order_relaxed) < 10) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

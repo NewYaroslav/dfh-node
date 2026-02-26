@@ -1,8 +1,7 @@
-/**
- * \file bounded_queue.cpp
- * \brief Реализация внутренней bounded-очереди для Task.
- * \details Не содержит синхронизации, рассчитывает на внешний mutex.
- */
+/// \file bounded_queue.cpp
+/// \brief Реализация внутренней bounded-очереди для Task.
+/// \details Не содержит синхронизации, рассчитывает на внешний mutex.
+///
 #include "internal/bounded_queue.hpp"
 #include <utility>
 
@@ -37,12 +36,8 @@ bool BoundedQueue::empty() const { return m_queue.empty(); }
 
 bool BoundedQueue::full() const { return m_queue.size() >= m_capacity; }
 
-std::uint64_t BoundedQueue::rejected_count() const {
-    return m_rejected_count.load(std::memory_order_relaxed);
-}
+std::uint64_t BoundedQueue::rejected_count() const { return m_rejected_count.load(std::memory_order_relaxed); }
 
-std::uint64_t BoundedQueue::total_enqueued() const {
-    return m_total_enqueued.load(std::memory_order_relaxed);
-}
+std::uint64_t BoundedQueue::total_enqueued() const { return m_total_enqueued.load(std::memory_order_relaxed); }
 
 } // namespace dfh_node

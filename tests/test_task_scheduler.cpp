@@ -1,8 +1,7 @@
-/**
- * \file test_task_scheduler.cpp
- * \brief Unit-тесты для TaskScheduler.
- * \details Проверяет capacity, приоритет и корректное пробуждение при shutdown.
- */
+/// \file test_task_scheduler.cpp
+/// \brief Юнит-тесты для TaskScheduler.
+/// \details Проверяет вместимость очередей, приоритет и корректное пробуждение при остановке.
+///
 #include "task_scheduler.hpp"
 #include "test_helpers.hpp"
 
@@ -14,11 +13,11 @@
 
 using namespace dfh_node;
 
-// Тест: заполнение очереди до capacity, проверка reject.
+// Тест: заполнение очереди до предела и проверка отклонения.
 void test_capacity_reject() {
     TaskScheduler scheduler(2, 2); // high_cap=2, low_cap=2
 
-    // Заполняем high до capacity.
+    // Заполняем high-очередь до предела.
     Task task1{TaskKind::Ingest, "req1", 0, []() {}};
     Task task2{TaskKind::Ingest, "req2", 0, []() {}};
     auto r1 = scheduler.enqueue_high(std::move(task1));
@@ -26,7 +25,7 @@ void test_capacity_reject() {
     CHECK(r1.status == EnqueueStatus::Ok);
     CHECK(r2.status == EnqueueStatus::Ok);
 
-    // Попытка добавить третью задачу -> reject.
+    // Попытка добавить третью задачу -> отклонение.
     Task task3{TaskKind::Ingest, "req3", 0, []() {}};
     auto r3 = scheduler.enqueue_high(std::move(task3));
     CHECK(r3.status == EnqueueStatus::Rejected);
@@ -40,11 +39,11 @@ void test_capacity_reject() {
     scheduler.shutdown();
 }
 
-// Тест: приоритет high > low при одном воркере.
+// Тест: приоритет high > low при одном рабочем потоке.
 void test_priority_single_worker() {
     TaskScheduler scheduler(10, 10);
 
-    // Enqueue 5 high + 5 low.
+    // Добавляем 5 задач в high и 5 задач в low.
     for (int i = 0; i < 5; ++i) {
         Task task{TaskKind::Ingest, "ingest" + std::to_string(i), 0, []() {}};
         scheduler.enqueue_high(std::move(task));
@@ -73,7 +72,7 @@ void test_priority_single_worker() {
     scheduler.shutdown();
 }
 
-// Тест: shutdown пробуждает ожидающий поток.
+// Тест: остановка пробуждает ожидающий поток.
 void test_shutdown_unblocks() {
     TaskScheduler scheduler(10, 10);
 
