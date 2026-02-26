@@ -38,11 +38,11 @@ if(_violations)
     list(REMOVE_DUPLICATES _violations)
     string(JOIN "\n  - " _joined ${_violations})
     message(FATAL_ERROR
-        "Обнаружены запрещенные блочные комментарии в стиле '/* ... */'.\n"
-        "Используйте только '//' и '///'.\n"
-        "Файлы:\n"
+        "Forbidden block comments in the '/* ... */' style were found.\n"
+        "Use only '//' and '///'.\n"
+        "Files:\n"
         "  - ${_joined}\n"
     )
 endif()
 
-message(STATUS "Проверка стиля комментариев пройдена: используются только '//' и '///'.")
+message(STATUS "Comment style check passed: only '//' and '///' are used.")
