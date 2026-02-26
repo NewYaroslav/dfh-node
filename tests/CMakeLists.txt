@@ -294,3 +294,14 @@ target_link_libraries(test_fake_dfh_adapter
 )
 
 add_test(NAME test_fake_dfh_adapter COMMAND test_fake_dfh_adapter)
+
+add_executable(test_dfh_adapter_e2e
+    test_dfh_adapter_e2e.cpp
+)
+
+target_link_libraries(test_dfh_adapter_e2e
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_dfh_adapter_e2e COMMAND test_dfh_adapter_e2e)
