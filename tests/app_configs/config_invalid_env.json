@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "node_id": "node-app-invalid",
+  "env": "qa",
+  "security": {
+    "server_secret": "test-secret-key-16chars"
+  },
+  "logging": {
+    "level": "info",
+    "console": true,
+    "file_path": ""
+  }
+}

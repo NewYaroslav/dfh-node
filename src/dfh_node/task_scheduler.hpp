@@ -60,10 +60,10 @@ public:
     QueueMetrics low_metrics() const;
 
 private:
-    BoundedQueue m_high_queue; ///< High-priority очередь (без собственного `mutex`/`cv`).
-    BoundedQueue m_low_queue;  ///< Low-priority очередь (без собственного `mutex`/`cv`).
-    mutable std::mutex m_mutex;   ///< Единый `mutex` для обеих очередей.
-    std::condition_variable m_cv; ///< Единый `notifier` для воркеров.
+    BoundedQueue m_high_queue;                ///< High-priority очередь (без собственного `mutex`/`cv`).
+    BoundedQueue m_low_queue;                 ///< Low-priority очередь (без собственного `mutex`/`cv`).
+    mutable std::mutex m_mutex;               ///< Единый `mutex` для обеих очередей.
+    std::condition_variable m_cv;             ///< Единый `notifier` для воркеров.
     std::atomic<bool> m_shutdown_flag{false}; ///< Флаг остановки.
 };
 

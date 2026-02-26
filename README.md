@@ -49,6 +49,8 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - конфигурация/валидация/загрузка конфига;
 - очереди и worker pool (high/low lane);
 - auth/rate-limit ядро (scope, fingerprint, auth cache, API key store, unified gate);
+- anti-replay ядро (canonical request, nonce store, HMAC-проверка);
+- контракт storage-слоя (`IDfhAdapter` + DTO) и in-memory реализация `FakeDfhAdapter`;
 - unit/smoke/E2E тесты через CTest.
 
 HTTP/WS транспорт и sync-протокол остаются следующими этапами.

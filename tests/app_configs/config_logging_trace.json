@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "node_id": "node-app-trace",
+  "env": "dev",
+  "security": {
+    "server_secret": "test-secret-key-16chars"
+  },
+  "logging": {
+    "level": "trace",
+    "console": true,
+    "file_path": ""
+  }
+}

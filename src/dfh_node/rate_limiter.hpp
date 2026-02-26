@@ -40,7 +40,7 @@ private:
     std::int64_t m_window_ms;
     std::unordered_map<std::string, RateLimitState> m_states;
     mutable std::mutex m_mutex;
-    std::atomic<std::uint64_t>     m_operation_count{0};
+    std::atomic<std::uint64_t> m_operation_count{0};
     static constexpr std::uint64_t k_cleanup_interval = 1000;
 
     std::int64_t steady_clock_ms() const;
