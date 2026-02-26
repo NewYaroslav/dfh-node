@@ -272,3 +272,14 @@ target_link_libraries(test_status
 )
 
 add_test(NAME test_status COMMAND test_status)
+
+add_executable(test_dfh_adapter_dto
+    test_dfh_adapter_dto.cpp
+)
+
+target_link_libraries(test_dfh_adapter_dto
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_dfh_adapter_dto COMMAND test_dfh_adapter_dto)
