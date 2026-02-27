@@ -2,7 +2,7 @@
 /// \brief Юнит-тесты системных реализаций времени и случайности.
 /// \details Проверяет базовые инварианты SystemClock и SystemRandom.
 ///
-#include "interfaces.hpp"
+#include "core/interfaces.hpp"
 #include "test_helpers.hpp"
 
 #include <chrono>

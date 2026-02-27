@@ -2,9 +2,9 @@
 /// \brief Юнит-тесты для AuthService.
 /// \details Проверяет три публичных метода и обработку неизвестного TaskKind.
 ///
-#include "auth_service.hpp"
-#include "config.hpp"
-#include "config_api_key_store.hpp"
+#include "auth/auth_service.hpp"
+#include "config/config.hpp"
+#include "config/config_api_key_store.hpp"
 #include "test_helpers.hpp"
 
 #include <optional>

@@ -2,8 +2,8 @@
 /// \brief Юнит-тесты inline-утилит scope и auth-контракта.
 /// \details Проверяет parse_scope, required_scope и has_scope.
 ///
-#include "auth_service.hpp"
-#include "scope.hpp"
+#include "auth/auth_service.hpp"
+#include "auth/scope.hpp"
 #include "test_helpers.hpp"
 
 using namespace dfh_node;

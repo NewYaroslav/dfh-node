@@ -2,7 +2,7 @@
 /// \brief Юнит-тесты для TaskScheduler.
 /// \details Проверяет вместимость очередей, приоритет и корректное пробуждение при остановке.
 ///
-#include "task_scheduler.hpp"
+#include "scheduler/task_scheduler.hpp"
 #include "test_helpers.hpp"
 
 #include <atomic>

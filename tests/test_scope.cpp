@@ -3,7 +3,7 @@
 /// \details Проверяет комбинирование битмаски, Admin override, парсинг и маппинг
 /// TaskKind.
 ///
-#include "scope.hpp"
+#include "auth/scope.hpp"
 #include "test_helpers.hpp"
 
 using namespace dfh_node;

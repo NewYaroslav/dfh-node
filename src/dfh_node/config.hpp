@@ -1,0 +1,10 @@
+/// \file config.hpp
+/// \brief Umbrella-заголовок конфигурационных компонентов.
+/// \details Подключает модели конфигурации, загрузчик, валидатор и key store из конфига.
+///
+#pragma once
+
+#include "config/config.hpp"
+#include "config/config_loader.hpp"
+#include "config/config_validator.hpp"
+#include "config/config_api_key_store.hpp"

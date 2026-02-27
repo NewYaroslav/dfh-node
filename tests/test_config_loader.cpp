@@ -2,8 +2,8 @@
 /// \brief Проверка загрузки конфигурации из файла.
 /// \details Покрывает успешные сценарии и ошибки структуры/типов.
 ///
-#include "config_loader.hpp"
-#include "fingerprint_computer.hpp"
+#include "config/config_loader.hpp"
+#include "security/fingerprint_computer.hpp"
 #include "test_helpers.hpp"
 
 #include <filesystem>

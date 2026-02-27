@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include "core/status.hpp"
+#include "core/task.hpp"
 #include "internal/bounded_queue.hpp"
-#include "status.hpp"
-#include "task.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>

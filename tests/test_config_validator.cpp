@@ -2,7 +2,7 @@
 /// \brief Проверка правил валидации конфигурации.
 /// \details Покрывает валидный случай и набор негативных сценариев по полям.
 ///
-#include "config_validator.hpp"
+#include "config/config_validator.hpp"
 #include "test_helpers.hpp"
 
 #include <string>

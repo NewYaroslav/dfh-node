@@ -5,7 +5,7 @@
 #include "config_loader.hpp"
 
 #include "config.hpp"
-#include "fingerprint_computer.hpp"
+#include "security/fingerprint_computer.hpp"
 
 #include <exception>
 #include <fstream>

@@ -3,13 +3,13 @@
 /// \details Проверяет HTTP auth, WS upgrade без kind, WS message и
 /// anti-replay requirement policy.
 ///
-#include "anti_replay_validator.hpp"
-#include "config.hpp"
-#include "config_api_key_store.hpp"
-#include "nonce_store.hpp"
-#include "sha256_utils.hpp"
+#include "auth/unified_gate.hpp"
+#include "config/config.hpp"
+#include "config/config_api_key_store.hpp"
+#include "security/anti_replay_validator.hpp"
+#include "security/nonce_store.hpp"
+#include "security/sha256_utils.hpp"
 #include "test_helpers.hpp"
-#include "unified_gate.hpp"
 
 #include <array>
 #include <optional>

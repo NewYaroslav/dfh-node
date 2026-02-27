@@ -2,7 +2,7 @@
 /// \brief Юнит-тесты DTO-утилит адаптера хранения.
 /// \details Проверяет вычисление границ блоков для тиков и M1 баров.
 ///
-#include "dfh_adapter_dto.hpp"
+#include "adapter/dfh_adapter_dto.hpp"
 #include "test_helpers.hpp"
 
 #include <cstdint>

@@ -2,8 +2,8 @@
 /// \brief Юнит-тесты для WorkerPool.
 /// \details Проверяет остановку и сбор метрик обработки.
 ///
+#include "scheduler/worker_pool.hpp"
 #include "test_helpers.hpp"
-#include "worker_pool.hpp"
 
 #include <atomic>
 #include <chrono>

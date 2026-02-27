@@ -4,10 +4,10 @@
 ///
 #pragma once
 
-#include "anti_replay_fields.hpp"
-#include "anti_replay_validator.hpp"
 #include "auth_service.hpp"
 #include "rate_limiter.hpp"
+#include "security/anti_replay_fields.hpp"
+#include "security/anti_replay_validator.hpp"
 #include "ws_connection_limiter.hpp"
 
 #include <cstddef>

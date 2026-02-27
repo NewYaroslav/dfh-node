@@ -3,8 +3,8 @@
 /// \details Проверяет базовый лимит, снятие регистрации и чтение активных
 /// соединений.
 ///
+#include "auth/ws_connection_limiter.hpp"
 #include "test_helpers.hpp"
-#include "ws_connection_limiter.hpp"
 
 using namespace dfh_node;
 

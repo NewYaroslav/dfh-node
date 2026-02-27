@@ -4,7 +4,7 @@
 ///
 #include "unified_gate.hpp"
 
-#include "sha256_utils.hpp"
+#include "security/sha256_utils.hpp"
 
 namespace dfh_node {
 

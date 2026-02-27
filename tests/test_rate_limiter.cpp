@@ -2,7 +2,7 @@
 /// \brief Юнит-тесты для RateLimiter.
 /// \details Покрывает базовый лимит, сдвиг окна и периодическую очистку.
 ///
-#include "rate_limiter.hpp"
+#include "auth/rate_limiter.hpp"
 #include "test_helpers.hpp"
 
 #include <chrono>

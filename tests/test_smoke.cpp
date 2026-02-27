@@ -4,7 +4,7 @@
 ///
 #include <cassert>
 
-#include "version.hpp"
+#include "core/version.hpp"
 
 int main() {
     // Базовая проверка соответствия констант и функций.
