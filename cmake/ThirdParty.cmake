@@ -29,5 +29,33 @@ else()
     endif()
 endif()
 
+# Simple-Web-Server (header-only, MIT).
+set(SWS_DIR "${PROJECT_SOURCE_DIR}/third_party/simple-web-server")
+set(ASIO_DIR "${PROJECT_SOURCE_DIR}/third_party/asio")
+if(EXISTS "${ASIO_DIR}/include/asio.hpp")
+    set(ASIO_INCLUDE_DIR "${ASIO_DIR}/include")
+elseif(EXISTS "${ASIO_DIR}/asio/include/asio.hpp")
+    set(ASIO_INCLUDE_DIR "${ASIO_DIR}/asio/include")
+else()
+    set(ASIO_INCLUDE_DIR "")
+endif()
+
+if(EXISTS "${SWS_DIR}/server_http.hpp" AND NOT ASIO_INCLUDE_DIR STREQUAL "")
+    add_library(simple-web-server INTERFACE)
+    target_include_directories(simple-web-server INTERFACE
+        "${SWS_DIR}"
+        "${ASIO_INCLUDE_DIR}"
+    )
+    target_compile_definitions(simple-web-server INTERFACE
+        ASIO_STANDALONE
+        USE_STANDALONE_ASIO
+    )
+
+    find_package(Threads REQUIRED)
+    target_link_libraries(simple-web-server INTERFACE Threads::Threads)
+else()
+    message(FATAL_ERROR "simple-web-server/asio submodules not found. Run: git submodule update --init third_party/simple-web-server third_party/asio")
+endif()
+
 # TODO: добавить подключение системных пакетов для каждой библиотеки.
 # Пины и лицензии — в docs/third_party.md.

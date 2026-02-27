@@ -1,5 +1,8 @@
 /// \file transport.hpp
 /// \brief Umbrella-заголовок transport-слоя.
-/// \details Пока не содержит конкретных транспортов; будет расширен на следующих этапах.
+/// \details Подключает HTTP transport API и утилиты маппинга ошибок.
 ///
 #pragma once
+
+#include "transport/http/http_error_map.hpp"
+#include "transport/http/http_server.hpp"

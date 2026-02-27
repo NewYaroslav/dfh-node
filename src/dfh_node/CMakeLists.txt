@@ -24,6 +24,8 @@ add_library(dfh_node STATIC
     scheduler/worker_pool.cpp
     adapter/dfh_adapter_dto.cpp
     adapter/fake_dfh_adapter.cpp
+    transport/http/http_error_map.cpp
+    transport/http/http_server.cpp
 )
 
 dfh_node_apply_warnings(dfh_node)
@@ -40,4 +42,5 @@ target_link_libraries(dfh_node
         nlohmann_json::nlohmann_json
         log-it-cpp
         OpenSSL::Crypto
+        simple-web-server
 )

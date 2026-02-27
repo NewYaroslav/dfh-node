@@ -15,6 +15,8 @@
 | --- | --- | --- | --- | --- |
 | nlohmann/json | https://github.com/nlohmann/json | v3.11.3 | MIT | Header-only JSON library |
 | log-it-cpp | https://github.com/NewYaroslav/log-it-cpp | v1.0.1 | MIT | Logging library |
+| asio | https://github.com/chriskohlhoff/asio | 28d9b8d6df708024af5227c551673fdb2519f5bf | Boost Software License 1.0 | Standalone Asio headers for Simple-Web-Server (legacy API compatible) |
+| simple-web-server | https://github.com/eidheim/Simple-Web-Server | 35ebb10782507f887802df64a2b6bfc8b427d81f | MIT | Header-only HTTP/HTTPS server |
 
 ## Процесс обновления
 1) Обновить ref сабмодуля (закрепить новый тег/коммит).
