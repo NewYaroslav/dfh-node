@@ -47,6 +47,12 @@
 - Приватные поля классов именуем с префиксом `m_` (например, `m_scheduler`, `m_mutex`).
 - Для accessor-методов используем имена без префикса `get_` (`total_processed()`, `avg_wait_ms()`, `high_metrics()`).
 - Заголовки `.hpp` размещаем рядом с реализациями `.cpp` в `src/`; отдельную папку `include/` не используем.
+- Для внешних потребителей библиотеки (`src/app`, `tests`, примеры) используем umbrella-заголовки
+  `core.hpp`, `config.hpp`, `security.hpp`, `auth.hpp`, `scheduler.hpp`, `adapter.hpp`, `transport.hpp`
+  как приоритетный способ подключения.
+- Прямые include вида `core/...`, `config/...`, `security/...`, `auth/...`, `scheduler/...`, `adapter/...`
+  допускаются только когда umbrella не покрывает нужный API (например, internal API
+  `scheduler/internal/bounded_queue.hpp`).
 - Файлы `.ipp` используем только для шаблонного кода (templates); для обычного кода используем `.hpp` + `.cpp`.
 - Header-only допускается только когда это оправдано шаблонами/инлайном; нетемплейтные реализации выносим в `.cpp`.
 

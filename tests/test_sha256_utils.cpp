@@ -2,7 +2,7 @@
 /// \brief Тесты утилит SHA-256.
 /// \details Проверяет детерминированность hash и базовую верификацию.
 ///
-#include "security/sha256_utils.hpp"
+#include "security.hpp"
 #include "test_helpers.hpp"
 
 #include <string>

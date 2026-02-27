@@ -10,14 +10,9 @@
 
 #include <LogIt.hpp>
 
-#include "config/config_loader.hpp"
-#include "config/config_validator.hpp"
-#include "core/build_info.hpp"
-#include "core/logging.hpp"
-#include "core/status.hpp"
-#include "core/version.hpp"
-#include "scheduler/task_scheduler.hpp"
-#include "scheduler/worker_pool.hpp"
+#include "config.hpp"
+#include "core.hpp"
+#include "scheduler.hpp"
 
 namespace {
 
