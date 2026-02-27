@@ -2,7 +2,7 @@
 /// \brief Юнит-тесты для AuthCache.
 /// \details Покрывает базовый put/get, TTL и периодическую очистку.
 ///
-#include "auth_cache.hpp"
+#include "auth.hpp"
 #include "test_helpers.hpp"
 
 #include <chrono>

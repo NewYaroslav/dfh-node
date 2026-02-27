@@ -4,10 +4,10 @@
 ///
 #pragma once
 
-#include "anti_replay_fields.hpp"
-#include "anti_replay_validator.hpp"
 #include "auth_service.hpp"
 #include "rate_limiter.hpp"
+#include "security/anti_replay_fields.hpp"
+#include "security/anti_replay_validator.hpp"
 #include "ws_connection_limiter.hpp"
 
 #include <cstddef>
@@ -57,10 +57,12 @@ public:
     void ws_connection_closed(const std::string &fingerprint);
 
 private:
-    /// \brief Проверяет обязательность anti-replay для операции.
+    /// \brief Проверяет, обязателен ли anti-replay для операции по `require_for_scopes`.
     /// \param kind Тип операции.
-    /// \return `std::monostate` если проверка пройдена, иначе `GateError`.
-    GateResult validate_anti_replay_requirement(TaskKind kind) const;
+    /// \return `true`, если anti-replay обязателен для данного `TaskKind`.
+    /// \throws Не бросает.
+    /// \note Для неизвестного `TaskKind` вызывающий код должен вернуть `UnsupportedOperation`.
+    bool is_anti_replay_required(TaskKind kind) const;
 
     AuthService &m_auth_service;                  ///< Сервис авторизации.
     RateLimiter &m_rate_limiter;                  ///< Лимитер частоты запросов.

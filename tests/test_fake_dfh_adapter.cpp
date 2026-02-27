@@ -2,8 +2,8 @@
 /// \brief Юнит-тесты in-memory адаптера `FakeDfhAdapter`.
 /// \details Проверяет контракт ingest/history/hash/meta и инварианты ответов при ошибках.
 ///
-#include "fake_dfh_adapter.hpp"
-#include "sha256_utils.hpp"
+#include "adapter.hpp"
+#include "security.hpp"
 #include "test_helpers.hpp"
 
 #include <array>

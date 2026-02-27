@@ -3,7 +3,7 @@
 /// \details Проверяет детерминированность, формат и различие fingerprint у
 /// разных токенов.
 ///
-#include "fingerprint_computer.hpp"
+#include "security.hpp"
 #include "test_helpers.hpp"
 
 using namespace dfh_node;

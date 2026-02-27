@@ -2,7 +2,7 @@
 /// \brief Тесты хранилища nonce.
 /// \details Проверяет запись, replay, TTL-очистку и LRU-вытеснение.
 ///
-#include "nonce_store.hpp"
+#include "security.hpp"
 #include "test_helpers.hpp"
 
 namespace {

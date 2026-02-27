@@ -3,10 +3,9 @@
 /// \details Проверяет цепочку HTTP authorize, rate limit, WS upgrade/message и
 /// закрытие WS-соединения.
 ///
+#include "auth.hpp"
 #include "config.hpp"
-#include "config_api_key_store.hpp"
 #include "test_helpers.hpp"
-#include "unified_gate.hpp"
 
 #include <optional>
 #include <string>

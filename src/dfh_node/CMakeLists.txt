@@ -3,27 +3,32 @@
 find_package(OpenSSL REQUIRED)
 
 add_library(dfh_node STATIC
-    anti_replay_validator.cpp
-    auth_service.cpp
-    auth_cache.cpp
-    bounded_queue.cpp
-    canonical_request.cpp
-    config.cpp
-    config_api_key_store.cpp
-    config_loader.cpp
-    config_validator.cpp
-    dfh_adapter_dto.cpp
-    fake_dfh_adapter.cpp
-    fingerprint_computer.cpp
-    nonce_store.cpp
-    rate_limiter.cpp
-    sha256_utils.cpp
-    status.cpp
-    task_scheduler.cpp
-    unified_gate.cpp
-    worker_pool.cpp
-    ws_connection_limiter.cpp
-    version.cpp
+    core/status.cpp
+    core/version.cpp
+    config/config.cpp
+    config/config_api_key_store.cpp
+    config/config_loader.cpp
+    config/config_validator.cpp
+    security/anti_replay_validator.cpp
+    security/canonical_request.cpp
+    security/fingerprint_computer.cpp
+    security/nonce_store.cpp
+    security/sha256_utils.cpp
+    auth/auth_cache.cpp
+    auth/auth_service.cpp
+    auth/rate_limiter.cpp
+    auth/unified_gate.cpp
+    auth/ws_connection_limiter.cpp
+    scheduler/bounded_queue.cpp
+    scheduler/task_scheduler.cpp
+    scheduler/worker_pool.cpp
+    adapter/dfh_adapter_dto.cpp
+    adapter/fake_dfh_adapter.cpp
+    transport/http/http_dto_parser.cpp
+    transport/http/http_error_map.cpp
+    transport/http/http_reply_handle.cpp
+    transport/http/http_router.cpp
+    transport/http/http_server.cpp
 )
 
 dfh_node_apply_warnings(dfh_node)
@@ -40,4 +45,5 @@ target_link_libraries(dfh_node
         nlohmann_json::nlohmann_json
         log-it-cpp
         OpenSSL::Crypto
+        simple-web-server
 )

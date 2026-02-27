@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "scope.hpp"
+#include "auth/scope.hpp"
 
 #include <cstdint>
 #include <optional>

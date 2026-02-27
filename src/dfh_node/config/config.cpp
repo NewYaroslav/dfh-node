@@ -16,6 +16,9 @@ Config default_config() {
     cfg.http.bind_host = "0.0.0.0";
     cfg.http.port = 8080;
     cfg.http.max_payload_bytes = 10000000;
+    cfg.http.request_timeout_ms = 30000;
+    cfg.http.history_max_range_ms = 86400000;
+    cfg.http.history_max_bytes = 104857600;
 
     cfg.ws.bind_host = "0.0.0.0";
     cfg.ws.port = 8081;

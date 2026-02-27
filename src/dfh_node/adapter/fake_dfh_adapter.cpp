@@ -6,7 +6,7 @@
 
 #include "fake_dfh_adapter.hpp"
 
-#include "sha256_utils.hpp"
+#include "security/sha256_utils.hpp"
 
 #include <chrono>
 #include <string>

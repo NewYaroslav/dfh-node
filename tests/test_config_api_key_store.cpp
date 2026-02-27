@@ -3,7 +3,6 @@
 /// \details Проверяет поиск существующего/несуществующего ключа и поведение при дубликатах fingerprint.
 ///
 #include "config.hpp"
-#include "config_api_key_store.hpp"
 #include "test_helpers.hpp"
 
 #include <optional>

@@ -3,10 +3,9 @@
 /// \details Проверяет синхронные вызовы `FakeDfhAdapter` из `Task::payload()` и
 /// получение результатов через `std::promise`/`std::future`.
 ///
-#include "fake_dfh_adapter.hpp"
-#include "task_scheduler.hpp"
+#include "adapter.hpp"
+#include "scheduler.hpp"
 #include "test_helpers.hpp"
-#include "worker_pool.hpp"
 
 #include <chrono>
 #include <cstdint>

@@ -4,10 +4,10 @@
 ///
 #pragma once
 
-#include "auth_service.hpp"
+#include "auth/auth_service.hpp"
 #include "canonical_request.hpp"
-#include "config.hpp"
-#include "interfaces.hpp"
+#include "config/config.hpp"
+#include "core/interfaces.hpp"
 #include "nonce_store.hpp"
 
 #include <cstddef>

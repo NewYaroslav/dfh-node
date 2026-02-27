@@ -5,10 +5,10 @@
 ///
 #pragma once
 
-#include "api_key_store.hpp"
 #include "auth_cache.hpp"
-#include "fingerprint_computer.hpp"
-#include "task.hpp"
+#include "config/api_key_store.hpp"
+#include "core/task.hpp"
+#include "security/fingerprint_computer.hpp"
 
 #include <cstdint>
 #include <string>

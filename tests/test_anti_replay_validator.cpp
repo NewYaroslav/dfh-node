@@ -2,9 +2,7 @@
 /// \brief Тесты anti-replay валидации для HTTP и WS.
 /// \details Проверяет рассинхрон времени, подпись, повтор nonce и влияние payload_hash.
 ///
-#include "anti_replay_validator.hpp"
-#include "nonce_store.hpp"
-#include "sha256_utils.hpp"
+#include "security.hpp"
 #include "test_helpers.hpp"
 
 #include <array>

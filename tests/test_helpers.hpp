@@ -5,7 +5,7 @@
 ///
 #pragma once
 
-#include "interfaces.hpp"
+#include "core.hpp"
 
 #include <cstdint>
 #include <cstdlib>

@@ -6,7 +6,8 @@ WebSocket используется для ingest/history/subscribe, где contr
 Документ описывает типы сообщений и базовые правила обмена.
 
 ## Текущий статус реализации
-- WS transport в runtime пока не подключен (`dfh_node_app` работает в one-shot режиме).
+- WS transport в runtime пока не подключен.
+- `dfh_node_app` может запускать HTTP transport через `--run`, но WS endpoint-ы пока не активированы.
 - Реализован transport-agnostic core-контракт, который будет использовать WS слой:
   - `UnifiedGate` для upgrade/message авторизации,
   - `RateLimiter` и `WsConnectionLimiter`,

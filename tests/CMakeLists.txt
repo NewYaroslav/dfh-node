@@ -359,3 +359,47 @@ target_link_libraries(test_dfh_adapter_e2e
 )
 
 add_test(NAME test_dfh_adapter_e2e COMMAND test_dfh_adapter_e2e)
+
+add_executable(test_http_error_map
+    test_http_error_map.cpp
+)
+
+target_link_libraries(test_http_error_map
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_http_error_map COMMAND test_http_error_map)
+
+add_executable(test_http_dto_parser
+    test_http_dto_parser.cpp
+)
+
+target_link_libraries(test_http_dto_parser
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_http_dto_parser COMMAND test_http_dto_parser)
+
+add_executable(test_http_reply_handle
+    test_http_reply_handle.cpp
+)
+
+target_link_libraries(test_http_reply_handle
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_http_reply_handle COMMAND test_http_reply_handle)
+
+add_executable(test_http_integration
+    test_http_integration.cpp
+)
+
+target_link_libraries(test_http_integration
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_http_integration COMMAND test_http_integration)

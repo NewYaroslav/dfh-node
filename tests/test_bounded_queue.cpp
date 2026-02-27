@@ -2,7 +2,7 @@
 /// \brief Юнит-тесты для внутренней bounded-очереди.
 /// \details Проверяет capacity, FIFO-порядок и счётчики отклонений/enqueue.
 ///
-#include "internal/bounded_queue.hpp"
+#include "scheduler/internal/bounded_queue.hpp"
 #include "test_helpers.hpp"
 
 #include <string>

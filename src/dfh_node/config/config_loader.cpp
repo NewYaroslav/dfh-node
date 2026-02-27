@@ -5,7 +5,7 @@
 #include "config_loader.hpp"
 
 #include "config.hpp"
-#include "fingerprint_computer.hpp"
+#include "security/fingerprint_computer.hpp"
 
 #include <exception>
 #include <fstream>
@@ -144,6 +144,9 @@ LoadResult load_from_file(const std::filesystem::path &path) {
             read_string(obj, "bind_host", cfg.http.bind_host, result.errors, "http", false);
             read_int(obj, "port", cfg.http.port, result.errors, "http");
             read_int64(obj, "max_payload_bytes", cfg.http.max_payload_bytes, result.errors, "http");
+            read_int64(obj, "request_timeout_ms", cfg.http.request_timeout_ms, result.errors, "http");
+            read_int64(obj, "history_max_range_ms", cfg.http.history_max_range_ms, result.errors, "http");
+            read_int64(obj, "history_max_bytes", cfg.http.history_max_bytes, result.errors, "http");
         }
     }
 

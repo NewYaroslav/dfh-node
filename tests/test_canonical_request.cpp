@@ -2,8 +2,7 @@
 /// \brief Тесты канонизации HTTP/WS и подписи HMAC-SHA256.
 /// \details Проверяет формат каноническая строка, сортировку query и верификацию подписи.
 ///
-#include "canonical_request.hpp"
-#include "sha256_utils.hpp"
+#include "security.hpp"
 #include "test_helpers.hpp"
 
 #include <array>

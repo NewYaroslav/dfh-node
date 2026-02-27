@@ -4,7 +4,7 @@
 ///
 #pragma once
 
-#include "config.hpp"
+#include "config/config.hpp"
 
 namespace dfh_node::logging {
 

@@ -25,11 +25,11 @@
 - Терминология планировщика: `TaskLane` = приоритет/очередь (`High`/`Low`), `TaskKind` = семантика операции (`Ingest`/`History`), `Task` хранит оба поля.
 - TaskScheduler — единый mutex+cv для high/low priority очередей, приоритет high > low, stop-now shutdown.
 - WorkerPool — сбор per-lane метрик (total_processed, avg_wait_ms), steady_clock, C++17 fetch_add.
-- dfh_node_app — one-shot mode до появления HTTP/WS транспорта (логирование и немедленный выход).
+- dfh_node_app — по умолчанию one-shot bootstrap; с флагом `--run` запускает HTTP runtime.
 
 ## 3. Зафиксированные спорные/важные тех-решения
 - Язык: C++17 (пока).
-- HTTP: Simple-Web-Server; WS: Simple-WebSocket-Server (планируемые зависимости).
+- HTTP: Simple-Web-Server (подключен); WS: Simple-WebSocket-Server (планируемая зависимость).
 - Boost включаем (часть зависимостей тянет Boost; минимизировать компоненты).
 - OpenSSL используем для HMAC/хэшей.
 - TLS внутри ноды не делаем: TLS завершается на внешнем nginx/прокси.
@@ -47,6 +47,12 @@
 - Приватные поля классов именуем с префиксом `m_` (например, `m_scheduler`, `m_mutex`).
 - Для accessor-методов используем имена без префикса `get_` (`total_processed()`, `avg_wait_ms()`, `high_metrics()`).
 - Заголовки `.hpp` размещаем рядом с реализациями `.cpp` в `src/`; отдельную папку `include/` не используем.
+- Для внешних потребителей библиотеки (`src/app`, `tests`, примеры) используем umbrella-заголовки
+  `core.hpp`, `config.hpp`, `security.hpp`, `auth.hpp`, `scheduler.hpp`, `adapter.hpp`, `transport.hpp`
+  как приоритетный способ подключения.
+- Прямые include вида `core/...`, `config/...`, `security/...`, `auth/...`, `scheduler/...`, `adapter/...`
+  допускаются только когда umbrella не покрывает нужный API (например, internal API
+  `scheduler/internal/bounded_queue.hpp`).
 - Файлы `.ipp` используем только для шаблонного кода (templates); для обычного кода используем `.hpp` + `.cpp`.
 - Header-only допускается только когда это оправдано шаблонами/инлайном; нетемплейтные реализации выносим в `.cpp`.
 
@@ -74,17 +80,12 @@
 
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
-- src/dfh_node/ — библиотека ноды: `.cpp` и соответствующие `.hpp` рядом
-  (`version.*`, `build_info.hpp`, `config.*`, `config_loader.*`, `config_validator.*`,
-  `scope.hpp`, `interfaces.hpp`, `fingerprint_computer.*`, `api_key_store.hpp`,
-  `config_api_key_store.*`, `auth_cache.*`, `auth_service.*`, `rate_limiter.*`,
-  `ws_connection_limiter.*`, `canonical_request.*`, `sha256_utils.*`,
-  `nonce_store.*`, `anti_replay_fields.hpp`, `anti_replay_validator.*`,
-  `dfh_adapter.hpp`, `dfh_adapter_dto.*`, `fake_dfh_adapter.*`, `unified_gate.*`,
-  `status.*`, `task.*`, `task_scheduler.*`, `worker_pool.*`, `bounded_queue.cpp`,
-  `internal/bounded_queue.hpp`, `logging.hpp`).
+- src/dfh_node/ — библиотека ноды: `.cpp` и соответствующие `.hpp` рядом, основные подкаталоги:
+  `adapter/`, `auth/`, `config/`, `core/`, `scheduler/`, `security/`, `transport/http/`,
+  а также umbrella-заголовки `core.hpp`, `config.hpp`, `security.hpp`, `auth.hpp`,
+  `scheduler.hpp`, `adapter.hpp`, `transport.hpp`.
 - src/app/ — приложение: `main.cpp`.
-- tests/ — тесты: smoke + config + scheduler/worker + auth/rate-limit/gate + anti-replay + adapter
+- tests/ — тесты: smoke + config + scheduler/worker + auth/rate-limit/gate + anti-replay + adapter + transport/http
   (`test_smoke.cpp`, `test_config_defaults.cpp`, `test_config_loader.cpp`,
   `test_config_validator.cpp`, `test_task_scheduler.cpp`, `test_worker_pool.cpp`,
   `test_bounded_queue.cpp`, `test_scope.cpp`, `test_scope_auth.cpp`,
@@ -93,7 +94,9 @@
   `test_auth_service.cpp`, `test_unified_gate.cpp`, `test_sha256_utils.cpp`,
   `test_canonical_request.cpp`, `test_nonce_store.cpp`, `test_anti_replay_validator.cpp`,
   `test_gate_e2e.cpp`, `test_status.cpp`, `test_dfh_adapter_dto.cpp`,
-  `test_fake_dfh_adapter.cpp`, `test_dfh_adapter_e2e.cpp`).
+  `test_fake_dfh_adapter.cpp`, `test_dfh_adapter_e2e.cpp`,
+  `test_http_error_map.cpp`, `test_http_dto_parser.cpp`, `test_http_reply_handle.cpp`,
+  `test_http_integration.cpp`).
 - tests/app_configs/ — фикстуры конфигов для CTest-сценариев приложения.
 - examples/ — примеры: `config_minimal.json`.
 - third_party/ — каталог для submodules (см. docs/third_party.md).
@@ -114,7 +117,8 @@
   `test_auth_service`, `test_unified_gate`, `test_sha256_utils`,
   `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`,
   `test_gate_e2e`, `test_status`, `test_dfh_adapter_dto`, `test_fake_dfh_adapter`,
-  `test_dfh_adapter_e2e`.
+  `test_dfh_adapter_e2e`, `test_http_error_map`, `test_http_dto_parser`,
+  `test_http_reply_handle`, `test_http_integration`.
 
 ### 4.2 Опции CMake (реальные)
 - `DFH_NODE_BUILD_TESTS` (ON) — включить тесты.
@@ -151,7 +155,8 @@
   auth/security (`test_scope*`, `test_fingerprint_computer`, `test_auth_cache`, `test_auth_service`,
   `test_rate_limiter`, `test_ws_connection_limiter`, `test_unified_gate`, `test_sha256_utils`,
   `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`, `test_gate_e2e`),
-  adapter (`test_dfh_adapter_dto`, `test_fake_dfh_adapter`, `test_dfh_adapter_e2e`).
+  adapter (`test_dfh_adapter_dto`, `test_fake_dfh_adapter`, `test_dfh_adapter_e2e`),
+  transport/http (`test_http_error_map`, `test_http_dto_parser`, `test_http_reply_handle`, `test_http_integration`).
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
 
 ## 6. Процесс разработки
@@ -168,17 +173,18 @@
   - nlohmann/json (JSON).
   - log-it-cpp (logging).
   - OpenSSL (HMAC/хэши, token wipe через `OPENSSL_cleanse`).
+  - Simple-Web-Server + Asio (HTTP transport runtime).
 - Планируемые ключевые deps (TODO до подключения):
-  - Simple-Web-Server (HTTP), Simple-WebSocket-Server (WS).
-  - Boost (минимальные компоненты).
+  - Simple-WebSocket-Server (WS transport).
+  - Boost (минимальные компоненты, как fallback при сборке без standalone Asio).
   - MessagePack (контрольные сообщения в WS).
 
 ## 8. Протоколы и API (краткая справка, без кода)
-- HTTP (планируемые пути, TODO до внедрения):
+- HTTP (реализовано в runtime при запуске `dfh_node_app --run`):
   - `/v1/history` — выгрузка истории.
   - `/v1/ingest` — прием новых данных.
   - `/v1/status` — статус ноды.
-- WS:
+- WS (план):
   - Endpoints: `/ws/msgpack` (основной), `/ws/json` (fallback).
   - Control-message: `op=ingest|history|subscribe` + `msg_id`.
   - dfhbin: binary frames.
