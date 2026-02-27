@@ -128,6 +128,40 @@ public:
             handle.reply_ok("second", "text/plain");
         };
 
+        m_server.resource["^/error_from_worker$"]["GET"] = [this](const std::shared_ptr<SwsServer::Response> &response,
+                                                                  const std::shared_ptr<SwsServer::Request> &request) {
+            (void)request;
+            dfh_node::transport::HttpReplyHandle handle(response, m_server.io_service, "error_from_worker");
+            std::thread([handle]() mutable { handle.reply_error(429, "rate_limited", "too many requests"); }).detach();
+        };
+
+        m_server.resource["^/error_then_ok$"]["GET"] = [this](const std::shared_ptr<SwsServer::Response> &response,
+                                                              const std::shared_ptr<SwsServer::Request> &request) {
+            (void)request;
+            dfh_node::transport::HttpReplyHandle handle(response, m_server.io_service, "error_then_ok");
+            handle.reply_error(400, "bad_request", "invalid");
+            handle.reply_ok("late", "text/plain");
+        };
+
+        m_server.resource["^/double_error$"]["GET"] = [this](const std::shared_ptr<SwsServer::Response> &response,
+                                                             const std::shared_ptr<SwsServer::Request> &request) {
+            (void)request;
+            dfh_node::transport::HttpReplyHandle handle(response, m_server.io_service, "double_error");
+            handle.reply_error(409, "conflict", "already exists");
+            handle.reply_error(500, "internal_error", "late");
+        };
+
+        m_server.resource["^/timeout_then_error$"]["GET"] = [this](const std::shared_ptr<SwsServer::Response> &response,
+                                                                   const std::shared_ptr<SwsServer::Request> &request) {
+            (void)request;
+            dfh_node::transport::HttpReplyHandle handle(response, m_server.io_service, "timeout_then_error");
+            handle.start_timeout(std::chrono::milliseconds(20));
+            std::thread([handle]() mutable {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                handle.reply_error(500, "internal_error", "late");
+            }).detach();
+        };
+
         m_server.resource["^/timeout_disabled$"]["GET"] = [this](const std::shared_ptr<SwsServer::Response> &response,
                                                                  const std::shared_ptr<SwsServer::Request> &request) {
             (void)request;
@@ -221,6 +255,34 @@ void test_timeout_zero_disables_timer(const ReplyHandleTestServer &server) {
     CHECK_EQ(response.body, "ok0");
 }
 
+void test_reply_error_from_worker_thread(const ReplyHandleTestServer &server) {
+    const auto response = request_http(server.port(), "/error_from_worker");
+    CHECK_EQ(response.status, 429);
+    const nlohmann::json parsed = nlohmann::json::parse(response.body);
+    CHECK_EQ(parsed.at("error").get<std::string>(), "rate_limited");
+}
+
+void test_reply_error_wins_over_followup_ok(const ReplyHandleTestServer &server) {
+    const auto response = request_http(server.port(), "/error_then_ok");
+    CHECK_EQ(response.status, 400);
+    const nlohmann::json parsed = nlohmann::json::parse(response.body);
+    CHECK_EQ(parsed.at("error").get<std::string>(), "bad_request");
+}
+
+void test_double_reply_error_sends_only_once(const ReplyHandleTestServer &server) {
+    const auto response = request_http(server.port(), "/double_error");
+    CHECK_EQ(response.status, 409);
+    const nlohmann::json parsed = nlohmann::json::parse(response.body);
+    CHECK_EQ(parsed.at("error").get<std::string>(), "conflict");
+}
+
+void test_timeout_wins_over_late_error(const ReplyHandleTestServer &server) {
+    const auto response = request_http(server.port(), "/timeout_then_error");
+    CHECK_EQ(response.status, 504);
+    const nlohmann::json parsed = nlohmann::json::parse(response.body);
+    CHECK_EQ(parsed.at("error").get<std::string>(), "timeout");
+}
+
 void test_client_disconnect_does_not_crash(const ReplyHandleTestServer &server) {
     SwsClient client("127.0.0.1:" + std::to_string(server.port()));
     client.config.timeout = 1;
@@ -247,6 +309,10 @@ int main() {
     test_ok_wins_over_timer(server);
     test_double_reply_sends_only_once(server);
     test_timeout_zero_disables_timer(server);
+    test_reply_error_from_worker_thread(server);
+    test_reply_error_wins_over_followup_ok(server);
+    test_double_reply_error_sends_only_once(server);
+    test_timeout_wins_over_late_error(server);
     test_client_disconnect_does_not_crash(server);
 
     server.stop();

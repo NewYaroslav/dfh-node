@@ -1,17 +1,17 @@
 # dfh-node
 
 dfh-node — это сервер (“нода”) для хранения и раздачи исторических рыночных данных и приема новых данных по сети.
-Нода предоставляет HTTP API и WebSocket API для загрузки истории, записи тиков/баров и синхронизации между нодами.
+В текущем runtime нода предоставляет HTTP API; WebSocket API остается целевым контрактом следующего этапа.
 Внутреннее хранение и слияние данных реализуется в движке DataFeedHub (DFH), а dfh-node — это сетевой слой
 (transport, auth, лимиты, очереди).
 
-## Планируемые возможности (MVP)
+## Возможности MVP
 
 - HTTP: выгрузка истории (history download) в форматах CSV и dfhbin (сжатый бинарный формат блоков данных).
 - HTTP: прием новых данных (ingest) через POST — пачками или одиночными событиями.
-- WebSocket: control-протокол для ingest/history/subscribe.
-- WebSocket: передача dfhbin как бинарных фреймов.
-- Поддержка двух режимов control-сообщений: JSON (простой) и MessagePack (быстрый).
+- WebSocket (план): control-протокол для ingest/history/subscribe.
+- WebSocket (план): передача dfhbin как бинарных фреймов.
+- WebSocket (план): два режима control-сообщений — JSON и MessagePack.
 - Очереди планировщика по приоритету: high-priority важнее low-priority; обычно ingest маппится в high, history в low, и при перегрузе low режется первой.
 - Авторизация по API ключам со scope-моделью: read / write / admin / sync.
 - Rate limiting: лимит запросов/сек и лимит одновременных WS соединений.
@@ -51,9 +51,10 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - auth/rate-limit ядро (scope, fingerprint, auth cache, API key store, unified gate);
 - anti-replay ядро (canonical request, nonce store, HMAC-проверка);
 - контракт storage-слоя (`IDfhAdapter` + DTO) и in-memory реализация `FakeDfhAdapter`;
+- HTTP transport v1 (`/v1/ingest`, `/v1/history`, `/v1/status`) + интеграционные тесты;
 - unit/smoke/E2E тесты через CTest.
 
-HTTP/WS транспорт и sync-протокол остаются следующими этапами.
+WS transport и sync-протокол остаются следующими этапами.
 
 ## Быстрый старт
 
@@ -62,8 +63,10 @@ HTTP/WS транспорт и sync-протокол остаются следу�
 ```bat
 cmake -S . -B build-msvc
 cmake --build build-msvc --config Debug
-build-msvc\src\app\dfh_node_app.exe --config examples\config_minimal.json
+build-msvc\src\app\dfh_node_app.exe --config examples\config_minimal.json --run
 ```
+
+Если `--run` не указан, `dfh_node_app` выполняет bootstrap (проверка конфига, инициализация) и завершается в one-shot режиме.
 
 Текущие таргеты сборки:
 

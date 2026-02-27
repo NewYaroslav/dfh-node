@@ -98,6 +98,54 @@ void test_parse_history_invalid_ranges_and_enums() {
     }
 }
 
+void test_parse_history_url_decoding_and_optional_fields() {
+    auto cfg = dfh_node::config::default_config();
+    const std::string query =
+        "?provider=bi%6Eance&symbol=BTC+USDT&source=spot%2Fmain&tf=m1&from_ms=1704067200000&to_ms=1704067260000&"
+        "format=dfhbin";
+
+    auto result = dfh_node::transport::parse_history_query(query, cfg.http);
+    CHECK(std::holds_alternative<dfh_node::QueryHistoryRequest>(result));
+
+    const auto &dto = std::get<dfh_node::QueryHistoryRequest>(result);
+    CHECK_EQ(dto.provider, "binance");
+    CHECK_EQ(dto.symbol, "BTC USDT");
+    CHECK_EQ(dto.source, "spot/main");
+    CHECK_EQ(dto.tf, dfh_node::Timeframe::M1);
+    CHECK(!dto.provider_id.has_value());
+    CHECK(!dto.symbol_id.has_value());
+}
+
+void test_parse_history_invalid_encoding_and_numbers() {
+    auto cfg = dfh_node::config::default_config();
+
+    struct Case {
+        std::string query;
+        std::string error_code;
+        std::string detail_fragment;
+    };
+
+    const std::vector<Case> cases = {
+        {"provider=binance&symbol=BTC%ZZUSDT&source=spot&tf=ticks&from_ms=1&to_ms=2", "invalid_query_param",
+         "invalid percent-encoding"},
+        {"provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=abc&to_ms=2", "invalid_query_param",
+         "from_ms must be int64"},
+        {"provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=1&to_ms=abc", "invalid_query_param",
+         "to_ms must be int64"},
+        {"provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=1&to_ms=2&provider_id=abc",
+         "invalid_query_param", "provider_id"},
+        {"provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=1&to_ms=2&symbol_id=4294967296",
+         "invalid_query_param", "symbol_id"},
+    };
+
+    for (const auto &item : cases) {
+        auto result = dfh_node::transport::parse_history_query(item.query, cfg.http);
+        const auto &error = expect_parse_error(result);
+        CHECK_EQ(error.first, item.error_code);
+        CHECK_NE(error.second.find(item.detail_fragment), std::string::npos);
+    }
+}
+
 void test_parse_ingest_invalid_json_and_empty_array() {
     auto cfg = dfh_node::config::default_config();
 
@@ -121,6 +169,53 @@ void test_parse_ingest_payload_limit() {
     auto result = dfh_node::transport::parse_ingest_body("[{\"k\":1}]", cfg.http);
     const auto &error = expect_parse_error(result);
     CHECK_EQ(error.first, "payload_too_large");
+}
+
+void test_parse_ingest_invalid_shape_and_fields() {
+    auto cfg = dfh_node::config::default_config();
+
+    struct Case {
+        std::string body;
+        std::string detail_fragment;
+    };
+
+    const std::vector<Case> cases = {
+        {"{}", "ingest body must be array"},
+        {"[1]", "ingest item must be object"},
+        {R"([{"payload_base64":"AQID"}])", "missing field: key"},
+        {R"([{"key":[],"payload_base64":"AQID"}])", "missing field: key"},
+        {R"([{"key":{"provider":1,"symbol":"BTCUSDT","source":"spot","tf":"ticks","block_ts":1},"payload_base64":"AQID"}])",
+         "field must be string: key.provider"},
+        {R"([{"key":{"provider":"binance","symbol":"BTCUSDT","source":"spot","tf":"ticks","block_ts":"abc"},"payload_base64":"AQID"}])",
+         "field must be int64: key.block_ts"},
+        {R"([{"key":{"provider":"binance","symbol":"BTCUSDT","source":"spot","tf":"h1","block_ts":1},"payload_base64":"AQID"}])",
+         "unknown tf"},
+        {R"([{"key":{"provider":"binance","symbol":"BTCUSDT","source":"spot","tf":"ticks","block_ts":1},"payload_base64":"A"}])",
+         "invalid payload_base64"},
+    };
+
+    for (const auto &item : cases) {
+        auto result = dfh_node::transport::parse_ingest_body(item.body, cfg.http);
+        const auto &error = expect_parse_error(result);
+        CHECK_EQ(error.first, "invalid_query_param");
+        CHECK_NE(error.second.find(item.detail_fragment), std::string::npos);
+    }
+}
+
+void test_parse_ingest_accepts_string_ts_and_empty_payload() {
+    auto cfg = dfh_node::config::default_config();
+    const std::string body =
+        R"([{"key":{"provider":"binance","symbol":"BTCUSDT","source":"spot","tf":"m1","block_ts":"1704067200000"},)"
+        R"("payload_base64":""}])";
+
+    auto result = dfh_node::transport::parse_ingest_body(body, cfg.http);
+    CHECK(std::holds_alternative<std::vector<dfh_node::IngestRequest>>(result));
+
+    const auto &requests = std::get<std::vector<dfh_node::IngestRequest>>(result);
+    CHECK_EQ(requests.size(), static_cast<std::size_t>(1));
+    CHECK_EQ(requests[0].key.tf, dfh_node::Timeframe::M1);
+    CHECK_EQ(requests[0].key.block_ts, static_cast<std::int64_t>(1704067200000));
+    CHECK(requests[0].payload.empty());
 }
 
 void test_parse_ingest_valid_body() {
@@ -151,8 +246,12 @@ int main() {
     test_parse_valid_history_query();
     test_parse_history_missing_required_fields();
     test_parse_history_invalid_ranges_and_enums();
+    test_parse_history_url_decoding_and_optional_fields();
+    test_parse_history_invalid_encoding_and_numbers();
     test_parse_ingest_invalid_json_and_empty_array();
+    test_parse_ingest_invalid_shape_and_fields();
     test_parse_ingest_payload_limit();
+    test_parse_ingest_accepts_string_ts_and_empty_payload();
     test_parse_ingest_valid_body();
     return 0;
 }

@@ -161,6 +161,12 @@ public:
         m_workers_started = true;
     }
 
+    void start_server_again() { m_server.start(); }
+
+    void shutdown_server_for_test() { m_server.shutdown(); }
+
+    dfh_node::transport::HttpExecutor executor() const { return m_server.get_executor(); }
+
 private:
     void wait_until_ready() const {
         for (int attempt = 0; attempt < 120; ++attempt) {
@@ -193,6 +199,15 @@ private:
     dfh_node::transport::HttpServer m_server;
     bool m_workers_started{false};
 };
+
+std::string make_ingest_body(const std::string &provider = "binance", const std::string &symbol = "BTCUSDT",
+                             const std::string &source = "spot", const std::string &tf = "ticks",
+                             const std::string &block_ts = "1704067200000",
+                             const std::string &payload_base64 = "AQID") {
+    return std::string("[{\"key\":{\"provider\":\"") + provider + "\",\"symbol\":\"" + symbol + "\",\"source\":\"" +
+           source + "\",\"tf\":\"" + tf + "\",\"block_ts\":" + block_ts + "},\"payload_base64\":\"" + payload_base64 +
+           "\"}]";
+}
 
 void test_success_endpoints_and_unauthorized() {
     auto cfg = make_base_config();
@@ -239,6 +254,139 @@ void test_success_endpoints_and_unauthorized() {
 
     const auto unauthorized = node.request("GET", "/v1/status", "", false);
     CHECK_EQ(unauthorized.status, 401);
+}
+
+void test_ingest_duplicate_returns_ignore_status() {
+    auto cfg = make_base_config();
+    RunningHttpNode node(std::move(cfg), "token-duplicate");
+
+    const std::string ingest_body = make_ingest_body();
+    SwsHeaders ingest_headers;
+    ingest_headers.emplace("Content-Type", "application/json");
+
+    const auto first = node.request("POST", "/v1/ingest", ingest_body, true, 5, ingest_headers);
+    const auto second = node.request("POST", "/v1/ingest", ingest_body, true, 5, ingest_headers);
+    CHECK_EQ(first.status, 200);
+    CHECK_EQ(second.status, 200);
+
+    const auto first_json = nlohmann::json::parse(first.body);
+    const auto second_json = nlohmann::json::parse(second.body);
+    CHECK_EQ(first_json.at("results").at(0).at("status").get<std::string>(), "ok");
+    CHECK_EQ(second_json.at("results").at(0).at("status").get<std::string>(), "ignore");
+}
+
+void test_validation_and_not_found_errors() {
+    auto cfg = make_base_config();
+    cfg.http.max_payload_bytes = 256;
+    RunningHttpNode node(std::move(cfg), "token-validation");
+
+    SwsHeaders ingest_headers;
+    ingest_headers.emplace("Content-Type", "application/json");
+
+    const auto too_large = node.request("POST", "/v1/ingest", std::string(300, 'x'), true, 5, ingest_headers);
+    CHECK_EQ(too_large.status, 413);
+    CHECK_EQ(nlohmann::json::parse(too_large.body).at("error").get<std::string>(), "payload_too_large");
+
+    const auto invalid_json = node.request("POST", "/v1/ingest", "{", true, 5, ingest_headers);
+    CHECK_EQ(invalid_json.status, 400);
+    CHECK_EQ(nlohmann::json::parse(invalid_json.body).at("error").get<std::string>(), "invalid_json");
+
+    SwsHeaders incomplete_ar_headers = ingest_headers;
+    incomplete_ar_headers.emplace("X-DFH-Timestamp", "1704067200000");
+    const auto incomplete_ar = node.request("POST", "/v1/ingest", make_ingest_body(), true, 5, incomplete_ar_headers);
+    CHECK_EQ(incomplete_ar.status, 400);
+    CHECK_EQ(nlohmann::json::parse(incomplete_ar.body).at("error").get<std::string>(), "missing_anti_replay_headers");
+
+    const auto history_invalid =
+        node.request("GET", "/v1/history?provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=1");
+    CHECK_EQ(history_invalid.status, 400);
+    CHECK_EQ(nlohmann::json::parse(history_invalid.body).at("error").get<std::string>(), "invalid_query_param");
+
+    const auto history_unauthorized = node.request(
+        "GET", "/v1/history?provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=1&to_ms=2", "", false);
+    CHECK_EQ(history_unauthorized.status, 401);
+
+    const auto not_found_get = node.request("GET", "/v1/unknown");
+    const auto not_found_post = node.request("POST", "/v1/unknown", "{}", true, 5, ingest_headers);
+    const auto not_found_put = node.request("PUT", "/v1/unknown");
+    const auto not_found_delete = node.request("DELETE", "/v1/unknown");
+    CHECK_EQ(not_found_get.status, 404);
+    CHECK_EQ(not_found_post.status, 404);
+    CHECK_EQ(not_found_put.status, 404);
+    CHECK_EQ(not_found_delete.status, 404);
+}
+
+void test_history_response_limits_and_anti_replay() {
+    auto cfg = make_base_config();
+    cfg.http.history_max_bytes = 2;
+    RunningHttpNode node(std::move(cfg), "token-history-limits");
+
+    SwsHeaders ingest_headers;
+    ingest_headers.emplace("Content-Type", "application/json");
+    ingest_headers.emplace("X-DFH-Timestamp", "1704067200000");
+    ingest_headers.emplace("X-DFH-Nonce", "0011223344556677");
+    ingest_headers.emplace("X-DFH-Signature", std::string(64, 'a'));
+    const auto ingest = node.request("POST", "/v1/ingest", make_ingest_body(), true, 5, ingest_headers);
+    CHECK_EQ(ingest.status, 200);
+
+    SwsHeaders history_headers;
+    history_headers.emplace("X-DFH-Timestamp", "1704067200001");
+    history_headers.emplace("X-DFH-Nonce", "8899aabbccddeeff");
+    history_headers.emplace("X-DFH-Signature", std::string(64, 'b'));
+
+    const std::string history_csv_path =
+        "/v1/history?provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=1704067200000&to_ms=1704070800000"
+        "&format=csv";
+    const auto history_csv = node.request("GET", history_csv_path, "", true, 5, history_headers);
+    CHECK_EQ(history_csv.status, 413);
+    CHECK_EQ(nlohmann::json::parse(history_csv.body).at("error").get<std::string>(), "response_too_large");
+
+    const std::string history_dfhbin_path =
+        "/v1/history?provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=1704067200000&to_ms=1704070800000"
+        "&format=dfhbin";
+    const auto history_dfhbin = node.request("GET", history_dfhbin_path, "", true, 5, history_headers);
+    CHECK_EQ(history_dfhbin.status, 413);
+    CHECK_EQ(nlohmann::json::parse(history_dfhbin.body).at("error").get<std::string>(), "response_too_large");
+
+    SwsHeaders incomplete_ar_headers;
+    incomplete_ar_headers.emplace("X-DFH-Nonce", "0011223344556677");
+    const auto incomplete_ar = node.request("GET", history_csv_path, "", true, 5, incomplete_ar_headers);
+    CHECK_EQ(incomplete_ar.status, 400);
+    CHECK_EQ(nlohmann::json::parse(incomplete_ar.body).at("error").get<std::string>(), "missing_anti_replay_headers");
+}
+
+void test_history_csv_escaping_and_m1_timeframe() {
+    auto cfg = make_base_config();
+    RunningHttpNode node(std::move(cfg), "token-csv-escape");
+
+    SwsHeaders ingest_headers;
+    ingest_headers.emplace("Content-Type", "application/json");
+    const auto ingest = node.request("POST", "/v1/ingest", make_ingest_body("bin,ance", "BT\\\"CUSDT", "spot", "m1"),
+                                     true, 5, ingest_headers);
+    CHECK_EQ(ingest.status, 200);
+
+    const std::string history_path =
+        "/v1/history?provider=bin,ance&symbol=BT%22CUSDT&source=spot&tf=m1&from_ms=1704067200000&to_ms=1704067260000"
+        "&format=csv";
+    const auto history = node.request("GET", history_path);
+    CHECK_EQ(history.status, 200);
+    CHECK_NE(history.body.find("\"bin,ance\""), std::string::npos);
+    CHECK_NE(history.body.find("\"BT\"\"CUSDT\""), std::string::npos);
+    CHECK_NE(history.body.find(",m1,"), std::string::npos);
+}
+
+void test_http_server_lifecycle_idempotent() {
+    auto cfg = make_base_config();
+    RunningHttpNode node(std::move(cfg), "token-lifecycle");
+
+    CHECK(static_cast<bool>(node.executor()));
+    node.start_server_again();
+
+    const auto status = node.request("GET", "/v1/status");
+    CHECK_EQ(status.status, 200);
+
+    node.shutdown_server_for_test();
+    node.shutdown_server_for_test();
 }
 
 void test_queue_overflow_maps_to_503() {
@@ -329,6 +477,11 @@ void test_parallel_requests_complete_without_deadlock() {
 
 int main() {
     test_success_endpoints_and_unauthorized();
+    test_ingest_duplicate_returns_ignore_status();
+    test_validation_and_not_found_errors();
+    test_history_response_limits_and_anti_replay();
+    test_history_csv_escaping_and_m1_timeframe();
+    test_http_server_lifecycle_idempotent();
     test_queue_overflow_maps_to_503();
     test_timeout_maps_to_504();
     test_parallel_requests_complete_without_deadlock();

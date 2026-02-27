@@ -6,7 +6,8 @@
 
 Статус на текущий момент:
 - Core-часть безопасности (scope, rate limiting, anti-replay, nonce store, canonical request, подписи) реализована в библиотеке `dfh_node`.
-- HTTP/WS транспорт ещё не подключён в runtime (`dfh_node_app` работает в one-shot режиме), поэтому transport-часть ниже описывает контракт интеграции.
+- HTTP transport подключён в runtime при запуске `dfh_node_app --run`.
+- WS transport пока не подключён в runtime, поэтому WS-часть ниже описывает целевой контракт интеграции.
 
 ## Структура
 1. Модель угроз (кратко)
