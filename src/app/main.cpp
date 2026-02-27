@@ -3,21 +3,31 @@
 /// \details Читает конфигурацию, валидирует и выводит стартовый статус.
 ///
 #include <cctype>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include <LogIt.hpp>
 
+#include "adapter.hpp"
+#include "auth.hpp"
 #include "config.hpp"
 #include "core.hpp"
 #include "scheduler.hpp"
+#include "security.hpp"
+#include "transport.hpp"
 
 namespace {
 
 // Печатает подсказку по аргументам командной строки.
-void print_usage() { std::cerr << "Usage: dfh_node_app --config <path>\n"; }
+void print_usage() { std::cerr << "Usage: dfh_node_app --config <path> [--run]\n"; }
 
 // Преобразует уровень логирования из строки, игнорируя регистр.
 logit::LogLevel parse_level(const std::string &level) {
@@ -59,6 +69,28 @@ std::string find_config_path(int argc, char **argv) {
     }
     return {};
 }
+
+// Проверяет наличие флага в аргументах командной строки.
+bool has_flag(int argc, char **argv, const std::string &flag_name) {
+    for (int i = 1; i < argc; ++i) {
+        if (flag_name == argv[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// \brief Часы Unix epoch для anti-replay в runtime.
+/// \details Отдельная реализация нужна, чтобы не менять поведение `SystemClock`
+/// из существующих тестов.
+class EpochSystemClock final : public dfh_node::IClock {
+public:
+    std::uint64_t now_ms() const override {
+        return static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count());
+    }
+};
 
 // Печатает ошибки загрузки конфигурации.
 void print_errors(const std::vector<dfh_node::config::LoadError> &errors) {
@@ -117,6 +149,7 @@ int main(int argc, char **argv) {
         print_usage();
         return 1;
     }
+    const bool run_mode = has_flag(argc, argv, "--run");
 
     const auto result = dfh_node::config::load_from_file(std::filesystem::path(config_path));
     if (!result.is_ok()) {
@@ -130,25 +163,50 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    dfh_node::TaskScheduler scheduler(result.config->queues.high_capacity, result.config->queues.low_capacity);
+    const auto &cfg = *result.config;
 
-    dfh_node::WorkerPool pool(static_cast<std::size_t>(result.config->queues.workers), scheduler);
+    dfh_node::TaskScheduler scheduler(cfg.queues.high_capacity, cfg.queues.low_capacity);
+
+    dfh_node::WorkerPool pool(static_cast<std::size_t>(cfg.queues.workers), scheduler);
 
     pool.start();
 
-    dfh_node::logging::init_logging(result.config->logging);
+    dfh_node::logging::init_logging(cfg.logging);
+
+    dfh_node::ConfigApiKeyStore api_key_store(cfg.auth.api_keys);
+    dfh_node::FingerprintComputer fingerprint_computer(cfg.security.server_secret);
+    dfh_node::AuthCache auth_cache(cfg.auth.cache_ttl_ms);
+    dfh_node::AuthService auth_service(api_key_store, auth_cache, fingerprint_computer);
+    dfh_node::RateLimiter rate_limiter(cfg.auth.rps_limit, cfg.auth.rate_limit_window_ms);
+    dfh_node::WsConnectionLimiter ws_connection_limiter;
+    EpochSystemClock epoch_clock;
+
+    std::unique_ptr<dfh_node::NonceStore> nonce_store;
+    std::unique_ptr<dfh_node::AntiReplayValidator> anti_replay_validator;
+    if (cfg.security.anti_replay.enabled) {
+        nonce_store = std::make_unique<dfh_node::NonceStore>(epoch_clock, cfg.security.anti_replay.nonce_ttl_ms,
+                                                             cfg.security.anti_replay.nonce_capacity);
+        anti_replay_validator =
+            std::make_unique<dfh_node::AntiReplayValidator>(cfg.security.anti_replay, epoch_clock, *nonce_store);
+    }
+
+    dfh_node::UnifiedGate gate(auth_service, rate_limiter, ws_connection_limiter, anti_replay_validator.get(),
+                               cfg.security.anti_replay.require_for_scopes);
+    dfh_node::FakeDfhAdapter adapter;
+    dfh_node::transport::HttpRouter router(gate, scheduler, adapter, cfg);
+    dfh_node::transport::HttpServer http_server(cfg.http, router);
 
     DFH_PRINTF_INFO("dfh-node v%s starting...", std::string(dfh_node::version()).c_str());
-    DFH_PRINTF_INFO("Node ID: %s", result.config->node_id.c_str());
-    DFH_PRINTF_INFO("Environment: %s", result.config->env.c_str());
+    DFH_PRINTF_INFO("Node ID: %s", cfg.node_id.c_str());
+    DFH_PRINTF_INFO("Environment: %s", cfg.env.c_str());
 
     dfh_node::StatusSnapshot status;
-    status.node_id = result.config->node_id;
+    status.node_id = cfg.node_id;
     status.version = std::string(dfh_node::version());
     status.build_info = dfh_node::build_info_string();
     status.uptime_ms = 0;
-    status.peers_count = result.config->peers.size();
-    status.env = result.config->env;
+    status.peers_count = cfg.peers.size();
+    status.env = cfg.env;
 
     auto high_metrics = scheduler.high_metrics();
     high_metrics.total_processed = pool.total_processed(dfh_node::TaskLane::High);
@@ -160,7 +218,7 @@ int main(int argc, char **argv) {
     low_metrics.avg_wait_ms = pool.avg_wait_ms(dfh_node::TaskLane::Low);
     status.low_priority_queue = low_metrics;
 
-    status.workers_count = result.config->queues.workers;
+    status.workers_count = cfg.queues.workers;
 
     DFH_PRINTF_INFO("Status: node_id=%s, version=%s, build=%s, uptime_ms=%llu, "
                     "peers_count=%llu, env=%s",
@@ -184,12 +242,28 @@ int main(int argc, char **argv) {
                     static_cast<unsigned long long>(status.low_priority_queue.total_processed),
                     status.low_priority_queue.avg_wait_ms, status.workers_count);
 
-    // Режим one-shot: остановить воркеры (мягкая остановка).
-    // TODO: режим демона / event-loop для долгоживущего процесса (при HTTP/WS
-    // транспорте).
-    // TODO: обработчик сигналов для Ctrl+C (при долгоживущем режиме через флаг
-    // --run).
-    // TODO: режим --print-status-json для машинного чтения статуса.
+    if (run_mode) {
+        try {
+            http_server.start();
+            DFH_PRINTF_INFO("HTTP server is running on %s:%d", cfg.http.bind_host.c_str(), cfg.http.port);
+            std::cout << "Press Enter to stop dfh_node_app...\n";
+            std::string line;
+            std::getline(std::cin, line);
+        } catch (const std::exception &ex) {
+            DFH_PRINTF_ERROR("Failed to start HTTP server: %s", ex.what());
+            pool.shutdown();
+            return 1;
+        } catch (...) {
+            DFH_PRINTF_ERROR("%s", "Failed to start HTTP server: unknown error");
+            pool.shutdown();
+            return 1;
+        }
+
+        http_server.shutdown();
+    }
+
+    // One-shot по умолчанию: без флага --run приложение выполняет bootstrap и
+    // завершается.
     pool.shutdown();
 
     return 0;

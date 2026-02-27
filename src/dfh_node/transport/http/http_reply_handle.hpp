@@ -65,6 +65,12 @@ public:
     /// \param content_type MIME-тип тела.
     void reply_ok(std::string body, std::string content_type);
 
+    /// \brief Отправляет успешный ответ (HTTP 200) с дополнительными заголовками.
+    /// \param body Тело ответа.
+    /// \param content_type MIME-тип тела.
+    /// \param extra_headers Дополнительные заголовки (например, `Content-Disposition`).
+    void reply_ok(std::string body, std::string content_type, SimpleWeb::CaseInsensitiveMultimap extra_headers);
+
     /// \brief Отправляет ошибку.
     /// \param http_status HTTP-статус (400, 401, 503, ...).
     /// \param error_code Стабильный код ошибки для поля `error`.
@@ -74,7 +80,8 @@ public:
 private:
     /// \brief Единственное место вызова `response->send()`.
     /// \details Отправка всегда планируется в `executor` через `post`.
-    void do_send(int status, std::string body, std::string content_type);
+    void do_send(int status, std::string body, std::string content_type,
+                 SimpleWeb::CaseInsensitiveMultimap extra_headers);
 
     std::shared_ptr<ReplyState> m_state; ///< Разделяемое состояние для безопасного копирования в `Task`.
 };

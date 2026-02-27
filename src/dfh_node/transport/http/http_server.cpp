@@ -4,11 +4,8 @@
 ///
 #include "http_server.hpp"
 
-#include "core/logging.hpp"
-
-#include <LogIt.hpp>
-
 #include <exception>
+#include <iostream>
 #include <utility>
 
 namespace dfh_node::transport {
@@ -37,9 +34,9 @@ void HttpServer::start() {
             }
             m_io_service->run();
         } catch (const std::exception &ex) {
-            DFH_ERROR("HttpServer: exception in server thread: {}", ex.what());
+            std::clog << "ERROR: HttpServer: exception in server thread: " << ex.what() << '\n';
         } catch (...) {
-            DFH_ERROR("HttpServer: unknown exception in server thread");
+            std::clog << "ERROR: HttpServer: unknown exception in server thread\n";
         }
     });
 

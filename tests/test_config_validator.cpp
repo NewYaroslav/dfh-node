@@ -46,6 +46,8 @@ int main() {
         cfg.ws.bind_host.clear();
         cfg.http.max_payload_bytes = 0;
         cfg.http.request_timeout_ms = -1;
+        cfg.http.history_max_range_ms = 0;
+        cfg.http.history_max_bytes = 0;
         cfg.ws.max_payload_bytes = 0;
 
         cfg.queues.high_capacity = 0;
@@ -83,6 +85,8 @@ int main() {
         CHECK(has_error(errors, "ws.bind_host", "missing"));
         CHECK(has_error(errors, "http.max_payload_bytes", "out_of_range"));
         CHECK(has_error(errors, "http.request_timeout_ms", "out_of_range"));
+        CHECK(has_error(errors, "http.history_max_range_ms", "out_of_range"));
+        CHECK(has_error(errors, "http.history_max_bytes", "out_of_range"));
         CHECK(has_error(errors, "ws.max_payload_bytes", "out_of_range"));
         CHECK(has_error(errors, "queues.high_capacity", "out_of_range"));
         CHECK(has_error(errors, "queues.low_capacity", "out_of_range"));

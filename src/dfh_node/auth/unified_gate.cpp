@@ -15,10 +15,11 @@ UnifiedGate::UnifiedGate(AuthService &auth_service, RateLimiter &rate_limiter, W
 
 GateResult UnifiedGate::authorize_http(const std::string &token, const TaskKind kind,
                                        const HttpAntiReplayFields *ar_fields) {
-    const GateResult requirement_check = validate_anti_replay_requirement(kind);
-    if (const auto *err = std::get_if<GateError>(&requirement_check)) {
-        return *err;
+    const auto scope_opt = required_scope(kind);
+    if (!scope_opt.has_value()) {
+        return GateError{GateErrorCode::UnsupportedOperation, "Unknown TaskKind"};
     }
+    const bool anti_replay_required = is_anti_replay_required(kind);
 
     const GateResult auth_result = m_auth_service.authorize(token, kind);
     if (const auto *err = std::get_if<GateError>(&auth_result)) {
@@ -34,27 +35,35 @@ GateResult UnifiedGate::authorize_http(const std::string &token, const TaskKind 
         return GateError{GateErrorCode::RateLimited, "Rate limit exceeded"};
     }
 
-    if (m_anti_replay_validator != nullptr) {
-        if (ar_fields == nullptr) {
+    if (m_anti_replay_validator == nullptr) {
+        if (anti_replay_required) {
+            return GateError{GateErrorCode::AntiReplayRequired, "Anti-replay is disabled but required for operation"};
+        }
+        return *ctx;
+    }
+
+    if (ar_fields == nullptr) {
+        if (anti_replay_required) {
             return GateError{GateErrorCode::MissingAntiReplayHeaders, "Anti-replay headers missing"};
         }
+        return *ctx;
+    }
 
-        unsigned char signing_key[32];
-        compute_sha256_raw(token, signing_key);
+    unsigned char signing_key[32];
+    compute_sha256_raw(token, signing_key);
 
-        HttpCanonicalInput input;
-        input.method = ar_fields->method;
-        input.path = ar_fields->path;
-        input.query_params = ar_fields->query_params;
-        input.timestamp = ar_fields->timestamp;
-        input.nonce = ar_fields->nonce;
-        input.body_hash = ar_fields->body_hash;
+    HttpCanonicalInput input;
+    input.method = ar_fields->method;
+    input.path = ar_fields->path;
+    input.query_params = ar_fields->query_params;
+    input.timestamp = ar_fields->timestamp;
+    input.nonce = ar_fields->nonce;
+    input.body_hash = ar_fields->body_hash;
 
-        const GateResult ar_result =
-            m_anti_replay_validator->validate_http(ctx->fingerprint, signing_key, 32u, input, ar_fields->signature);
-        if (const auto *err = std::get_if<GateError>(&ar_result)) {
-            return *err;
-        }
+    const GateResult ar_result =
+        m_anti_replay_validator->validate_http(ctx->fingerprint, signing_key, 32u, input, ar_fields->signature);
+    if (const auto *err = std::get_if<GateError>(&ar_result)) {
+        return *err;
     }
 
     return *ctx;
@@ -85,10 +94,11 @@ GateResult UnifiedGate::authorize_ws_upgrade(const std::string &token) {
 GateResult UnifiedGate::authorize_ws_message(const std::string &fingerprint, const TaskKind kind,
                                              const unsigned char *signing_key, const std::size_t key_len,
                                              const WsAntiReplayFields *ar_fields) {
-    const GateResult requirement_check = validate_anti_replay_requirement(kind);
-    if (const auto *err = std::get_if<GateError>(&requirement_check)) {
-        return *err;
+    const auto scope_opt = required_scope(kind);
+    if (!scope_opt.has_value()) {
+        return GateError{GateErrorCode::UnsupportedOperation, "Unknown TaskKind"};
     }
+    const bool anti_replay_required = is_anti_replay_required(kind);
 
     const GateResult auth_result = m_auth_service.authorize_fingerprint(fingerprint, kind);
     if (const auto *err = std::get_if<GateError>(&auth_result)) {
@@ -104,24 +114,32 @@ GateResult UnifiedGate::authorize_ws_message(const std::string &fingerprint, con
         return GateError{GateErrorCode::RateLimited, "Rate limit exceeded"};
     }
 
-    if (m_anti_replay_validator != nullptr) {
-        if (ar_fields == nullptr) {
+    if (m_anti_replay_validator == nullptr) {
+        if (anti_replay_required) {
+            return GateError{GateErrorCode::AntiReplayRequired, "Anti-replay is disabled but required for operation"};
+        }
+        return *ctx;
+    }
+
+    if (ar_fields == nullptr) {
+        if (anti_replay_required) {
             return GateError{GateErrorCode::MissingAntiReplayFields, "Anti-replay fields missing in WS message"};
         }
+        return *ctx;
+    }
 
-        WsCanonicalInput input;
-        input.endpoint = ar_fields->endpoint;
-        input.op = ar_fields->op;
-        input.msg_id = ar_fields->msg_id;
-        input.timestamp = ar_fields->timestamp;
-        input.nonce = ar_fields->nonce;
-        input.payload_hash = ar_fields->payload_hash;
+    WsCanonicalInput input;
+    input.endpoint = ar_fields->endpoint;
+    input.op = ar_fields->op;
+    input.msg_id = ar_fields->msg_id;
+    input.timestamp = ar_fields->timestamp;
+    input.nonce = ar_fields->nonce;
+    input.payload_hash = ar_fields->payload_hash;
 
-        const GateResult ar_result =
-            m_anti_replay_validator->validate_ws(ctx->fingerprint, signing_key, key_len, input, ar_fields->signature);
-        if (const auto *err = std::get_if<GateError>(&ar_result)) {
-            return *err;
-        }
+    const GateResult ar_result =
+        m_anti_replay_validator->validate_ws(ctx->fingerprint, signing_key, key_len, input, ar_fields->signature);
+    if (const auto *err = std::get_if<GateError>(&ar_result)) {
+        return *err;
     }
 
     return *ctx;
@@ -131,24 +149,16 @@ void UnifiedGate::ws_connection_closed(const std::string &fingerprint) {
     m_ws_limiter.unregister_connection(fingerprint);
 }
 
-GateResult UnifiedGate::validate_anti_replay_requirement(const TaskKind kind) const {
+bool UnifiedGate::is_anti_replay_required(const TaskKind kind) const {
     const auto scope_opt = required_scope(kind);
     if (!scope_opt.has_value()) {
-        return GateError{GateErrorCode::UnsupportedOperation, "Unknown TaskKind"};
-    }
-
-    if (m_anti_replay_validator != nullptr) {
-        return std::monostate{};
+        return false;
     }
 
     const Scope scope = *scope_opt;
     // Для require_for_scopes проверяем только прямое вхождение бита,
     // без admin-override из has_scope().
-    if ((m_require_for_scopes & to_scope_mask(scope)) != 0) {
-        return GateError{GateErrorCode::AntiReplayRequired, "Anti-replay is disabled but required for operation"};
-    }
-
-    return std::monostate{};
+    return (m_require_for_scopes & to_scope_mask(scope)) != 0;
 }
 
 } // namespace dfh_node

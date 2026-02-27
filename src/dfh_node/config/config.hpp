@@ -16,10 +16,12 @@ namespace dfh_node::config {
 /// \brief Параметры HTTP-интерфейса.
 /// \details Ожидается проверка диапазонов валидатором.
 struct HttpConfig {
-    std::string bind_host = "0.0.0.0";         ///< Хост/интерфейс для bind.
-    int port = 8080;                           ///< TCP-порт (ожидается 1..65535).
-    std::int64_t max_payload_bytes = 10000000; ///< Лимит тела запроса, байты.
-    std::int64_t request_timeout_ms = 30000;   ///< Таймаут отложенного ответа (мс), `0` отключает таймаут.
+    std::string bind_host = "0.0.0.0";            ///< Хост/интерфейс для bind.
+    int port = 8080;                              ///< TCP-порт (ожидается 1..65535).
+    std::int64_t max_payload_bytes = 10000000;    ///< Лимит тела запроса, байты.
+    std::int64_t request_timeout_ms = 30000;      ///< Таймаут отложенного ответа (мс), `0` отключает таймаут.
+    std::int64_t history_max_range_ms = 86400000; ///< Максимальный диапазон `to_ms - from_ms` для history (мс).
+    std::int64_t history_max_bytes = 104857600;   ///< Максимальный размер тела ответа history (байты).
 };
 
 /// \brief Параметры WebSocket-интерфейса.

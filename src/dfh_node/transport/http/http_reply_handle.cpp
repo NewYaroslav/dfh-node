@@ -4,11 +4,9 @@
 ///
 #include "http_reply_handle.hpp"
 
-#include "core/logging.hpp"
 #include "transport/http/http_error_map.hpp"
 
-#include <LogIt.hpp>
-
+#include <iostream>
 #include <utility>
 
 namespace dfh_node::transport {
@@ -39,66 +37,75 @@ void HttpReplyHandle::start_timeout(const std::chrono::milliseconds timeout) {
         }
 
         state->m_cancelled.store(true);
-        self.do_send(504, make_error_body("timeout", "request timeout"), "application/json");
+        self.do_send(504, make_error_body("timeout", "request timeout"), "application/json", {});
     });
 }
 
 void HttpReplyHandle::reply_ok(std::string body, std::string content_type) {
+    reply_ok(std::move(body), std::move(content_type), {});
+}
+
+void HttpReplyHandle::reply_ok(std::string body, std::string content_type,
+                               SimpleWeb::CaseInsensitiveMultimap extra_headers) {
     if (m_state->m_replied.exchange(true)) {
         if (m_state->m_cancelled.load()) {
-            DFH_WARN("deferred reply discarded: timeout fired first, request_id={}", m_state->request_id);
+            std::clog << "WARN: deferred reply discarded: timeout fired first, request_id=" << m_state->request_id
+                      << '\n';
             return;
         }
-        DFH_WARN("deferred reply discarded: already replied, request_id={}", m_state->request_id);
+        std::clog << "WARN: deferred reply discarded: already replied, request_id=" << m_state->request_id << '\n';
         return;
     }
 
     if (m_state->m_cancelled.load()) {
-        DFH_WARN("deferred reply discarded: timeout fired first, request_id={}", m_state->request_id);
+        std::clog << "WARN: deferred reply discarded: timeout fired first, request_id=" << m_state->request_id << '\n';
         return;
     }
 
     SimpleWeb::error_code cancel_ec;
     m_state->timer.cancel(cancel_ec);
-    do_send(200, std::move(body), std::move(content_type));
+    do_send(200, std::move(body), std::move(content_type), std::move(extra_headers));
 }
 
 void HttpReplyHandle::reply_error(const int http_status, const std::string_view error_code,
                                   const std::string_view detail) {
     if (m_state->m_replied.exchange(true)) {
         if (m_state->m_cancelled.load()) {
-            DFH_WARN("deferred reply discarded: timeout fired first, request_id={}", m_state->request_id);
+            std::clog << "WARN: deferred reply discarded: timeout fired first, request_id=" << m_state->request_id
+                      << '\n';
             return;
         }
-        DFH_WARN("deferred reply discarded: already replied, request_id={}", m_state->request_id);
+        std::clog << "WARN: deferred reply discarded: already replied, request_id=" << m_state->request_id << '\n';
         return;
     }
 
     if (m_state->m_cancelled.load()) {
-        DFH_WARN("deferred reply discarded: timeout fired first, request_id={}", m_state->request_id);
+        std::clog << "WARN: deferred reply discarded: timeout fired first, request_id=" << m_state->request_id << '\n';
         return;
     }
 
     SimpleWeb::error_code cancel_ec;
     m_state->timer.cancel(cancel_ec);
-    do_send(http_status, make_error_body(error_code, detail), "application/json");
+    do_send(http_status, make_error_body(error_code, detail), "application/json", {});
 }
 
-void HttpReplyHandle::do_send(const int status, std::string body, std::string content_type) {
+void HttpReplyHandle::do_send(const int status, std::string body, std::string content_type,
+                              SimpleWeb::CaseInsensitiveMultimap extra_headers) {
     auto state = m_state;
     // Проверка сделана на submodule `simple-web-server` коммита 35ebb10782507f887802df64a2b6bfc8b427d81f:
     // `Response::send()` вызывает `asio::async_write` напрямую и не сериализует конкурентные вызовы через `strand`.
     // Поэтому все отправки планируем через один `io_service` методом `post`.
-    state->executor->post([state, status, body = std::move(body), content_type = std::move(content_type)]() mutable {
+    state->executor->post([state, status, body = std::move(body), content_type = std::move(content_type),
+                           extra_headers = std::move(extra_headers)]() mutable {
         try {
-            SimpleWeb::CaseInsensitiveMultimap headers;
+            SimpleWeb::CaseInsensitiveMultimap headers = std::move(extra_headers);
             headers.emplace("Content-Type", content_type);
             state->response->write(static_cast<SimpleWeb::StatusCode>(status), body, headers);
             state->response->send();
         } catch (const std::exception &e) {
-            DFH_WARN("deferred send failed: {}, request_id={}", e.what(), state->request_id);
+            std::clog << "WARN: deferred send failed: " << e.what() << ", request_id=" << state->request_id << '\n';
         } catch (...) {
-            DFH_WARN("deferred send failed: unknown error, request_id={}", state->request_id);
+            std::clog << "WARN: deferred send failed: unknown error, request_id=" << state->request_id << '\n';
         }
     });
 }

@@ -11,6 +11,8 @@ int main() {
     CHECK_EQ(cfg.schema_version, 1);
     CHECK_EQ(cfg.http.port, 8080);
     CHECK_EQ(cfg.http.request_timeout_ms, static_cast<std::int64_t>(30000));
+    CHECK_EQ(cfg.http.history_max_range_ms, static_cast<std::int64_t>(86400000));
+    CHECK_EQ(cfg.http.history_max_bytes, static_cast<std::int64_t>(104857600));
     CHECK_EQ(cfg.ws.port, 8081);
     CHECK(cfg.node_id.empty());
     CHECK(cfg.env.empty());

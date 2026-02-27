@@ -11,7 +11,10 @@
   "http": {
     "bind_host": "0.0.0.0",
     "port": 8080,
-    "max_payload_bytes": 10000000
+    "max_payload_bytes": 10000000,
+    "request_timeout_ms": 30000,
+    "history_max_range_ms": 86400000,
+    "history_max_bytes": 104857600
   },
   "ws": {
     "bind_host": "0.0.0.0",
@@ -55,7 +58,10 @@
   "http": {
     "bind_host": "0.0.0.0",
     "port": 8080,
-    "max_payload_bytes": 20000000
+    "max_payload_bytes": 20000000,
+    "request_timeout_ms": 30000,
+    "history_max_range_ms": 172800000,
+    "history_max_bytes": 209715200
   },
   "ws": {
     "bind_host": "0.0.0.0",
@@ -117,6 +123,9 @@
 - `bind_host` (string, default: `0.0.0.0`).
 - `port` (int, default: `8080`).
 - `max_payload_bytes` (int, default: `10000000`).
+- `request_timeout_ms` (int, default: `30000`): таймаут отложенного ответа в миллисекундах (`0` = отключён).
+- `history_max_range_ms` (int, default: `86400000`): максимальный диапазон запроса history (`to_ms - from_ms`) в миллисекундах.
+- `history_max_bytes` (int, default: `104857600`): максимальный размер ответа history в байтах.
 
 ### ws
 - `bind_host` (string, default: `0.0.0.0`).
@@ -160,6 +169,8 @@
 - `http.port` и `ws.port`: `1..65535`, порты должны отличаться
 - `http.bind_host` и `ws.bind_host`: не пустые
 - `http.max_payload_bytes`, `ws.max_payload_bytes`: > 0
+- `http.request_timeout_ms`: >= 0
+- `http.history_max_range_ms`, `http.history_max_bytes`: > 0
 - `queues.high_capacity`, `queues.low_capacity`, `queues.workers`: > 0
 - `security.server_secret`: не пустой, длина >= 16
 - `security.anti_replay.max_skew_ms`, `nonce_ttl_ms`, `nonce_capacity`: > 0

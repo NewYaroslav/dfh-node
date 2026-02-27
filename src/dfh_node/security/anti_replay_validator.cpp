@@ -4,11 +4,8 @@
 ///
 #include "anti_replay_validator.hpp"
 
-#include "core/logging.hpp"
-
-#include <LogIt.hpp>
-
 #include <cstdint>
+#include <iostream>
 #include <string>
 
 namespace dfh_node {
@@ -69,22 +66,22 @@ GateResult AntiReplayValidator::validate_common(const std::string &fingerprint, 
                                                 const std::string &timestamp, const std::string &nonce,
                                                 const std::string &signature) {
     if (key_len != 32u) {
-        DFH_WARN("Anti-replay: invalid signing key length");
+        std::clog << "WARN: Anti-replay: invalid signing key length\n";
         return GateError{GateErrorCode::AntiReplayFailed, "Invalid signing_key length"};
     }
 
     if (timestamp.size() != 13u || !is_decimal_string(timestamp)) {
-        DFH_WARN("Anti-replay: invalid timestamp format");
+        std::clog << "WARN: Anti-replay: invalid timestamp format\n";
         return GateError{GateErrorCode::AntiReplayFailed, "Invalid timestamp format"};
     }
 
     if (!is_hex_lower_string(nonce, 16u)) {
-        DFH_WARN("Anti-replay: invalid nonce format");
+        std::clog << "WARN: Anti-replay: invalid nonce format\n";
         return GateError{GateErrorCode::AntiReplayFailed, "Invalid nonce format"};
     }
 
     if (!is_hex_lower_string(signature, 64u)) {
-        DFH_WARN("Anti-replay: invalid signature format");
+        std::clog << "WARN: Anti-replay: invalid signature format\n";
         return GateError{GateErrorCode::AntiReplayFailed, "Invalid signature format"};
     }
 
@@ -92,17 +89,17 @@ GateResult AntiReplayValidator::validate_common(const std::string &fingerprint, 
     const std::int64_t request_ts = std::stoll(timestamp);
     const std::int64_t delta = (now_ms >= request_ts) ? (now_ms - request_ts) : (request_ts - now_ms);
     if (delta > m_config.max_skew_ms) {
-        DFH_WARN("Anti-replay: timestamp skew too large");
+        std::clog << "WARN: Anti-replay: timestamp skew too large\n";
         return GateError{GateErrorCode::AntiReplayFailed, "Timestamp skew too large"};
     }
 
     if (!verify_signature(canonical, signature, signing_key, key_len)) {
-        DFH_WARN("Anti-replay: invalid signature");
+        std::clog << "WARN: Anti-replay: invalid signature\n";
         return GateError{GateErrorCode::AntiReplayFailed, "Invalid signature"};
     }
 
     if (!m_nonce_store.check_and_record(fingerprint, nonce, now_ms)) {
-        DFH_WARN("Anti-replay: nonce reuse detected");
+        std::clog << "WARN: Anti-replay: nonce reuse detected\n";
         return GateError{GateErrorCode::AntiReplayFailed, "Nonce reuse (replay detected)"};
     }
 
