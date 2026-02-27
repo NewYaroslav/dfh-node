@@ -25,6 +25,7 @@ add_library(dfh_node STATIC
     adapter/dfh_adapter_dto.cpp
     adapter/fake_dfh_adapter.cpp
     transport/http/http_error_map.cpp
+    transport/http/http_reply_handle.cpp
     transport/http/http_server.cpp
 )
 

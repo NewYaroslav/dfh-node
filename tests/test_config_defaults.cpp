@@ -10,6 +10,7 @@ int main() {
     auto cfg = dfh_node::config::default_config();
     CHECK_EQ(cfg.schema_version, 1);
     CHECK_EQ(cfg.http.port, 8080);
+    CHECK_EQ(cfg.http.request_timeout_ms, static_cast<std::int64_t>(30000));
     CHECK_EQ(cfg.ws.port, 8081);
     CHECK(cfg.node_id.empty());
     CHECK(cfg.env.empty());

@@ -74,6 +74,9 @@ std::vector<ValidationError> validate(const Config &cfg) {
     if (cfg.http.max_payload_bytes <= 0) {
         add_error(errors, "http.max_payload_bytes", "out_of_range", "http.max_payload_bytes must be > 0");
     }
+    if (cfg.http.request_timeout_ms < 0) {
+        add_error(errors, "http.request_timeout_ms", "out_of_range", "http.request_timeout_ms must be >= 0");
+    }
     if (cfg.ws.max_payload_bytes <= 0) {
         add_error(errors, "ws.max_payload_bytes", "out_of_range", "ws.max_payload_bytes must be > 0");
     }

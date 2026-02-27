@@ -19,6 +19,7 @@ struct HttpConfig {
     std::string bind_host = "0.0.0.0";         ///< Хост/интерфейс для bind.
     int port = 8080;                           ///< TCP-порт (ожидается 1..65535).
     std::int64_t max_payload_bytes = 10000000; ///< Лимит тела запроса, байты.
+    std::int64_t request_timeout_ms = 30000;   ///< Таймаут отложенного ответа (мс), `0` отключает таймаут.
 };
 
 /// \brief Параметры WebSocket-интерфейса.

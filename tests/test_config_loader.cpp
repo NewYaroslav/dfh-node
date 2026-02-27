@@ -47,6 +47,7 @@ int main() {
         CHECK(result.is_ok());
         CHECK(result.config.has_value());
         CHECK_EQ(result.config->node_id, "node-01");
+        CHECK_EQ(result.config->http.request_timeout_ms, static_cast<std::int64_t>(30000));
     }
 
     {
@@ -260,6 +261,26 @@ int main() {
         CHECK(result.config.has_value());
         CHECK_EQ(result.config->security.anti_replay.require_for_scopes,
                  dfh_node::to_scope_mask(dfh_node::Scope::Write) | dfh_node::to_scope_mask(dfh_node::Scope::Sync));
+        remove_temp_file(temp_path);
+    }
+
+    {
+        // Пользовательский http.request_timeout_ms корректно читается из JSON.
+        const auto temp_path = write_temp_json("dfh_node_http_timeout_config.json", R"({
+            "schema_version": 1,
+            "node_id": "node-http-timeout",
+            "env": "dev",
+            "security": {
+                "server_secret": "test-secret-key-16chars"
+            },
+            "http": {
+                "request_timeout_ms": 12345
+            }
+        })");
+        auto result = dfh_node::config::load_from_file(temp_path);
+        CHECK(result.is_ok());
+        CHECK(result.config.has_value());
+        CHECK_EQ(result.config->http.request_timeout_ms, static_cast<std::int64_t>(12345));
         remove_temp_file(temp_path);
     }
 
