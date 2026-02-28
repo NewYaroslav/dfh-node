@@ -31,6 +31,7 @@ add_library(dfh_node STATIC
     transport/http/http_server.cpp
     transport/ws/ws_dto_parser.cpp
     transport/ws/ws_protocol.cpp
+    transport/ws/ws_session_registry.cpp
 )
 
 dfh_node_apply_warnings(dfh_node)

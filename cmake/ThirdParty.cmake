@@ -42,7 +42,9 @@ endif()
 
 if(EXISTS "${SWS_DIR}/server_http.hpp" AND NOT ASIO_INCLUDE_DIR STREQUAL "")
     add_library(simple-web-server INTERFACE)
-    target_include_directories(simple-web-server INTERFACE
+    # Сторонние заголовки помечаем как SYSTEM, чтобы их предупреждения
+    # не смешивались с предупреждениями проектного кода.
+    target_include_directories(simple-web-server SYSTEM INTERFACE
         "${SWS_DIR}"
         "${ASIO_INCLUDE_DIR}"
     )
@@ -64,7 +66,9 @@ endif()
 set(SWSS_DIR "${PROJECT_SOURCE_DIR}/third_party/simple-websocket-server")
 if(EXISTS "${SWSS_DIR}/server_ws.hpp" AND NOT ASIO_INCLUDE_DIR STREQUAL "")
     add_library(simple-websocket-server INTERFACE)
-    target_include_directories(simple-websocket-server INTERFACE
+    # Сторонние заголовки помечаем как SYSTEM, чтобы их предупреждения
+    # не смешивались с предупреждениями проектного кода.
+    target_include_directories(simple-websocket-server SYSTEM INTERFACE
         "${SWSS_DIR}"
         "${ASIO_INCLUDE_DIR}"
     )
