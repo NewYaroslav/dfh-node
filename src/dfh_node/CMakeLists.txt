@@ -46,4 +46,6 @@ target_link_libraries(dfh_node
         log-it-cpp
         OpenSSL::Crypto
         simple-web-server
+        simple-websocket-server
+        msgpack-c
 )

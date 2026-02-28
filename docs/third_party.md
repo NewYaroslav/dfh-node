@@ -17,6 +17,8 @@
 | log-it-cpp | https://github.com/NewYaroslav/log-it-cpp | v1.0.1 | MIT | Logging library |
 | asio | https://github.com/chriskohlhoff/asio | 28d9b8d6df708024af5227c551673fdb2519f5bf | Boost Software License 1.0 | Standalone Asio headers for Simple-Web-Server (legacy API compatible) |
 | simple-web-server | https://github.com/eidheim/Simple-Web-Server | 35ebb10782507f887802df64a2b6bfc8b427d81f | MIT | Header-only HTTP/HTTPS server |
+| simple-websocket-server | https://gitlab.com/eidheim/Simple-WebSocket-Server | 89e5677789d096374edb93aaabaf23799a7e1692 | MIT | Header-only WS server |
+| msgpack-c | https://github.com/msgpack/msgpack-c | 44c0f705c9a60217d7e07de844fb13ce4c1c1e6e | BSL-1.0 | Header-only MessagePack C++ |
 
 ## Процесс обновления
 1) Обновить ref сабмодуля (закрепить новый тег/коммит).
