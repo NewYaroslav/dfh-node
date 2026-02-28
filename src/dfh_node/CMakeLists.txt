@@ -29,6 +29,8 @@ add_library(dfh_node STATIC
     transport/http/http_reply_handle.cpp
     transport/http/http_router.cpp
     transport/http/http_server.cpp
+    transport/ws/ws_dto_parser.cpp
+    transport/ws/ws_protocol.cpp
 )
 
 dfh_node_apply_warnings(dfh_node)
