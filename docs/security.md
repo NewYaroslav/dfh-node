@@ -7,7 +7,7 @@
 Статус на текущий момент:
 - Core-часть безопасности (scope, rate limiting, anti-replay, nonce store, canonical request, подписи) реализована в библиотеке `dfh_node`.
 - HTTP transport подключён в runtime при запуске `dfh_node_app --run`.
-- WS transport пока не подключён в runtime, поэтому WS-часть ниже описывает целевой контракт интеграции.
+- WS transport подключён в runtime при запуске `dfh_node_app --run` (при `ws.port != 0`).
 
 ## Структура
 1. Модель угроз (кратко)
@@ -66,7 +66,7 @@
 1. Handshake/upgrade: извлечь token → вычислить fingerprint → найти AuthContext → вычислить signing_key = SHA256(token) → сохранить в WsConnectionContext (32 байта)
 2. WS message: извлечь signing_key из connection context → проверить HMAC(signing_key, canonical_string) == signature
 
-\* Примечание: это целевой контракт для transport-слоя. В текущем runtime WS handshake/message pipeline ещё не активирован.
+\* Примечание: это активный контракт runtime для WS handshake/message pipeline.
 
 ### Порядок валидации
 

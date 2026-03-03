@@ -1,7 +1,7 @@
 # dfh-node
 
 dfh-node — это сервер (“нода”) для хранения и раздачи исторических рыночных данных и приема новых данных по сети.
-В текущем runtime нода предоставляет HTTP API; WebSocket API остается целевым контрактом следующего этапа.
+В текущем runtime нода предоставляет HTTP и WebSocket API.
 Внутреннее хранение и слияние данных реализуется в движке DataFeedHub (DFH), а dfh-node — это сетевой слой
 (transport, auth, лимиты, очереди).
 
@@ -9,9 +9,9 @@ dfh-node — это сервер (“нода”) для хранения и р�
 
 - HTTP: выгрузка истории (history download) в форматах CSV и dfhbin (сжатый бинарный формат блоков данных).
 - HTTP: прием новых данных (ingest) через POST — пачками или одиночными событиями.
-- WebSocket (план): control-протокол для ingest/history/subscribe.
-- WebSocket (план): передача dfhbin как бинарных фреймов.
-- WebSocket (план): два режима control-сообщений — JSON и MessagePack.
+- WebSocket: control-протокол для ingest/history/subscribe.
+- WebSocket: передача dfhbin как бинарных фреймов.
+- WebSocket: два режима control-сообщений — JSON и MessagePack.
 - Очереди планировщика по приоритету: high-priority важнее low-priority; обычно ingest маппится в high, history в low, и при перегрузе low режется первой.
 - Авторизация по API ключам со scope-моделью: read / write / admin / sync.
 - Rate limiting: лимит запросов/сек и лимит одновременных WS соединений.
@@ -52,9 +52,10 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - anti-replay ядро (canonical request, nonce store, HMAC-проверка);
 - контракт storage-слоя (`IDfhAdapter` + DTO) и in-memory реализация `FakeDfhAdapter`;
 - HTTP transport v1 (`/v1/ingest`, `/v1/history`, `/v1/status`) + интеграционные тесты;
+- WS transport v1 (`/ws/json`, `/ws/msgpack`) + интеграционные тесты;
 - unit/smoke/E2E тесты через CTest.
 
-WS transport и sync-протокол остаются следующими этапами.
+Следующим этапом остается sync-протокол между нодами.
 
 ## Быстрый старт
 
@@ -94,7 +95,8 @@ build-msvc\src\app\dfh_node_app.exe --config examples\config_minimal.json --run
 - `X-DFH-Signature`: HMAC-SHA256 в hex (64 символа)
 
 **Поля WS control-message:**
-- `timestamp`, `nonce`, `signature`, `endpoint`, `op`, `msg_id`, `payload_sha256`
+- `timestamp`, `nonce`, `signature`, `op`, `msg_id`, `payload_hash`, `payload_sha256`
+- `endpoint` для подписи берется сервером из пути соединения (`/ws/json` или `/ws/msgpack`), не из payload.
 
 ### Пример клиента (HTTP)
 

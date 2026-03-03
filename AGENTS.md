@@ -25,11 +25,11 @@
 - Терминология планировщика: `TaskLane` = приоритет/очередь (`High`/`Low`), `TaskKind` = семантика операции (`Ingest`/`History`), `Task` хранит оба поля.
 - TaskScheduler — единый mutex+cv для high/low priority очередей, приоритет high > low, stop-now shutdown.
 - WorkerPool — сбор per-lane метрик (total_processed, avg_wait_ms), steady_clock, C++17 fetch_add.
-- dfh_node_app — по умолчанию one-shot bootstrap; с флагом `--run` запускает HTTP runtime.
+- dfh_node_app — по умолчанию one-shot bootstrap; с флагом `--run` запускает HTTP+WS runtime.
 
 ## 3. Зафиксированные спорные/важные тех-решения
 - Язык: C++17 (пока).
-- HTTP: Simple-Web-Server (подключен); WS: Simple-WebSocket-Server (планируемая зависимость).
+- HTTP: Simple-Web-Server (подключен); WS: Simple-WebSocket-Server (подключен).
 - Boost включаем (часть зависимостей тянет Boost; минимизировать компоненты).
 - OpenSSL используем для HMAC/хэшей.
 - TLS внутри ноды не делаем: TLS завершается на внешнем nginx/прокси.
@@ -85,7 +85,7 @@
   а также umbrella-заголовки `core.hpp`, `config.hpp`, `security.hpp`, `auth.hpp`,
   `scheduler.hpp`, `adapter.hpp`, `transport.hpp`.
 - src/app/ — приложение: `main.cpp`.
-- tests/ — тесты: smoke + config + scheduler/worker + auth/rate-limit/gate + anti-replay + adapter + transport/http
+- tests/ — тесты: smoke + config + scheduler/worker + auth/rate-limit/gate + anti-replay + adapter + transport/http + transport/ws
   (`test_smoke.cpp`, `test_config_defaults.cpp`, `test_config_loader.cpp`,
   `test_config_validator.cpp`, `test_task_scheduler.cpp`, `test_worker_pool.cpp`,
   `test_bounded_queue.cpp`, `test_scope.cpp`, `test_scope_auth.cpp`,
@@ -96,7 +96,8 @@
   `test_gate_e2e.cpp`, `test_status.cpp`, `test_dfh_adapter_dto.cpp`,
   `test_fake_dfh_adapter.cpp`, `test_dfh_adapter_e2e.cpp`,
   `test_http_error_map.cpp`, `test_http_dto_parser.cpp`, `test_http_reply_handle.cpp`,
-  `test_http_integration.cpp`).
+  `test_http_integration.cpp`, `test_ws_protocol.cpp`, `test_ws_session_registry.cpp`,
+  `test_ws_dto_parser.cpp`, `test_ws_integration.cpp`, `test_ws_runtime_components.cpp`).
 - tests/app_configs/ — фикстуры конфигов для CTest-сценариев приложения.
 - examples/ — примеры: `config_minimal.json`.
 - third_party/ — каталог для submodules (см. docs/third_party.md).
@@ -118,7 +119,9 @@
   `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`,
   `test_gate_e2e`, `test_status`, `test_dfh_adapter_dto`, `test_fake_dfh_adapter`,
   `test_dfh_adapter_e2e`, `test_http_error_map`, `test_http_dto_parser`,
-  `test_http_reply_handle`, `test_http_integration`.
+  `test_http_reply_handle`, `test_http_integration`, `test_ws_protocol`,
+  `test_ws_session_registry`, `test_ws_dto_parser`, `test_ws_integration`,
+  `test_ws_runtime_components`.
 
 ### 4.2 Опции CMake (реальные)
 - `DFH_NODE_BUILD_TESTS` (ON) — включить тесты.
@@ -156,7 +159,9 @@
   `test_rate_limiter`, `test_ws_connection_limiter`, `test_unified_gate`, `test_sha256_utils`,
   `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`, `test_gate_e2e`),
   adapter (`test_dfh_adapter_dto`, `test_fake_dfh_adapter`, `test_dfh_adapter_e2e`),
-  transport/http (`test_http_error_map`, `test_http_dto_parser`, `test_http_reply_handle`, `test_http_integration`).
+  transport/http (`test_http_error_map`, `test_http_dto_parser`, `test_http_reply_handle`, `test_http_integration`),
+  transport/ws (`test_ws_protocol`, `test_ws_session_registry`, `test_ws_dto_parser`,
+  `test_ws_integration`, `test_ws_runtime_components`).
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
 
 ## 6. Процесс разработки
@@ -174,17 +179,17 @@
   - log-it-cpp (logging).
   - OpenSSL (HMAC/хэши, token wipe через `OPENSSL_cleanse`).
   - Simple-Web-Server + Asio (HTTP transport runtime).
+  - Simple-WebSocket-Server (WS transport runtime).
+  - msgpack-c (контрольные сообщения WS `/ws/msgpack`).
 - Планируемые ключевые deps (TODO до подключения):
-  - Simple-WebSocket-Server (WS transport).
   - Boost (минимальные компоненты, как fallback при сборке без standalone Asio).
-  - MessagePack (контрольные сообщения в WS).
 
 ## 8. Протоколы и API (краткая справка, без кода)
 - HTTP (реализовано в runtime при запуске `dfh_node_app --run`):
   - `/v1/history` — выгрузка истории.
   - `/v1/ingest` — прием новых данных.
   - `/v1/status` — статус ноды.
-- WS (план):
+- WS (реализовано в runtime при запуске `dfh_node_app --run` и `ws.port != 0`):
   - Endpoints: `/ws/msgpack` (основной), `/ws/json` (fallback).
   - Control-message: `op=ingest|history|subscribe` + `msg_id`.
   - dfhbin: binary frames.
@@ -213,10 +218,11 @@
 - `timestamp` (Unix epoch ms, 13 цифр)
 - `nonce` (hex lowercase, 16 символов)
 - `signature` (HMAC-SHA256 в hex lowercase, 64 символа)
-- `endpoint` (например, `/ws/msgpack`)
 - `op` (операция: ingest/history/subscribe)
 - `msg_id` (идентификатор сообщения)
+- `payload_hash` (SHA-256 payload в hex lowercase, 64 символа)
 - `payload_sha256` (для dfhbin: SHA-256 бинарного кадра в hex, 64 символа)
+- `endpoint` для подписи берется сервером из `WsConnectionContext::endpoint`, а не из control-message.
 
 **Канонический формат HTTP:**
 ```

@@ -447,3 +447,14 @@ target_link_libraries(test_ws_integration
 )
 
 add_test(NAME test_ws_integration COMMAND test_ws_integration)
+
+add_executable(test_ws_runtime_components
+    test_ws_runtime_components.cpp
+)
+
+target_link_libraries(test_ws_runtime_components
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_runtime_components COMMAND test_ws_runtime_components)
