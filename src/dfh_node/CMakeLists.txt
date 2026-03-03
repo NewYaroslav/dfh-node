@@ -30,7 +30,10 @@ add_library(dfh_node STATIC
     transport/http/http_router.cpp
     transport/http/http_server.cpp
     transport/ws/ws_dto_parser.cpp
+    transport/ws/ws_message_handler.cpp
     transport/ws/ws_protocol.cpp
+    transport/ws/ws_router.cpp
+    transport/ws/ws_server.cpp
     transport/ws/ws_session_registry.cpp
 )
 
