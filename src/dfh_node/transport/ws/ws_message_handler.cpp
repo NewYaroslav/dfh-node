@@ -8,14 +8,12 @@
 #include "security/sha256_utils.hpp"
 #include "ws_dto_parser.hpp"
 
-#include <LogIt.hpp>
 #include <openssl/evp.h>
-
-#include "core/logging.hpp"
 
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -161,7 +159,7 @@ void send_response_via_registry(const std::shared_ptr<WsSessionRegistry> &regist
     const auto conn_weak = registry->get_connection(conn_id);
     auto conn = conn_weak.lock();
     if (!conn) {
-        DFH_PRINTF_WARN("WS response dropped: connection is not available, id=%s", conn_id.c_str());
+        std::clog << "WARN: WS response dropped: connection is not available, id=" << conn_id << '\n';
         return;
     }
 
@@ -182,9 +180,9 @@ void send_response_via_registry(const std::shared_ptr<WsSessionRegistry> &regist
 
         conn->send(serialize_ws_json_response(resp));
     } catch (const std::exception &e) {
-        DFH_PRINTF_WARN("WS send failed: id=%s, error=%s", conn_id.c_str(), e.what());
+        std::clog << "WARN: WS send failed: id=" << conn_id << ", error=" << e.what() << '\n';
     } catch (...) {
-        DFH_PRINTF_WARN("WS send failed: id=%s, error=unknown", conn_id.c_str());
+        std::clog << "WARN: WS send failed: id=" << conn_id << ", error=unknown\n";
     }
 }
 
@@ -213,7 +211,7 @@ void WsMessageHandler::handle_text(const std::string &connection_id, const std::
     WsControlMessage msg = std::get<WsControlMessage>(std::move(parsed));
     const std::optional<WsConnectionContext> ctx_opt = m_registry->get_context(connection_id);
     if (!ctx_opt.has_value()) {
-        DFH_PRINTF_WARN("WS control dropped: unknown connection id=%s", connection_id.c_str());
+        std::clog << "WARN: WS control dropped: unknown connection id=" << connection_id << '\n';
         return;
     }
 
@@ -298,7 +296,7 @@ void WsMessageHandler::handle_binary(const std::string &connection_id, const std
             try {
                 std::unique_ptr<IngestResponse> adapter_response = adapter.ingest_structured(std::move(*dto_holder));
                 if (!registry->get_context(conn_id).has_value()) {
-                    DFH_PRINTF_WARN("WS binary ingest reply skipped: connection closed, id=%s", conn_id.c_str());
+                    std::clog << "WARN: WS binary ingest reply skipped: connection closed, id=" << conn_id << '\n';
                     return;
                 }
 
@@ -360,7 +358,7 @@ void WsMessageHandler::handle_ingest(const std::string &conn_id, const WsControl
             try {
                 std::unique_ptr<IngestResponse> adapter_response = adapter.ingest_structured(std::move(*dto_holder));
                 if (!registry->get_context(conn_id).has_value()) {
-                    DFH_PRINTF_WARN("WS ingest reply skipped: connection closed, id=%s", conn_id.c_str());
+                    std::clog << "WARN: WS ingest reply skipped: connection closed, id=" << conn_id << '\n';
                     return;
                 }
 
@@ -422,7 +420,7 @@ void WsMessageHandler::handle_history(const std::string &conn_id, const WsContro
             try {
                 std::unique_ptr<QueryHistoryResponse> adapter_response = adapter.query_history(std::move(*dto_holder));
                 if (!registry->get_context(conn_id).has_value()) {
-                    DFH_PRINTF_WARN("WS history reply skipped: connection closed, id=%s", conn_id.c_str());
+                    std::clog << "WARN: WS history reply skipped: connection closed, id=" << conn_id << '\n';
                     return;
                 }
 

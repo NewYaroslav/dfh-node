@@ -193,6 +193,7 @@ int main(int argc, char **argv) {
     dfh_node::UnifiedGate gate(auth_service, rate_limiter, ws_connection_limiter, anti_replay_validator.get(),
                                cfg.security.anti_replay.require_for_scopes);
     dfh_node::FakeDfhAdapter adapter;
+    auto ws_registry = std::make_shared<dfh_node::transport::WsSessionRegistry>();
     dfh_node::transport::HttpRouter router(gate, scheduler, adapter, cfg);
     dfh_node::transport::HttpServer http_server(cfg.http, router);
 
@@ -243,23 +244,47 @@ int main(int argc, char **argv) {
                     status.low_priority_queue.avg_wait_ms, status.workers_count);
 
     if (run_mode) {
+        std::unique_ptr<dfh_node::transport::WsRouter> ws_router;
+        std::unique_ptr<dfh_node::transport::WsServer> ws_server;
+
         try {
             http_server.start();
             DFH_PRINTF_INFO("HTTP server is running on %s:%d", cfg.http.bind_host.c_str(), cfg.http.port);
+
+            if (cfg.ws.port != 0) {
+                ws_router = std::make_unique<dfh_node::transport::WsRouter>(gate, scheduler, adapter, cfg, ws_registry);
+                ws_server = std::make_unique<dfh_node::transport::WsServer>(cfg.ws, *ws_router);
+                ws_server->start();
+                DFH_PRINTF_INFO("WS server is running on %s:%d", cfg.ws.bind_host.c_str(), cfg.ws.port);
+            } else {
+                DFH_INFO("WS server is disabled (ws.port=0)");
+            }
+
             std::cout << "Press Enter to stop dfh_node_app...\n";
             std::string line;
             std::getline(std::cin, line);
         } catch (const std::exception &ex) {
-            DFH_PRINTF_ERROR("Failed to start HTTP server: %s", ex.what());
+            DFH_PRINTF_ERROR("Failed to start transport runtime: %s", ex.what());
+            http_server.shutdown();
+            if (ws_server != nullptr) {
+                ws_server->shutdown();
+            }
             pool.shutdown();
             return 1;
         } catch (...) {
-            DFH_PRINTF_ERROR("%s", "Failed to start HTTP server: unknown error");
+            DFH_PRINTF_ERROR("%s", "Failed to start transport runtime: unknown error");
+            http_server.shutdown();
+            if (ws_server != nullptr) {
+                ws_server->shutdown();
+            }
             pool.shutdown();
             return 1;
         }
 
         http_server.shutdown();
+        if (ws_server != nullptr) {
+            ws_server->shutdown();
+        }
     }
 
     // One-shot по умолчанию: без флага --run приложение выполняет bootstrap и

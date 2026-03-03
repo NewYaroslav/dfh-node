@@ -8,13 +8,10 @@
 #include "security/sha256_utils.hpp"
 #include "ws_message_handler.hpp"
 
-#include <LogIt.hpp>
-
-#include "core/logging.hpp"
-
 #include <cctype>
 #include <chrono>
 #include <cstdint>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -106,14 +103,14 @@ void WsRouter::register_endpoint(SimpleWeb::SocketServer<SimpleWeb::WS> &server,
         const std::string token = extract_bearer_token(connection->header);
         const GateResult gate_result = m_gate.authorize_ws_upgrade(token);
         if (const auto *gate_error = std::get_if<GateError>(&gate_result)) {
-            DFH_PRINTF_WARN("WS upgrade rejected: path=%s, reason=%s", path.c_str(), gate_error->message.c_str());
+            std::clog << "WARN: WS upgrade rejected: path=" << path << ", reason=" << gate_error->message << '\n';
             connection->send_close(1008, gate_error_close_reason(*gate_error));
             return;
         }
 
         const auto *auth_context = std::get_if<AuthContext>(&gate_result);
         if (auth_context == nullptr) {
-            DFH_PRINTF_WARN("WS upgrade rejected: path=%s, reason=invalid gate result", path.c_str());
+            std::clog << "WARN: WS upgrade rejected: path=" << path << ", reason=invalid gate result\n";
             connection->send_close(1008, "unauthorized");
             return;
         }
@@ -127,7 +124,7 @@ void WsRouter::register_endpoint(SimpleWeb::SocketServer<SimpleWeb::WS> &server,
 
         const WsSessionRegistry::ConnectionId connection_id =
             m_registry->register_connection(connection, std::move(context));
-        DFH_PRINTF_DEBUG("WS connection opened: id=%s, path=%s", connection_id.c_str(), path.c_str());
+        std::clog << "DEBUG: WS connection opened: id=" << connection_id << ", path=" << path << '\n';
     };
 
     endpoint.on_message =
@@ -139,7 +136,7 @@ void WsRouter::register_endpoint(SimpleWeb::SocketServer<SimpleWeb::WS> &server,
 
             const auto id_opt = m_registry->find_id(connection.get());
             if (!id_opt.has_value()) {
-                DFH_WARN("WS message dropped: unknown connection");
+                std::clog << "WARN: WS message dropped: unknown connection\n";
                 return;
             }
 
@@ -171,12 +168,13 @@ void WsRouter::register_endpoint(SimpleWeb::SocketServer<SimpleWeb::WS> &server,
             m_gate.ws_connection_closed(context->fingerprint);
         }
 
-        DFH_PRINTF_DEBUG("WS connection closed: id=%s, status=%d, reason=%s", id_opt->c_str(), status, reason.c_str());
+        std::clog << "DEBUG: WS connection closed: id=" << *id_opt << ", status=" << status << ", reason=" << reason
+                  << '\n';
     };
 
     endpoint.on_error = [this](const std::shared_ptr<WsSessionRegistry::SwsConnection> &connection,
                                const SimpleWeb::error_code &error) {
-        DFH_PRINTF_WARN("WS transport error: %s", error.message().c_str());
+        std::clog << "WARN: WS transport error: " << error.message() << '\n';
 
         if (!connection) {
             return;

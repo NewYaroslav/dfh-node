@@ -5,13 +5,10 @@
 ///
 #include "ws_server.hpp"
 
-#include <LogIt.hpp>
-
-#include "core/logging.hpp"
-
 #include <algorithm>
 #include <cstdint>
 #include <exception>
+#include <iostream>
 #include <utility>
 
 namespace dfh_node::transport {
@@ -40,9 +37,9 @@ void WsServer::start() {
         try {
             m_server.start();
         } catch (const std::exception &ex) {
-            DFH_PRINTF_ERROR("WsServer thread exception: %s", ex.what());
+            std::clog << "ERROR: WsServer thread exception: " << ex.what() << '\n';
         } catch (...) {
-            DFH_ERROR("WsServer thread unknown exception");
+            std::clog << "ERROR: WsServer thread unknown exception\n";
         }
     });
 
