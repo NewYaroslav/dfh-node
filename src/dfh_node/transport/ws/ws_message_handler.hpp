@@ -1,7 +1,6 @@
 /// \file ws_message_handler.hpp
-/// \brief Заглушка обработчика WS-сообщений до полной реализации конвейера.
-/// \details Нужна для связывания `WsRouter` на этапе 4. Полный конвейер
-/// (`parse -> gate -> scheduler -> adapter -> response`) реализуется на этапе 5.
+/// \brief Обработчик входящих WS-сообщений и двушагового `dfhbin` конвейера.
+/// \details Реализует полный конвейер обработки для control-сообщений и binary frame.
 ///
 #pragma once
 
@@ -9,6 +8,7 @@
 #include "auth/unified_gate.hpp"
 #include "config/config.hpp"
 #include "scheduler/task_scheduler.hpp"
+#include "ws_protocol.hpp"
 #include "ws_session_registry.hpp"
 
 #include <cstdint>
@@ -19,7 +19,8 @@
 namespace dfh_node::transport {
 
 /// \brief Обработчик входящих WS-сообщений.
-/// \details На текущем этапе методы являются заглушками без бизнес-логики.
+/// \details Выполняет валидацию control-сообщений, `gate`-проверки,
+/// постановку задач в `TaskScheduler` и отправку ответов клиенту.
 class WsMessageHandler {
 public:
     /// \brief Создаёт обработчик WS-сообщений.
@@ -43,6 +44,48 @@ public:
     void handle_binary(const std::string &connection_id, const std::vector<std::uint8_t> &bytes);
 
 private:
+    /// \brief Обработать `op=ingest` для структурированного `payload`.
+    /// \param conn_id Идентификатор соединения.
+    /// \param msg Контрольное сообщение.
+    /// \param is_msgpack Формат endpoint для ответа.
+    void handle_ingest(const std::string &conn_id, const WsControlMessage &msg, bool is_msgpack);
+
+    /// \brief Обработать `op=history`.
+    /// \param conn_id Идентификатор соединения.
+    /// \param msg Контрольное сообщение.
+    /// \param is_msgpack Формат endpoint для ответа.
+    void handle_history(const std::string &conn_id, const WsControlMessage &msg, bool is_msgpack);
+
+    /// \brief Обработать этап control-сообщения протокола `dfhbin`.
+    /// \param conn_id Идентификатор соединения.
+    /// \param msg Контрольное сообщение.
+    void handle_dfhbin_control(const std::string &conn_id, const WsControlMessage &msg);
+
+    /// \brief Ответить ошибкой на неподдерживаемую `op=subscribe`.
+    /// \param conn_id Идентификатор соединения.
+    /// \param msg_id Идентификатор исходного сообщения.
+    /// \param is_msgpack Формат endpoint для ответа.
+    void handle_subscribe(const std::string &conn_id, const std::string &msg_id, bool is_msgpack);
+
+    /// \brief Отправить ответ клиенту по `connection_id`.
+    /// \param conn_id Идентификатор соединения.
+    /// \param resp Сообщение ответа.
+    /// \param is_msgpack Формат endpoint для сериализации.
+    void send_response(const std::string &conn_id, const WsResponseMessage &resp, bool is_msgpack);
+
+    /// \brief Отправить ошибку перегруза очереди.
+    /// \param conn_id Идентификатор соединения.
+    /// \param msg_id Идентификатор исходного сообщения.
+    /// \param error_code Код ошибки очереди (`overload.*`).
+    /// \param is_msgpack Формат endpoint для сериализации.
+    void handle_overload(const std::string &conn_id, const std::string &msg_id, const std::string &error_code,
+                         bool is_msgpack);
+
+    /// \brief Определить формат endpoint по контексту сессии.
+    /// \param conn_id Идентификатор соединения.
+    /// \return `true` для `/ws/msgpack`, иначе `false`.
+    bool is_msgpack_connection(const std::string &conn_id) const;
+
     UnifiedGate &m_gate;
     TaskScheduler &m_scheduler;
     IDfhAdapter &m_adapter;
