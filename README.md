@@ -77,6 +77,7 @@ build-msvc\src\app\dfh_node_app.exe --config examples\config_minimal.json --run
 
 Полный формат `config.json` описан в `docs/config.md`.
 Минимальный пример находится в `examples/config_minimal.json`.
+Актуальный контракт WebSocket API описан в `docs/api/ws_v1.md`.
 
 ## Защита от replay-атак
 

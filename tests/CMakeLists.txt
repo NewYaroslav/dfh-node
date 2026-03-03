@@ -403,3 +403,47 @@ target_link_libraries(test_http_integration
 )
 
 add_test(NAME test_http_integration COMMAND test_http_integration)
+
+add_executable(test_ws_protocol
+    test_ws_protocol.cpp
+)
+
+target_link_libraries(test_ws_protocol
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_protocol COMMAND test_ws_protocol)
+
+add_executable(test_ws_session_registry
+    test_ws_session_registry.cpp
+)
+
+target_link_libraries(test_ws_session_registry
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_session_registry COMMAND test_ws_session_registry)
+
+add_executable(test_ws_dto_parser
+    test_ws_dto_parser.cpp
+)
+
+target_link_libraries(test_ws_dto_parser
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_dto_parser COMMAND test_ws_dto_parser)
+
+add_executable(test_ws_integration
+    test_ws_integration.cpp
+)
+
+target_link_libraries(test_ws_integration
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_integration COMMAND test_ws_integration)
