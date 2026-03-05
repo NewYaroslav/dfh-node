@@ -23,6 +23,7 @@ Config default_config() {
     cfg.ws.bind_host = "0.0.0.0";
     cfg.ws.port = 8081;
     cfg.ws.max_payload_bytes = 10000000;
+    cfg.ws.request_timeout_ms = 30000;
 
     cfg.queues.high_capacity = 10000;
     cfg.queues.low_capacity = 5000;

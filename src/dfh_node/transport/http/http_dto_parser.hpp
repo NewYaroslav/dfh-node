@@ -6,20 +6,12 @@
 
 #include "adapter/dfh_adapter_dto.hpp"
 #include "config/config.hpp"
+#include "transport/parse_result.hpp"
 
 #include <string>
-#include <utility>
-#include <variant>
 #include <vector>
 
 namespace dfh_node::transport {
-
-/// \brief Ошибка парсинга в формате `{error_code, detail}`.
-using ParseError = std::pair<std::string, std::string>;
-
-/// \brief Результат парсинга: DTO или ошибка.
-/// \tparam T Тип DTO-результата.
-template <typename T> using ParseResult = std::variant<T, ParseError>;
 
 /// \brief Распарсить query-параметры `GET /v1/history` в `QueryHistoryRequest`.
 /// \param query_string Сырая query-строка без ведущего `?` или с ним.

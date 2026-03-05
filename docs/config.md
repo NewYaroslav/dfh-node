@@ -19,7 +19,8 @@
   "ws": {
     "bind_host": "0.0.0.0",
     "port": 8081,
-    "max_payload_bytes": 10000000
+    "max_payload_bytes": 10000000,
+    "request_timeout_ms": 30000
   },
   "queues": {
     "high_capacity": 10000,
@@ -66,7 +67,8 @@
   "ws": {
     "bind_host": "0.0.0.0",
     "port": 8081,
-    "max_payload_bytes": 20000000
+    "max_payload_bytes": 20000000,
+    "request_timeout_ms": 30000
   },
   "queues": {
     "high_capacity": 20000,
@@ -131,6 +133,7 @@
 - `bind_host` (string, default: `0.0.0.0`).
 - `port` (int, default: `8081`).
 - `max_payload_bytes` (int, default: `10000000`).
+- `request_timeout_ms` (int, default: `30000`): таймаут WS-задач в миллисекундах (`0` = отключён).
 
 ### queues
 - `high_capacity` (int, default: `10000`).
@@ -170,6 +173,7 @@
 - `http.bind_host` и `ws.bind_host`: не пустые
 - `http.max_payload_bytes`, `ws.max_payload_bytes`: > 0
 - `http.request_timeout_ms`: >= 0
+- `ws.request_timeout_ms`: >= 0
 - `http.history_max_range_ms`, `http.history_max_bytes`: > 0
 - `queues.high_capacity`, `queues.low_capacity`, `queues.workers`: > 0
 - `security.server_secret`: не пустой, длина >= 16

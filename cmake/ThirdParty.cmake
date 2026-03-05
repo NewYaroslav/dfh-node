@@ -42,7 +42,9 @@ endif()
 
 if(EXISTS "${SWS_DIR}/server_http.hpp" AND NOT ASIO_INCLUDE_DIR STREQUAL "")
     add_library(simple-web-server INTERFACE)
-    target_include_directories(simple-web-server INTERFACE
+    # Сторонние заголовки помечаем как SYSTEM, чтобы их предупреждения
+    # не смешивались с предупреждениями проектного кода.
+    target_include_directories(simple-web-server SYSTEM INTERFACE
         "${SWS_DIR}"
         "${ASIO_INCLUDE_DIR}"
     )
@@ -58,6 +60,38 @@ if(EXISTS "${SWS_DIR}/server_http.hpp" AND NOT ASIO_INCLUDE_DIR STREQUAL "")
     endif()
 else()
     message(FATAL_ERROR "simple-web-server/asio submodules not found. Run: git submodule update --init third_party/simple-web-server third_party/asio")
+endif()
+
+# Simple-WebSocket-Server (header-only, MIT).
+set(SWSS_DIR "${PROJECT_SOURCE_DIR}/third_party/simple-websocket-server")
+if(EXISTS "${SWSS_DIR}/server_ws.hpp" AND NOT ASIO_INCLUDE_DIR STREQUAL "")
+    add_library(simple-websocket-server INTERFACE)
+    # Сторонние заголовки помечаем как SYSTEM, чтобы их предупреждения
+    # не смешивались с предупреждениями проектного кода.
+    target_include_directories(simple-websocket-server SYSTEM INTERFACE
+        "${SWSS_DIR}"
+        "${ASIO_INCLUDE_DIR}"
+    )
+    target_compile_definitions(simple-websocket-server INTERFACE
+        ASIO_STANDALONE
+        USE_STANDALONE_ASIO
+    )
+    target_link_libraries(simple-websocket-server INTERFACE Threads::Threads)
+    if(WIN32)
+        target_link_libraries(simple-websocket-server INTERFACE ws2_32 mswsock)
+    endif()
+else()
+    message(FATAL_ERROR "simple-websocket-server/asio submodules not found. Run: git submodule update --init third_party/simple-websocket-server third_party/asio")
+endif()
+
+# msgpack-c (header-only, BSL-1.0).
+set(MSGPACK_DIR "${PROJECT_SOURCE_DIR}/third_party/msgpack-c/include")
+if(EXISTS "${MSGPACK_DIR}/msgpack.hpp")
+    add_library(msgpack-c INTERFACE)
+    target_include_directories(msgpack-c INTERFACE "${MSGPACK_DIR}")
+    target_compile_definitions(msgpack-c INTERFACE MSGPACK_NO_BOOST)
+else()
+    message(FATAL_ERROR "msgpack-c submodule not found. Run: git submodule update --init third_party/msgpack-c")
 endif()
 
 # TODO: добавить подключение системных пакетов для каждой библиотеки.

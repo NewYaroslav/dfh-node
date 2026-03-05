@@ -29,6 +29,13 @@ add_library(dfh_node STATIC
     transport/http/http_reply_handle.cpp
     transport/http/http_router.cpp
     transport/http/http_server.cpp
+    transport/ws/ws_dto_parser.cpp
+    transport/ws/ws_message_handler.cpp
+    transport/ws/ws_protocol.cpp
+    transport/ws/ws_router.cpp
+    transport/ws/ws_runtime_utils.cpp
+    transport/ws/ws_server.cpp
+    transport/ws/ws_session_registry.cpp
 )
 
 dfh_node_apply_warnings(dfh_node)
@@ -46,4 +53,6 @@ target_link_libraries(dfh_node
         log-it-cpp
         OpenSSL::Crypto
         simple-web-server
+        simple-websocket-server
+        msgpack-c
 )

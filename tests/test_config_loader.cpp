@@ -50,6 +50,7 @@ int main() {
         CHECK_EQ(result.config->http.request_timeout_ms, static_cast<std::int64_t>(30000));
         CHECK_EQ(result.config->http.history_max_range_ms, static_cast<std::int64_t>(86400000));
         CHECK_EQ(result.config->http.history_max_bytes, static_cast<std::int64_t>(104857600));
+        CHECK_EQ(result.config->ws.request_timeout_ms, static_cast<std::int64_t>(30000));
     }
 
     {
@@ -283,6 +284,26 @@ int main() {
         CHECK(result.is_ok());
         CHECK(result.config.has_value());
         CHECK_EQ(result.config->http.request_timeout_ms, static_cast<std::int64_t>(12345));
+        remove_temp_file(temp_path);
+    }
+
+    {
+        // Пользовательский ws.request_timeout_ms корректно читается из JSON.
+        const auto temp_path = write_temp_json("dfh_node_ws_timeout_config.json", R"({
+            "schema_version": 1,
+            "node_id": "node-ws-timeout",
+            "env": "dev",
+            "security": {
+                "server_secret": "test-secret-key-16chars"
+            },
+            "ws": {
+                "request_timeout_ms": 54321
+            }
+        })");
+        auto result = dfh_node::config::load_from_file(temp_path);
+        CHECK(result.is_ok());
+        CHECK(result.config.has_value());
+        CHECK_EQ(result.config->ws.request_timeout_ms, static_cast<std::int64_t>(54321));
         remove_temp_file(temp_path);
     }
 

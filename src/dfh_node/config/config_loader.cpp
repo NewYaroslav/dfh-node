@@ -158,6 +158,7 @@ LoadResult load_from_file(const std::filesystem::path &path) {
             read_string(obj, "bind_host", cfg.ws.bind_host, result.errors, "ws", false);
             read_int(obj, "port", cfg.ws.port, result.errors, "ws");
             read_int64(obj, "max_payload_bytes", cfg.ws.max_payload_bytes, result.errors, "ws");
+            read_int64(obj, "request_timeout_ms", cfg.ws.request_timeout_ms, result.errors, "ws");
         }
     }
 
