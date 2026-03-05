@@ -33,6 +33,7 @@ add_library(dfh_node STATIC
     transport/ws/ws_message_handler.cpp
     transport/ws/ws_protocol.cpp
     transport/ws/ws_router.cpp
+    transport/ws/ws_runtime_utils.cpp
     transport/ws/ws_server.cpp
     transport/ws/ws_session_registry.cpp
 )

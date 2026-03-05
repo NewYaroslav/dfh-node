@@ -7,10 +7,10 @@
 
 #include "security/sha256_utils.hpp"
 #include "ws_dto_parser.hpp"
+#include "ws_runtime_utils.hpp"
 
 #include <openssl/evp.h>
 
-#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <iostream>
@@ -21,33 +21,6 @@
 
 namespace dfh_node::transport {
 namespace {
-
-std::uint64_t steady_now_ms() {
-    using namespace std::chrono;
-    return static_cast<std::uint64_t>(duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count());
-}
-
-Task make_task(const TaskKind kind, std::string request_id, std::function<void()> payload) {
-    Task task;
-    task.kind = kind;
-    task.request_id = std::move(request_id);
-    task.enqueue_ts_ms = steady_now_ms();
-    task.payload = std::move(payload);
-    return task;
-}
-
-std::string ws_op_to_string(const WsOp op) {
-    switch (op) {
-    case WsOp::Ingest:
-        return "ingest";
-    case WsOp::History:
-        return "history";
-    case WsOp::Subscribe:
-        return "subscribe";
-    }
-
-    return "history";
-}
 
 WsResponseMessage make_error_response(std::string msg_id, std::string error_code, std::string detail) {
     WsResponseMessage response;

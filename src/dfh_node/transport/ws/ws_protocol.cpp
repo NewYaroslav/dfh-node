@@ -10,6 +10,8 @@
 
 #include <cstdint>
 #include <exception>
+#include <limits>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -71,6 +73,9 @@ bool msgpack_object_to_json(const msgpack::object &value, nlohmann::json &out, s
         return true;
 
     case msgpack::type::FLOAT32:
+        out = value.as<float>();
+        return true;
+
     case msgpack::type::FLOAT64:
         out = value.via.f64;
         return true;
@@ -127,11 +132,22 @@ bool msgpack_object_to_json(const msgpack::object &value, nlohmann::json &out, s
     return false;
 }
 
-template <typename Packer> void pack_json_value(Packer &packer, const nlohmann::json &value) {
+bool to_msgpack_size(const std::size_t size_value, std::uint32_t &msgpack_size, std::string &detail) {
+    constexpr std::size_t max_msgpack_size = static_cast<std::size_t>(std::numeric_limits<std::uint32_t>::max());
+    if (size_value > max_msgpack_size) {
+        detail = "json value is too large for msgpack serialization";
+        return false;
+    }
+
+    msgpack_size = static_cast<std::uint32_t>(size_value);
+    return true;
+}
+
+template <typename Packer> bool pack_json_value(Packer &packer, const nlohmann::json &value, std::string &detail) {
     switch (value.type()) {
     case nlohmann::json::value_t::null:
         packer.pack_nil();
-        return;
+        return true;
 
     case nlohmann::json::value_t::boolean:
         if (value.get<bool>()) {
@@ -139,56 +155,83 @@ template <typename Packer> void pack_json_value(Packer &packer, const nlohmann::
         } else {
             packer.pack_false();
         }
-        return;
+        return true;
 
     case nlohmann::json::value_t::number_integer:
         packer.pack_int64(value.get<std::int64_t>());
-        return;
+        return true;
 
     case nlohmann::json::value_t::number_unsigned:
         packer.pack_uint64(value.get<std::uint64_t>());
-        return;
+        return true;
 
     case nlohmann::json::value_t::number_float:
         packer.pack_double(value.get<double>());
-        return;
+        return true;
 
     case nlohmann::json::value_t::string: {
         const std::string text = value.get<std::string>();
-        packer.pack_str(static_cast<std::uint32_t>(text.size()));
-        packer.pack_str_body(text.data(), static_cast<std::uint32_t>(text.size()));
-        return;
+        std::uint32_t text_size = 0;
+        if (!to_msgpack_size(text.size(), text_size, detail)) {
+            return false;
+        }
+        packer.pack_str(text_size);
+        packer.pack_str_body(text.data(), text_size);
+        return true;
     }
 
     case nlohmann::json::value_t::array: {
-        packer.pack_array(static_cast<std::uint32_t>(value.size()));
-        for (const auto &element : value) {
-            pack_json_value(packer, element);
+        std::uint32_t array_size = 0;
+        if (!to_msgpack_size(value.size(), array_size, detail)) {
+            return false;
         }
-        return;
+        packer.pack_array(array_size);
+        for (const auto &element : value) {
+            if (!pack_json_value(packer, element, detail)) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    case nlohmann::json::value_t::object:
-        packer.pack_map(static_cast<std::uint32_t>(value.size()));
+    case nlohmann::json::value_t::object: {
+        std::uint32_t map_size = 0;
+        if (!to_msgpack_size(value.size(), map_size, detail)) {
+            return false;
+        }
+        packer.pack_map(map_size);
         for (auto it = value.begin(); it != value.end(); ++it) {
             const std::string &key = it.key();
-            packer.pack_str(static_cast<std::uint32_t>(key.size()));
-            packer.pack_str_body(key.data(), static_cast<std::uint32_t>(key.size()));
-            pack_json_value(packer, it.value());
+            std::uint32_t key_size = 0;
+            if (!to_msgpack_size(key.size(), key_size, detail)) {
+                return false;
+            }
+            packer.pack_str(key_size);
+            packer.pack_str_body(key.data(), key_size);
+            if (!pack_json_value(packer, it.value(), detail)) {
+                return false;
+            }
         }
-        return;
+        return true;
+    }
 
     case nlohmann::json::value_t::binary: {
         const auto &binary = value.get_binary();
-        packer.pack_bin(static_cast<std::uint32_t>(binary.size()));
-        packer.pack_bin_body(reinterpret_cast<const char *>(binary.data()), static_cast<std::uint32_t>(binary.size()));
-        return;
+        std::uint32_t binary_size = 0;
+        if (!to_msgpack_size(binary.size(), binary_size, detail)) {
+            return false;
+        }
+        packer.pack_bin(binary_size);
+        packer.pack_bin_body(reinterpret_cast<const char *>(binary.data()), binary_size);
+        return true;
     }
 
     case nlohmann::json::value_t::discarded:
         packer.pack_nil();
-        return;
+        return true;
     }
+
+    return true;
 }
 
 ParseResult<WsControlMessage> parse_control_message(const nlohmann::json &root, WsFormat format) {
@@ -289,7 +332,10 @@ std::string serialize_ws_json_response(const WsResponseMessage &msg) { return re
 std::vector<std::uint8_t> serialize_ws_msgpack_response(const WsResponseMessage &msg) {
     msgpack::sbuffer buffer;
     msgpack::packer<msgpack::sbuffer> packer(buffer);
-    pack_json_value(packer, response_to_json(msg));
+    std::string detail;
+    if (!pack_json_value(packer, response_to_json(msg), detail)) {
+        throw std::runtime_error(detail);
+    }
     const auto begin = reinterpret_cast<const std::uint8_t *>(buffer.data());
     return {begin, begin + buffer.size()};
 }

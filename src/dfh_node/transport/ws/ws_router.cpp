@@ -7,6 +7,7 @@
 
 #include "security/sha256_utils.hpp"
 #include "ws_message_handler.hpp"
+#include "ws_runtime_utils.hpp"
 
 #include <cctype>
 #include <chrono>
@@ -48,21 +49,6 @@ std::string extract_bearer_token(const SimpleWeb::CaseInsensitiveMultimap &heade
     }
 
     return trim_copy(std::string_view(auth_header).substr(prefix.size()));
-}
-
-std::string gate_error_close_reason(const GateError &error) {
-    switch (error.code) {
-    case GateErrorCode::Unauthorized:
-        return "unauthorized";
-    case GateErrorCode::Forbidden:
-        return "forbidden";
-    case GateErrorCode::RateLimited:
-        return "rate_limited";
-    case GateErrorCode::ConnectionLimited:
-        return "connection_limited";
-    default:
-        return "forbidden";
-    }
 }
 
 bool is_binary_frame(const std::shared_ptr<SimpleWeb::SocketServer<SimpleWeb::WS>::InMessage> &message) {
