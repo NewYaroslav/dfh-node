@@ -4,7 +4,10 @@
 ///
 #pragma once
 
+#include "config/composite_api_key_store.hpp"
 #include "config/config.hpp"
 #include "config/config_api_key_store.hpp"
 #include "config/config_loader.hpp"
 #include "config/config_validator.hpp"
+#include "config/mdbx_api_key_store.hpp"
+#include "config/mdbx_key_record.hpp"

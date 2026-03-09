@@ -94,5 +94,14 @@ else()
     message(FATAL_ERROR "msgpack-c submodule not found. Run: git submodule update --init third_party/msgpack-c")
 endif()
 
+# libmdbx (OLDAP-2.8, embedded KV, C++ API mdbx.h++).
+if(EXISTS "${PROJECT_SOURCE_DIR}/third_party/libmdbx/CMakeLists.txt")
+    set(MDBX_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(MDBX_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+    add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/libmdbx" libmdbx EXCLUDE_FROM_ALL)
+else()
+    message(FATAL_ERROR "libmdbx submodule not found. Run: git submodule update --init third_party/libmdbx")
+endif()
+
 # TODO: добавить подключение системных пакетов для каждой библиотеки.
 # Пины и лицензии — в docs/third_party.md.

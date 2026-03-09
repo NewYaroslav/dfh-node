@@ -7,8 +7,10 @@ add_library(dfh_node STATIC
     core/status.cpp
     core/version.cpp
     config/config.cpp
+    config/composite_api_key_store.cpp
     config/config_api_key_store.cpp
     config/config_loader.cpp
+    config/mdbx_api_key_store.cpp
     config/config_validator.cpp
     security/anti_replay_validator.cpp
     security/canonical_request.cpp
@@ -56,4 +58,5 @@ target_link_libraries(dfh_node
         simple-web-server
         simple-websocket-server
         msgpack-c
+        mdbx-static
 )
