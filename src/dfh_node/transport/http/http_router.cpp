@@ -324,11 +324,26 @@ void append_queue_metrics(nlohmann::json &output, const QueueMetrics &metrics) {
     output["avg_wait_ms"] = metrics.avg_wait_ms;
 }
 
+std::uint64_t system_now_ms() {
+    return static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count());
+}
+
+bool is_active_mdbx_key(const MdbxKeyRecord &record, const std::uint64_t now_ms) {
+    if (record.revoked) {
+        return false;
+    }
+
+    return !record.expires_at_ms.has_value() || *record.expires_at_ms > static_cast<std::int64_t>(now_ms);
+}
+
 } // namespace
 
-HttpRouter::HttpRouter(UnifiedGate &gate, TaskScheduler &scheduler, IDfhAdapter &adapter, const config::Config &cfg)
-    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg),
-      m_started_at(std::chrono::steady_clock::now()) {}
+HttpRouter::HttpRouter(UnifiedGate &gate, TaskScheduler &scheduler, IDfhAdapter &adapter, const config::Config &cfg,
+                       DiskMonitor *disk_monitor, MdbxApiKeyStore *mdbx_store)
+    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg), m_disk_monitor(disk_monitor),
+      m_mdbx_store(mdbx_store), m_started_at(std::chrono::steady_clock::now()) {}
 
 void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
     m_executor = server.io_service;
@@ -374,6 +389,11 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
         const GateResult gate_result = m_gate.authorize_http(token, TaskKind::Ingest, ar_ptr);
         if (const auto *gate_error = std::get_if<GateError>(&gate_result)) {
             send_gate_error(response, *gate_error);
+            return;
+        }
+
+        if (m_disk_monitor != nullptr && m_disk_monitor->is_disk_low()) {
+            send_error_code(response, "disk_low", "Insufficient disk space");
             return;
         }
 
@@ -556,6 +576,23 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
         append_queue_metrics(queues["high_priority_queue"], high_metrics);
         append_queue_metrics(queues["low_priority_queue"], low_metrics);
         payload["queues"] = std::move(queues);
+
+        if (m_disk_monitor != nullptr) {
+            payload["disk_free_bytes"] = m_disk_monitor->last_free_bytes();
+            payload["disk_low"] = m_disk_monitor->is_disk_low();
+        }
+
+        if (m_mdbx_store != nullptr) {
+            const auto all_keys = m_mdbx_store->list_all();
+            const std::uint64_t now_ms = system_now_ms();
+            std::uint64_t active_count = 0;
+            for (const auto &record : all_keys) {
+                if (is_active_mdbx_key(record, now_ms)) {
+                    ++active_count;
+                }
+            }
+            payload["mdbx_keys_active"] = active_count;
+        }
 
         send_response(response, 200, payload.dump(), "application/json");
     };

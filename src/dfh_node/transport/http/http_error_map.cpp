@@ -99,6 +99,10 @@ std::pair<int, std::string> error_code_to_http(const std::string_view error_code
         return make_http_error(504, error_code, detail);
     }
 
+    if (error_code == "disk_low") {
+        return make_http_error(507, error_code, detail);
+    }
+
     if (error_code == "queue_full") {
         return make_http_error(503, error_code, detail);
     }

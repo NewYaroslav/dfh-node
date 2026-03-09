@@ -63,12 +63,13 @@ bool is_binary_frame(const std::shared_ptr<SimpleWeb::SocketServer<SimpleWeb::WS
 } // namespace
 
 WsRouter::WsRouter(UnifiedGate &gate, TaskScheduler &scheduler, IDfhAdapter &adapter, const config::Config &cfg,
-                   std::shared_ptr<WsSessionRegistry> registry)
-    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg), m_registry(std::move(registry)) {
+                   std::shared_ptr<WsSessionRegistry> registry, DiskMonitor *disk_monitor)
+    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg), m_registry(std::move(registry)),
+      m_disk_monitor(disk_monitor) {
     if (!m_registry) {
         throw std::invalid_argument("WsRouter requires non-null WsSessionRegistry");
     }
-    m_handler = std::make_shared<WsMessageHandler>(m_gate, m_scheduler, m_adapter, m_cfg, m_registry);
+    m_handler = std::make_shared<WsMessageHandler>(m_gate, m_scheduler, m_adapter, m_cfg, m_registry, m_disk_monitor);
 }
 
 void WsRouter::register_all(SimpleWeb::SocketServer<SimpleWeb::WS> &server) {
