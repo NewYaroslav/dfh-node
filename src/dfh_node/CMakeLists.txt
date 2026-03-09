@@ -3,6 +3,7 @@
 find_package(OpenSSL REQUIRED)
 
 add_library(dfh_node STATIC
+    core/disk_monitor.cpp
     core/status.cpp
     core/version.cpp
     config/config.cpp

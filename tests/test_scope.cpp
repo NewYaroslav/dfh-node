@@ -41,6 +41,7 @@ void test_parse_scope() {
 void test_required_scope() {
     CHECK(required_scope(TaskKind::Ingest) == Scope::Write);
     CHECK(required_scope(TaskKind::History) == Scope::Read);
+    CHECK(required_scope(TaskKind::Admin) == Scope::Admin);
     CHECK(!required_scope(static_cast<TaskKind>(99)).has_value());
 }
 

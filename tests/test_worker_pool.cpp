@@ -17,7 +17,9 @@ void test_shutdown_stop_now() {
     TaskScheduler scheduler(10, 10);
     WorkerPool pool(2, scheduler);
 
+    CHECK(!pool.is_running());
     pool.start();
+    CHECK(pool.is_running());
 
     // Добавляем несколько задач.
     for (int i = 0; i < 5; ++i) {
@@ -33,6 +35,7 @@ void test_shutdown_stop_now() {
 
     // Проверка: join завершился за разумное время (<1 сек).
     CHECK(elapsed < std::chrono::seconds(1));
+    CHECK(!pool.is_running());
 }
 
 // Тест: метрики обработки по типам задач.
@@ -68,6 +71,7 @@ void test_metrics_collection() {
     CHECK(pool.avg_wait_ms(TaskLane::High) >= 0.0);
 
     pool.shutdown();
+    CHECK(!pool.is_running());
 }
 
 int main() {

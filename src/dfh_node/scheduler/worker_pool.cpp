@@ -16,6 +16,7 @@ WorkerPool::WorkerPool(std::size_t num_workers, TaskScheduler &scheduler) : m_sc
 WorkerPool::~WorkerPool() { shutdown(); }
 
 void WorkerPool::start() {
+    m_running.store(true, std::memory_order_release);
     for (std::size_t i = 0; i < m_workers.capacity(); ++i) {
         m_workers.emplace_back(&WorkerPool::worker_loop, this);
     }
@@ -23,6 +24,7 @@ void WorkerPool::start() {
 
 void WorkerPool::shutdown() {
     if (m_workers.empty()) {
+        m_running.store(false, std::memory_order_release);
         return; // Уже остановлен или не запускался.
     }
 
@@ -35,6 +37,7 @@ void WorkerPool::shutdown() {
     }
 
     m_workers.clear();
+    m_running.store(false, std::memory_order_release);
 }
 
 void WorkerPool::worker_loop() {
@@ -82,5 +85,7 @@ double WorkerPool::avg_wait_ms(TaskLane lane) const {
     const auto wait_ms = m_total_wait_ms[idx].load(std::memory_order_relaxed);
     return static_cast<double>(wait_ms) / static_cast<double>(processed);
 }
+
+bool WorkerPool::is_running() const { return m_running.load(std::memory_order_acquire); }
 
 } // namespace dfh_node
