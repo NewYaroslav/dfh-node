@@ -159,6 +159,7 @@
 ### storage
 - `path` (string, default: `./data`).
 - `min_free_bytes` (int, default: `2000000000`).
+- В runtime каталог `storage.path` используется и для `DiskMonitor`, и для файла динамических ключей `storage.path/keys.mdbx`.
 
 ### logging
 - `level` (string, default: `info`).

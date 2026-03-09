@@ -125,6 +125,21 @@ void test_duplicate_name_throws() {
     CHECK(thrown);
 }
 
+void test_duplicate_fingerprint_throws() {
+    TempMdbxStore fixture;
+
+    fixture.store().put(make_record("id-9", "name-9", "dup-fp"));
+
+    bool thrown = false;
+    try {
+        fixture.store().put(make_record("id-10", "name-10", "dup-fp"));
+    } catch (const std::runtime_error &error) {
+        thrown = std::string(error.what()) == "duplicate fingerprint";
+    }
+
+    CHECK(thrown);
+}
+
 } // namespace
 
 int main() {
@@ -133,5 +148,6 @@ int main() {
     test_get_by_id_and_name_and_remove();
     test_list_all_includes_revoked_and_health_is_true();
     test_duplicate_name_throws();
+    test_duplicate_fingerprint_throws();
     return 0;
 }

@@ -15,7 +15,7 @@
    - злоупотребление API и replay-атаки
 2. API-ключи и scope-права
    - scope-права: read/write/admin/sync
-   - admin-ключи в конфиге, пользовательские ключи в хранилище (планируется)
+   - bootstrap-ключи в конфиге, динамические ключи в `MDBX`
 3. Правила хранения токенов
    - избегать хранения plaintext token
    - fingerprint = HMAC-SHA256(server_secret, token)
@@ -38,7 +38,6 @@
    - управление секретами (не коммитить секреты; использовать env/secret store)
 
 ## Открытые вопросы
-- Где хранить пользовательские ключи и как версионировать их ревокацию? (актуально)
 - Какие значения временных окон и TTL считать безопасными для конкретного профиля нагрузки? (частично закрыто: есть max_skew, nonce_ttl и правило capacity)
 - Нужна ли обязательная ротация ключей и как ее автоматизировать? (актуально)
 - Какие события должны попадать в аудит по умолчанию? (актуально)
@@ -65,6 +64,13 @@
 **WS-поток:**
 1. Handshake/upgrade: извлечь token → вычислить fingerprint → найти AuthContext → вычислить signing_key = SHA256(token) → сохранить в WsConnectionContext (32 байта)
 2. WS message: извлечь signing_key из connection context → проверить HMAC(signing_key, canonical_string) == signature
+
+## Динамические ключи
+
+- `Admin API` управляет только динамическими ключами в `MDBX`.
+- Bootstrap-ключи из конфига остаются read-only и не участвуют в Admin CRUD.
+- В `MDBX` хранится только fingerprint и метаданные ключа; plaintext token возвращается только в ответе create.
+- После каждой мутации ключа `ApiKeyManager` обязан вызвать `auth_cache.invalidate(fingerprint)`.
 
 \* Примечание: это активный контракт runtime для WS handshake/message pipeline.
 

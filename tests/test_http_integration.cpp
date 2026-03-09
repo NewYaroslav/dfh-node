@@ -178,6 +178,8 @@ public:
 
     dfh_node::transport::HttpExecutor executor() const { return m_server.get_executor(); }
 
+    dfh_node::MdbxApiKeyStore &mdbx_store() { return *m_mdbx_store; }
+
 private:
     void wait_until_ready() const {
         for (int attempt = 0; attempt < 120; ++attempt) {
@@ -272,6 +274,39 @@ void test_success_endpoints_and_unauthorized() {
 
     const auto unauthorized = node.request("GET", "/v1/status", "", false);
     CHECK_EQ(unauthorized.status, 401);
+}
+
+void test_status_counts_only_active_mdbx_keys() {
+    auto cfg = make_base_config();
+    RunningHttpNode node(std::move(cfg), "token-status-active");
+
+    auto active = dfh_node::MdbxKeyRecord{};
+    active.id = "active-id";
+    active.name = "active-name";
+    active.fingerprint = "active-fingerprint";
+    active.scope_mask = dfh_node::to_scope_mask(dfh_node::Scope::Read);
+    active.created_at_ms = 1000;
+    active.updated_at_ms = 1000;
+
+    auto revoked = active;
+    revoked.id = "revoked-id";
+    revoked.name = "revoked-name";
+    revoked.fingerprint = "revoked-fingerprint";
+    revoked.revoked = true;
+
+    auto expired = active;
+    expired.id = "expired-id";
+    expired.name = "expired-name";
+    expired.fingerprint = "expired-fingerprint";
+    expired.expires_at_ms = 1;
+
+    node.mdbx_store().put(active);
+    node.mdbx_store().put(revoked);
+    node.mdbx_store().put(expired);
+
+    const auto status = node.request("GET", "/v1/status");
+    CHECK_EQ(status.status, 200);
+    CHECK_EQ(nlohmann::json::parse(status.body).at("mdbx_keys_active").get<std::uint64_t>(), 1U);
 }
 
 void test_ingest_duplicate_returns_ignore_status() {
@@ -495,6 +530,7 @@ void test_parallel_requests_complete_without_deadlock() {
 
 int main() {
     test_success_endpoints_and_unauthorized();
+    test_status_counts_only_active_mdbx_keys();
     test_ingest_duplicate_returns_ignore_status();
     test_validation_and_not_found_errors();
     test_history_response_limits_and_anti_replay();

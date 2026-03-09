@@ -9,6 +9,8 @@
   - `detail` — нестабильная диагностическая строка (только для логов/диагностики).
 - Авторизация: `Authorization: Bearer <token>`.
 - Anti-replay (когда требуется): `X-DFH-Timestamp`, `X-DFH-Nonce`, `X-DFH-Signature`.
+- Admin CRUD вынесен в отдельный документ: `docs/api/admin_v1.md`.
+- Ops endpoints `/health`, `/ready`, `/metrics` доступны без префикса `/v1`.
 
 ## POST /v1/ingest
 - Назначение: записать пачку блоков истории.
@@ -127,7 +129,10 @@ curl "http://127.0.0.1:8080/v1/history?provider=binance&symbol=BTCUSDT&source=sp
       "total_processed": 0,
       "avg_wait_ms": 0.0
     }
-  }
+  },
+  "disk_free_bytes": 123456789,
+  "disk_low": false,
+  "mdbx_keys_active": 3
 }
 ```
 
@@ -156,6 +161,7 @@ curl "http://127.0.0.1:8080/v1/status" \
 | 413 | `response_too_large` | Размер ответа history превышает `history_max_bytes` |
 | 429 | `rate_limited` | Превышен RPS лимит |
 | 429 | `connection_limited` | Превышен лимит WS соединений |
+| 507 | `disk_low` | Запись запрещена из-за нехватки диска |
 | 503 | `queue_full` | Очередь scheduler заполнена |
 | 504 | `timeout` | Сработал timeout deferred reply |
 | 500 | `internal_error` | Внутренняя ошибка |

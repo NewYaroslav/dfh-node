@@ -80,7 +80,7 @@ dfh_node::config::Config make_config() {
 
 class RunningOpsNode {
 public:
-    RunningOpsNode(const bool start_workers, const std::uint64_t min_free_bytes)
+    RunningOpsNode(const bool start_workers, const std::uint64_t min_free_bytes, const bool open_mdbx = true)
         : m_cfg(make_config()),
           m_storage_root(
               std::filesystem::temp_directory_path() /
@@ -98,7 +98,9 @@ public:
           m_http_server(m_cfg.http, m_http_router),
           m_ops_router(m_gate, m_disk_monitor, m_mdbx_store, m_scheduler, m_worker_pool, m_cfg) {
         std::filesystem::create_directories(m_storage_root);
-        m_mdbx_store.open();
+        if (open_mdbx) {
+            m_mdbx_store.open();
+        }
         if (start_workers) {
             m_worker_pool.start();
         }
@@ -212,6 +214,13 @@ void test_ready_reports_disk_low_and_workers_not_running() {
     CHECK_EQ(nlohmann::json::parse(stopped.body).at("workers_running").get<bool>(), false);
 }
 
+void test_ready_reports_unhealthy_mdbx() {
+    RunningOpsNode unopened_mdbx_node(true, 0, false);
+    const auto response = unopened_mdbx_node.request("GET", "/ready");
+    CHECK_EQ(response.status, 503);
+    CHECK_EQ(nlohmann::json::parse(response.body).at("mdbx_healthy").get<bool>(), false);
+}
+
 void test_metrics_requires_admin_and_status_contains_new_fields() {
     RunningOpsNode node(true, 0);
 
@@ -241,6 +250,7 @@ void test_metrics_requires_admin_and_status_contains_new_fields() {
 int main() {
     test_health_and_ready_success();
     test_ready_reports_disk_low_and_workers_not_running();
+    test_ready_reports_unhealthy_mdbx();
     test_metrics_requires_admin_and_status_contains_new_fields();
     return 0;
 }
