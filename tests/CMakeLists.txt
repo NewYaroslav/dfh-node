@@ -206,6 +206,17 @@ target_link_libraries(test_config_api_key_store
 
 add_test(NAME test_config_api_key_store COMMAND test_config_api_key_store)
 
+add_executable(test_api_key_manager
+    test_api_key_manager.cpp
+)
+
+target_link_libraries(test_api_key_manager
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_api_key_manager COMMAND test_api_key_manager)
+
 add_executable(test_auth_cache
     test_auth_cache.cpp
 )

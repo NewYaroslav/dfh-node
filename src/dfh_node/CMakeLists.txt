@@ -6,6 +6,7 @@ add_library(dfh_node STATIC
     core/disk_monitor.cpp
     core/status.cpp
     core/version.cpp
+    config/api_key_manager.cpp
     config/config.cpp
     config/composite_api_key_store.cpp
     config/config_api_key_store.cpp
