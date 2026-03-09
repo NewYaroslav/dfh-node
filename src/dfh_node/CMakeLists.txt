@@ -28,6 +28,8 @@ add_library(dfh_node STATIC
     scheduler/worker_pool.cpp
     adapter/dfh_adapter_dto.cpp
     adapter/fake_dfh_adapter.cpp
+    transport/http/admin_dto_parser.cpp
+    transport/http/admin_router.cpp
     transport/http/http_dto_parser.cpp
     transport/http/http_error_map.cpp
     transport/http/http_reply_handle.cpp

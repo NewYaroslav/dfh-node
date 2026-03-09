@@ -11,6 +11,8 @@
 #include "transport/ws/ws_router.hpp"
 #include "transport/ws/ws_server.hpp"
 #include "transport/ws/ws_session_registry.hpp"
+#include "transport/http/admin_dto_parser.hpp"
+#include "transport/http/admin_router.hpp"
 #include "transport/http/http_error_map.hpp"
 #include "transport/http/http_reply_handle.hpp"
 #include "transport/http/http_router.hpp"
