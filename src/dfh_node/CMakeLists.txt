@@ -32,6 +32,7 @@ add_library(dfh_node STATIC
     transport/http/admin_router.cpp
     transport/http/http_dto_parser.cpp
     transport/http/http_error_map.cpp
+    transport/http/ops_router.cpp
     transport/http/http_reply_handle.cpp
     transport/http/http_router.cpp
     transport/http/http_server.cpp
