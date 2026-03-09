@@ -173,10 +173,17 @@ int main(int argc, char **argv) {
 
     dfh_node::logging::init_logging(cfg.logging);
 
-    dfh_node::ConfigApiKeyStore api_key_store(cfg.auth.api_keys);
+    dfh_node::ConfigApiKeyStore config_key_store(cfg.auth.api_keys);
     dfh_node::FingerprintComputer fingerprint_computer(cfg.security.server_secret);
     dfh_node::AuthCache auth_cache(cfg.auth.cache_ttl_ms);
-    dfh_node::AuthService auth_service(api_key_store, auth_cache, fingerprint_computer);
+    std::filesystem::create_directories(cfg.storage.path);
+    const std::filesystem::path mdbx_store_path = std::filesystem::path(cfg.storage.path) / "keys.mdbx";
+    dfh_node::MdbxApiKeyStore mdbx_key_store(mdbx_store_path.string());
+    mdbx_key_store.open();
+    dfh_node::CompositeApiKeyStore composite_key_store(config_key_store, mdbx_key_store);
+    dfh_node::DiskMonitor disk_monitor(cfg.storage.path, static_cast<std::uint64_t>(cfg.storage.min_free_bytes));
+    dfh_node::ApiKeyManager key_manager(mdbx_key_store, auth_cache, fingerprint_computer, cfg.auth);
+    dfh_node::AuthService auth_service(composite_key_store, auth_cache, fingerprint_computer);
     dfh_node::RateLimiter rate_limiter(cfg.auth.rps_limit, cfg.auth.rate_limit_window_ms);
     dfh_node::WsConnectionLimiter ws_connection_limiter;
     EpochSystemClock epoch_clock;
@@ -194,8 +201,12 @@ int main(int argc, char **argv) {
                                cfg.security.anti_replay.require_for_scopes);
     dfh_node::FakeDfhAdapter adapter;
     auto ws_registry = std::make_shared<dfh_node::transport::WsSessionRegistry>();
-    dfh_node::transport::HttpRouter router(gate, scheduler, adapter, cfg);
+    dfh_node::transport::HttpRouter router(gate, scheduler, adapter, cfg, &disk_monitor, &mdbx_key_store);
     dfh_node::transport::HttpServer http_server(cfg.http, router);
+    dfh_node::transport::AdminRouter admin_router(gate, key_manager, cfg);
+    dfh_node::transport::OpsRouter ops_router(gate, disk_monitor, mdbx_key_store, scheduler, pool, cfg);
+    admin_router.register_all(http_server.server());
+    ops_router.register_all(http_server.server());
 
     DFH_PRINTF_INFO("dfh-node v%s starting...", std::string(dfh_node::version()).c_str());
     DFH_PRINTF_INFO("Node ID: %s", cfg.node_id.c_str());
@@ -252,7 +263,8 @@ int main(int argc, char **argv) {
             DFH_PRINTF_INFO("HTTP server is running on %s:%d", cfg.http.bind_host.c_str(), cfg.http.port);
 
             if (cfg.ws.port != 0) {
-                ws_router = std::make_unique<dfh_node::transport::WsRouter>(gate, scheduler, adapter, cfg, ws_registry);
+                ws_router = std::make_unique<dfh_node::transport::WsRouter>(gate, scheduler, adapter, cfg, ws_registry,
+                                                                            &disk_monitor);
                 ws_server = std::make_unique<dfh_node::transport::WsServer>(cfg.ws, *ws_router);
                 ws_server->start();
                 DFH_PRINTF_INFO("WS server is running on %s:%d", cfg.ws.bind_host.c_str(), cfg.ws.port);

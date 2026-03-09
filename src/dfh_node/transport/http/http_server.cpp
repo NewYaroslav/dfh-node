@@ -65,4 +65,6 @@ void HttpServer::shutdown() {
 
 HttpExecutor HttpServer::get_executor() const { return m_io_service; }
 
+SimpleWeb::Server<SimpleWeb::HTTP> &HttpServer::server() { return m_server; }
+
 } // namespace dfh_node::transport
