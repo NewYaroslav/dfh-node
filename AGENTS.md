@@ -90,14 +90,17 @@
   `test_config_validator.cpp`, `test_task_scheduler.cpp`, `test_worker_pool.cpp`,
   `test_bounded_queue.cpp`, `test_scope.cpp`, `test_scope_auth.cpp`,
   `test_fingerprint_computer.cpp`, `test_config_api_key_store.cpp`,
-  `test_auth_cache.cpp`, `test_rate_limiter.cpp`, `test_ws_connection_limiter.cpp`,
+  `test_disk_monitor.cpp`, `test_mdbx_api_key_store.cpp`, `test_composite_api_key_store.cpp`,
+  `test_api_key_manager.cpp`, `test_auth_cache.cpp`, `test_rate_limiter.cpp`, `test_ws_connection_limiter.cpp`,
   `test_auth_service.cpp`, `test_unified_gate.cpp`, `test_sha256_utils.cpp`,
   `test_canonical_request.cpp`, `test_nonce_store.cpp`, `test_anti_replay_validator.cpp`,
   `test_gate_e2e.cpp`, `test_status.cpp`, `test_dfh_adapter_dto.cpp`,
   `test_fake_dfh_adapter.cpp`, `test_dfh_adapter_e2e.cpp`,
   `test_http_error_map.cpp`, `test_http_dto_parser.cpp`, `test_http_reply_handle.cpp`,
-  `test_http_integration.cpp`, `test_ws_protocol.cpp`, `test_ws_session_registry.cpp`,
-  `test_ws_dto_parser.cpp`, `test_ws_integration.cpp`, `test_ws_runtime_components.cpp`).
+  `test_http_integration.cpp`, `test_admin_router.cpp`, `test_ops_endpoints.cpp`,
+  `test_ws_protocol.cpp`, `test_ws_session_registry.cpp`,
+  `test_ws_dto_parser.cpp`, `test_ws_integration.cpp`, `test_ws_runtime_components.cpp`,
+  `test_disk_low.cpp`).
 - tests/app_configs/ — фикстуры конфигов для CTest-сценариев приложения.
 - examples/ — примеры: `config_minimal.json`.
 - third_party/ — каталог для submodules (см. docs/third_party.md).
@@ -114,14 +117,16 @@
   `test_config_defaults`, `test_config_loader`, `test_config_validator`,
   `test_task_scheduler`, `test_worker_pool`, `test_bounded_queue`, `test_scope`,
   `test_scope_auth`, `test_fingerprint_computer`, `test_config_api_key_store`,
-  `test_auth_cache`, `test_rate_limiter`, `test_ws_connection_limiter`,
+  `test_disk_monitor`, `test_mdbx_api_key_store`, `test_composite_api_key_store`,
+  `test_api_key_manager`, `test_auth_cache`, `test_rate_limiter`, `test_ws_connection_limiter`,
   `test_auth_service`, `test_unified_gate`, `test_sha256_utils`,
   `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`,
   `test_gate_e2e`, `test_status`, `test_dfh_adapter_dto`, `test_fake_dfh_adapter`,
   `test_dfh_adapter_e2e`, `test_http_error_map`, `test_http_dto_parser`,
-  `test_http_reply_handle`, `test_http_integration`, `test_ws_protocol`,
-  `test_ws_session_registry`, `test_ws_dto_parser`, `test_ws_integration`,
-  `test_ws_runtime_components`.
+  `test_http_reply_handle`, `test_http_integration`, `test_admin_router`,
+  `test_ops_endpoints`, `test_ws_protocol`, `test_ws_session_registry`,
+  `test_ws_dto_parser`, `test_ws_integration`, `test_ws_runtime_components`,
+  `test_disk_low`.
 
 ### 4.2 Опции CMake (реальные)
 - `DFH_NODE_BUILD_TESTS` (ON) — включить тесты.
@@ -154,14 +159,16 @@
 ### 5.4 Тесты
 - Сейчас включены тесты (полный список см. раздел 4.1), включая:
   smoke/стиль/регистрацию (`test_tests_registry_consistency`, `test_comment_style`, `dfh_node_smoke`, `app_*`),
-  core/config/scheduler (`test_config_*`, `test_task_scheduler`, `test_worker_pool`, `test_bounded_queue`, `test_status`),
+  core/config/scheduler (`test_config_*`, `test_task_scheduler`, `test_worker_pool`, `test_bounded_queue`,
+  `test_status`, `test_disk_monitor`, `test_mdbx_api_key_store`, `test_composite_api_key_store`, `test_api_key_manager`),
   auth/security (`test_scope*`, `test_fingerprint_computer`, `test_auth_cache`, `test_auth_service`,
   `test_rate_limiter`, `test_ws_connection_limiter`, `test_unified_gate`, `test_sha256_utils`,
   `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`, `test_gate_e2e`),
   adapter (`test_dfh_adapter_dto`, `test_fake_dfh_adapter`, `test_dfh_adapter_e2e`),
-  transport/http (`test_http_error_map`, `test_http_dto_parser`, `test_http_reply_handle`, `test_http_integration`),
+  transport/http (`test_http_error_map`, `test_http_dto_parser`, `test_http_reply_handle`, `test_http_integration`,
+  `test_admin_router`, `test_ops_endpoints`),
   transport/ws (`test_ws_protocol`, `test_ws_session_registry`, `test_ws_dto_parser`,
-  `test_ws_integration`, `test_ws_runtime_components`).
+  `test_ws_integration`, `test_ws_runtime_components`, `test_disk_low`).
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
 
 ## 6. Процесс разработки
@@ -189,6 +196,9 @@
   - `/v1/history` — выгрузка истории.
   - `/v1/ingest` — прием новых данных.
   - `/v1/status` — статус ноды.
+- Admin/Ops (реализовано в runtime при запуске `dfh_node_app --run`):
+  - `/v1/admin/keys` — CRUD для динамических API-ключей в `MDBX`.
+  - `/health`, `/ready`, `/metrics` — эксплуатационные endpoints.
 - WS (реализовано в runtime при запуске `dfh_node_app --run` и `ws.port != 0`):
   - Endpoints: `/ws/msgpack` (основной), `/ws/json` (fallback).
   - Control-message: `op=ingest|history|subscribe` + `msg_id`.
@@ -276,6 +286,17 @@ PAYLOAD_HASH
 - Pull-модель, peers статически в конфиге.
 - Diff по meta/hash/revision: сначала `end_ts`, затем `count`.
 - Eventual consistency как базовая модель.
+
+## 10.1 Правила Mdbx
+- `MdbxApiKeyStore` отвечает только за открытие `MDBX`, чтение и атомарную запись/удаление во всех трёх индексах:
+  `keys_by_id`, `keys_by_fingerprint`, `keys_by_name`.
+- Все мутации ключей выполняются только через `ApiKeyManager`; после каждой мутации обязателен
+  `auth_cache.invalidate(fingerprint)`.
+- `DiskMonitor::is_disk_low()` вызывать только из hot path transport-слоя; внутри есть кэш 5 секунд, но вызов всё равно
+  синхронизируется через mutex.
+- Admin операции выполняются синхронно и не отправляются в `TaskScheduler`.
+- Bootstrap-ключи из конфига считаются read-only; Admin CRUD работает только с `MDBX` и для config-ключей
+  эквивалентен `404`.
 
 ## 11. Чек-лист перед коммитом
 - Сборка `build-msvc` и тесты `ctest -C Debug --output-on-failure`.

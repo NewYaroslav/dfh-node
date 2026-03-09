@@ -24,7 +24,9 @@ namespace asio = boost::asio;
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <future>
+#include <memory>
 #include <optional>
 #include <string>
 #include <thread>
@@ -118,8 +120,17 @@ public:
           m_gate(m_auth_service, m_rate_limiter, m_ws_connection_limiter, nullptr,
                  m_cfg.security.anti_replay.require_for_scopes),
           m_scheduler(to_size_t(m_cfg.queues.high_capacity), to_size_t(m_cfg.queues.low_capacity)),
-          m_worker_pool(static_cast<std::size_t>(m_cfg.queues.workers), m_scheduler), m_adapter(),
-          m_router(m_gate, m_scheduler, m_adapter, m_cfg), m_server(m_cfg.http, m_router) {
+          m_worker_pool(static_cast<std::size_t>(m_cfg.queues.workers), m_scheduler),
+          m_storage_root(
+              std::filesystem::temp_directory_path() /
+              ("dfh-node-http-it-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()))),
+          m_mdbx_path(m_storage_root / "keys.mdbx"),
+          m_mdbx_store(std::make_unique<dfh_node::MdbxApiKeyStore>(m_mdbx_path.string())),
+          m_disk_monitor(m_storage_root.string(), static_cast<std::uint64_t>(m_cfg.storage.min_free_bytes)),
+          m_adapter(), m_router(m_gate, m_scheduler, m_adapter, m_cfg, &m_disk_monitor, m_mdbx_store.get()),
+          m_server(m_cfg.http, m_router) {
+        std::filesystem::create_directories(m_storage_root);
+        m_mdbx_store->open();
         if (auto_start_workers) {
             start_workers();
         }
@@ -194,6 +205,10 @@ private:
     dfh_node::UnifiedGate m_gate;
     dfh_node::TaskScheduler m_scheduler;
     dfh_node::WorkerPool m_worker_pool;
+    std::filesystem::path m_storage_root;
+    std::filesystem::path m_mdbx_path;
+    std::unique_ptr<dfh_node::MdbxApiKeyStore> m_mdbx_store;
+    dfh_node::DiskMonitor m_disk_monitor;
     dfh_node::FakeDfhAdapter m_adapter;
     dfh_node::transport::HttpRouter m_router;
     dfh_node::transport::HttpServer m_server;
@@ -251,6 +266,9 @@ void test_success_endpoints_and_unauthorized() {
     CHECK(status_json.contains("node_id"));
     CHECK(status_json.contains("version"));
     CHECK(status_json.contains("queues"));
+    CHECK(status_json.contains("disk_free_bytes"));
+    CHECK(status_json.contains("disk_low"));
+    CHECK(status_json.contains("mdbx_keys_active"));
 
     const auto unauthorized = node.request("GET", "/v1/status", "", false);
     CHECK_EQ(unauthorized.status, 401);
