@@ -6,45 +6,15 @@
 #include "ops_router.hpp"
 
 #include "http_error_map.hpp"
+#include "transport/transport_security_utils.hpp"
 
 #include <nlohmann/json.hpp>
 
-#include <cctype>
 #include <sstream>
 #include <string>
-#include <string_view>
 
 namespace dfh_node::transport {
 namespace {
-
-std::string trim_copy(std::string_view value) {
-    std::size_t begin = 0;
-    while (begin < value.size() && std::isspace(static_cast<unsigned char>(value[begin])) != 0) {
-        ++begin;
-    }
-
-    std::size_t end = value.size();
-    while (end > begin && std::isspace(static_cast<unsigned char>(value[end - 1])) != 0) {
-        --end;
-    }
-
-    return std::string(value.substr(begin, end - begin));
-}
-
-std::string extract_bearer_token(const OpsRouter::HttpRequest &request) {
-    const auto auth_it = request->header.find("Authorization");
-    if (auth_it == request->header.end()) {
-        return {};
-    }
-
-    const std::string auth_header = trim_copy(auth_it->second);
-    constexpr std::string_view prefix = "Bearer ";
-    if (auth_header.size() < prefix.size() || auth_header.compare(0, prefix.size(), prefix) != 0) {
-        return {};
-    }
-
-    return trim_copy(std::string_view(auth_header).substr(prefix.size()));
-}
 
 void send_response(const OpsRouter::HttpResponse &response, const int status, const std::string &body,
                    const std::string &content_type, SimpleWeb::CaseInsensitiveMultimap extra_headers = {}) {
@@ -138,7 +108,7 @@ void OpsRouter::handle_ready(HttpRequest req, HttpResponse resp) {
 }
 
 void OpsRouter::handle_metrics(HttpRequest req, HttpResponse resp) {
-    const std::string token = extract_bearer_token(req);
+    const std::string token = extract_bearer_token(req->header);
     const GateResult gate_result = m_gate.authorize_http(token, TaskKind::Admin, nullptr);
     if (const auto *gate_error = std::get_if<GateError>(&gate_result)) {
         send_gate_error(resp, *gate_error);

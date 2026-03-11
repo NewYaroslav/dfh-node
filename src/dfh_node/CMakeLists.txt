@@ -4,7 +4,9 @@ find_package(OpenSSL REQUIRED)
 
 add_library(dfh_node STATIC
     core/disk_monitor.cpp
+    core/logging.cpp
     core/status.cpp
+    core/time_utils.cpp
     core/version.cpp
     config/api_key_manager.cpp
     config/config.cpp
@@ -36,6 +38,7 @@ add_library(dfh_node STATIC
     transport/http/http_reply_handle.cpp
     transport/http/http_router.cpp
     transport/http/http_server.cpp
+    transport/transport_security_utils.cpp
     transport/ws/ws_dto_parser.cpp
     transport/ws/ws_message_handler.cpp
     transport/ws/ws_protocol.cpp

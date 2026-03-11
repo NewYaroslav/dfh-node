@@ -4,9 +4,10 @@
 
 #include "mdbx_api_key_store.hpp"
 
+#include "core/time_utils.hpp"
+
 #include <msgpack.hpp>
 
-#include <chrono>
 #include <filesystem>
 #include <stdexcept>
 #include <utility>
@@ -18,11 +19,6 @@ constexpr const char *k_keys_by_id = "keys_by_id";
 constexpr const char *k_keys_by_fingerprint = "keys_by_fingerprint";
 constexpr const char *k_keys_by_name = "keys_by_name";
 constexpr unsigned k_max_maps = 8;
-
-std::int64_t now_epoch_ms() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-        .count();
-}
 
 std::string pack_record(const MdbxKeyRecord &record) {
     msgpack::sbuffer buffer;
@@ -81,7 +77,7 @@ std::optional<ApiKeyRecord> MdbxApiKeyStore::lookup(const std::string &fingerpri
         return std::nullopt;
     }
 
-    const std::int64_t now_ms = now_epoch_ms();
+    const std::int64_t now_ms = dfh_node::now_epoch_ms();
     if (record->revoked || is_expired(*record, now_ms)) {
         return std::nullopt;
     }

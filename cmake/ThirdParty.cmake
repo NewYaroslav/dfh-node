@@ -2,6 +2,7 @@
 # Поддерживается режим системных пакетов и режим submodule.
 if(DFH_NODE_USE_SYSTEM_DEPS)
     message(STATUS "Third-party: using system dependencies (DFH_NODE_USE_SYSTEM_DEPS=ON)")
+    find_package(cxxopts CONFIG REQUIRED)
 else()
     message(STATUS "Third-party: using pinned submodules in third_party/")
 
@@ -26,6 +27,16 @@ else()
         )
     else()
         message(FATAL_ERROR "log-it-cpp submodule not found. Run: git submodule update --init")
+    endif()
+
+    # cxxopts (только заголовки).
+    if(EXISTS ${CMAKE_SOURCE_DIR}/third_party/cxxopts/include/cxxopts.hpp)
+        add_library(cxxopts INTERFACE)
+        target_include_directories(cxxopts SYSTEM INTERFACE
+            ${CMAKE_SOURCE_DIR}/third_party/cxxopts/include
+        )
+    else()
+        message(FATAL_ERROR "cxxopts submodule not found. Run: git submodule update --init third_party/cxxopts")
     endif()
 endif()
 

@@ -91,10 +91,6 @@ private:
     /// \return UUID в canonical lowercase text form.
     std::string generate_uuid() const;
 
-    /// \brief Возвращает текущее Unix-время в миллисекундах.
-    /// \return Unix epoch ms.
-    static std::int64_t now_epoch_ms();
-
     MdbxApiKeyStore &m_store;
     AuthCache &m_cache;
     const FingerprintComputer &m_fp;

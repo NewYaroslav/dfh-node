@@ -5,6 +5,7 @@
 #pragma once
 
 #include "config/config.hpp"
+#include "core/status.hpp"
 
 namespace dfh_node::logging {
 
@@ -15,6 +16,26 @@ namespace dfh_node::logging {
 /// \note Побочные эффекты: настройка логгеров и уровня логирования.
 /// \note Не потокобезопасно; вызывать в одном потоке при старте.
 void init_logging(const config::LoggingConfig &log_cfg);
+
+/// \brief Пишет стартовый статус ноды после bootstrap.
+/// \param cfg Валидированная конфигурация ноды.
+/// \param status Снимок стартового состояния очередей и метаданных.
+void log_startup_status(const config::Config &cfg, const StatusSnapshot &status);
+
+/// \brief Пишет сообщение об успешном старте HTTP runtime.
+/// \param cfg HTTP-конфигурация bind/port.
+void log_http_server_started(const config::HttpConfig &cfg);
+
+/// \brief Пишет сообщение об успешном старте WS runtime.
+/// \param cfg WS-конфигурация bind/port.
+void log_ws_server_started(const config::WsConfig &cfg);
+
+/// \brief Пишет сообщение о выключенном WS runtime.
+void log_ws_server_disabled();
+
+/// \brief Пишет ошибку bootstrap/runtime приложения.
+/// \param message Текст ошибки.
+void log_runtime_bootstrap_error(const char *message);
 
 } // namespace dfh_node::logging
 

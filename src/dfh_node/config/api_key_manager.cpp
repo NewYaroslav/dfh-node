@@ -5,12 +5,13 @@
 
 #include "api_key_manager.hpp"
 
+#include "core/time_utils.hpp"
+
 #include <openssl/crypto.h>
 #include <openssl/rand.h>
 
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <stdexcept>
 #include <utility>
 
@@ -54,7 +55,7 @@ CreateKeyResult ApiKeyManager::create(const std::string &name, const ScopeMask s
     result.record.ws_max_connections = ws_max_connections;
     result.record.expires_at_ms = expires_at_ms;
     result.record.revoked = false;
-    result.record.created_at_ms = now_epoch_ms();
+    result.record.created_at_ms = dfh_node::now_epoch_ms();
     result.record.updated_at_ms = result.record.created_at_ms;
 
     m_store.put(result.record);
@@ -97,7 +98,7 @@ bool ApiKeyManager::update(const std::string &id, const UpdateKeyRequest &req) {
         record->expires_at_ms = *req.expires_at_ms;
     }
 
-    record->updated_at_ms = now_epoch_ms();
+    record->updated_at_ms = dfh_node::now_epoch_ms();
     m_store.put(*record);
     m_cache.invalidate(record->fingerprint);
     return true;
@@ -116,7 +117,7 @@ bool ApiKeyManager::revoke(const std::string &id, bool &already_revoked) {
     }
 
     record->revoked = true;
-    record->updated_at_ms = now_epoch_ms();
+    record->updated_at_ms = dfh_node::now_epoch_ms();
     m_store.put(*record);
     m_cache.invalidate(record->fingerprint);
     return true;
@@ -171,11 +172,6 @@ std::string ApiKeyManager::generate_uuid() const {
     uuid.push_back('-');
     uuid.append(hex, 20, 12);
     return uuid;
-}
-
-std::int64_t ApiKeyManager::now_epoch_ms() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-        .count();
 }
 
 } // namespace dfh_node
