@@ -7,6 +7,7 @@
 #include "adapter/dfh_adapter.hpp"
 #include "auth/unified_gate.hpp"
 #include "config/config.hpp"
+#include "core/disk_monitor.hpp"
 #include "scheduler/task_scheduler.hpp"
 #include "ws_protocol.hpp"
 #include "ws_session_registry.hpp"
@@ -29,8 +30,9 @@ public:
     /// \param adapter Адаптер хранилища DFH.
     /// \param cfg Полная конфигурация ноды.
     /// \param registry Реестр WS-сессий.
+    /// \param disk_monitor Монитор диска для блокировки write-path при нехватке места.
     WsMessageHandler(UnifiedGate &gate, TaskScheduler &scheduler, IDfhAdapter &adapter, const config::Config &cfg,
-                     std::shared_ptr<WsSessionRegistry> registry);
+                     std::shared_ptr<WsSessionRegistry> registry, DiskMonitor *disk_monitor = nullptr);
 
     /// \brief Обработать текстовое control-message.
     /// \param connection_id Идентификатор WS-соединения.
@@ -91,6 +93,7 @@ private:
     IDfhAdapter &m_adapter;
     const config::Config &m_cfg;
     std::shared_ptr<WsSessionRegistry> m_registry;
+    DiskMonitor *m_disk_monitor;
 };
 
 } // namespace dfh_node::transport

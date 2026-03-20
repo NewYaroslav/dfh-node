@@ -24,7 +24,9 @@ namespace asio = boost::asio;
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <future>
+#include <memory>
 #include <optional>
 #include <string>
 #include <thread>
@@ -118,8 +120,17 @@ public:
           m_gate(m_auth_service, m_rate_limiter, m_ws_connection_limiter, nullptr,
                  m_cfg.security.anti_replay.require_for_scopes),
           m_scheduler(to_size_t(m_cfg.queues.high_capacity), to_size_t(m_cfg.queues.low_capacity)),
-          m_worker_pool(static_cast<std::size_t>(m_cfg.queues.workers), m_scheduler), m_adapter(),
-          m_router(m_gate, m_scheduler, m_adapter, m_cfg), m_server(m_cfg.http, m_router) {
+          m_worker_pool(static_cast<std::size_t>(m_cfg.queues.workers), m_scheduler),
+          m_storage_root(
+              std::filesystem::temp_directory_path() /
+              ("dfh-node-http-it-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()))),
+          m_mdbx_path(m_storage_root / "keys.mdbx"),
+          m_mdbx_store(std::make_unique<dfh_node::MdbxApiKeyStore>(m_mdbx_path.string())),
+          m_disk_monitor(m_storage_root.string(), static_cast<std::uint64_t>(m_cfg.storage.min_free_bytes)),
+          m_adapter(), m_router(m_gate, m_scheduler, m_adapter, m_cfg, &m_disk_monitor, m_mdbx_store.get()),
+          m_server(m_cfg.http, m_router) {
+        std::filesystem::create_directories(m_storage_root);
+        m_mdbx_store->open();
         if (auto_start_workers) {
             start_workers();
         }
@@ -167,6 +178,8 @@ public:
 
     dfh_node::transport::HttpExecutor executor() const { return m_server.get_executor(); }
 
+    dfh_node::MdbxApiKeyStore &mdbx_store() { return *m_mdbx_store; }
+
 private:
     void wait_until_ready() const {
         for (int attempt = 0; attempt < 120; ++attempt) {
@@ -194,6 +207,10 @@ private:
     dfh_node::UnifiedGate m_gate;
     dfh_node::TaskScheduler m_scheduler;
     dfh_node::WorkerPool m_worker_pool;
+    std::filesystem::path m_storage_root;
+    std::filesystem::path m_mdbx_path;
+    std::unique_ptr<dfh_node::MdbxApiKeyStore> m_mdbx_store;
+    dfh_node::DiskMonitor m_disk_monitor;
     dfh_node::FakeDfhAdapter m_adapter;
     dfh_node::transport::HttpRouter m_router;
     dfh_node::transport::HttpServer m_server;
@@ -251,9 +268,45 @@ void test_success_endpoints_and_unauthorized() {
     CHECK(status_json.contains("node_id"));
     CHECK(status_json.contains("version"));
     CHECK(status_json.contains("queues"));
+    CHECK(status_json.contains("disk_free_bytes"));
+    CHECK(status_json.contains("disk_low"));
+    CHECK(status_json.contains("mdbx_keys_active"));
 
     const auto unauthorized = node.request("GET", "/v1/status", "", false);
     CHECK_EQ(unauthorized.status, 401);
+}
+
+void test_status_counts_only_active_mdbx_keys() {
+    auto cfg = make_base_config();
+    RunningHttpNode node(std::move(cfg), "token-status-active");
+
+    auto active = dfh_node::MdbxKeyRecord{};
+    active.id = "active-id";
+    active.name = "active-name";
+    active.fingerprint = "active-fingerprint";
+    active.scope_mask = dfh_node::to_scope_mask(dfh_node::Scope::Read);
+    active.created_at_ms = 1000;
+    active.updated_at_ms = 1000;
+
+    auto revoked = active;
+    revoked.id = "revoked-id";
+    revoked.name = "revoked-name";
+    revoked.fingerprint = "revoked-fingerprint";
+    revoked.revoked = true;
+
+    auto expired = active;
+    expired.id = "expired-id";
+    expired.name = "expired-name";
+    expired.fingerprint = "expired-fingerprint";
+    expired.expires_at_ms = 1;
+
+    node.mdbx_store().put(active);
+    node.mdbx_store().put(revoked);
+    node.mdbx_store().put(expired);
+
+    const auto status = node.request("GET", "/v1/status");
+    CHECK_EQ(status.status, 200);
+    CHECK_EQ(nlohmann::json::parse(status.body).at("mdbx_keys_active").get<std::uint64_t>(), 1U);
 }
 
 void test_ingest_duplicate_returns_ignore_status() {
@@ -477,6 +530,7 @@ void test_parallel_requests_complete_without_deadlock() {
 
 int main() {
     test_success_endpoints_and_unauthorized();
+    test_status_counts_only_active_mdbx_keys();
     test_ingest_duplicate_returns_ignore_status();
     test_validation_and_not_found_errors();
     test_history_response_limits_and_anti_replay();

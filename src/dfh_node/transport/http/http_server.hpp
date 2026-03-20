@@ -34,6 +34,12 @@ public:
     /// \return Shared-pointer на `asio::io_service` для `asio::post`.
     HttpExecutor get_executor() const;
 
+    /// \brief Возвращает внутренний SWS HTTP server для дополнительной регистрации маршрутов.
+    /// \details Метод предназначен для bootstrap-кода, который добавляет
+    /// независимые роутеры до вызова `start()`.
+    /// \return Ссылка на внутренний экземпляр `SimpleWeb::Server<SimpleWeb::HTTP>`.
+    SimpleWeb::Server<SimpleWeb::HTTP> &server();
+
 private:
     config::HttpConfig m_cfg;                       ///< Копия HTTP-конфига.
     HttpRouter &m_router;                           ///< Регистратор маршрутов.

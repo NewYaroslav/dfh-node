@@ -16,6 +16,9 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - Авторизация по API ключам со scope-моделью: read / write / admin / sync.
 - Rate limiting: лимит запросов/сек и лимит одновременных WS соединений.
 - Anti-replay для подписанных запросов (timestamp + nonce + HMAC).
+- Admin API для CRUD динамических API-ключей в `MDBX`.
+- Ops endpoints: `/health`, `/ready`, `/metrics`.
+- Disk-low gate: write-path блокируется при нехватке места, read-path остаётся доступным.
 - Синхронизация нод (pull): ноды могут подтягивать недостающие данные у peers для надежности
   и распределения нагрузки. Sync ориентирован на работу через интернет за прокси (TLS делает nginx/внешний сервис).
 
@@ -52,6 +55,7 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - anti-replay ядро (canonical request, nonce store, HMAC-проверка);
 - контракт storage-слоя (`IDfhAdapter` + DTO) и in-memory реализация `FakeDfhAdapter`;
 - HTTP transport v1 (`/v1/ingest`, `/v1/history`, `/v1/status`) + интеграционные тесты;
+- Admin/Ops runtime (`/v1/admin/keys`, `/health`, `/ready`, `/metrics`) + интеграционные тесты;
 - WS transport v1 (`/ws/json`, `/ws/msgpack`) + интеграционные тесты;
 - unit/smoke/E2E тесты через CTest.
 
@@ -78,7 +82,9 @@ build-msvc\src\app\dfh_node_app.exe --config examples\config_minimal.json --run
 
 Полный формат `config.json` описан в `docs/config.md`.
 Минимальный пример находится в `examples/config_minimal.json`.
+HTTP transport API описан в `docs/api/http_v1.md`.
 Актуальный контракт WebSocket API описан в `docs/api/ws_v1.md`.
+Admin API описан в `docs/api/admin_v1.md`.
 
 ## Защита от replay-атак
 

@@ -206,6 +206,50 @@ target_link_libraries(test_config_api_key_store
 
 add_test(NAME test_config_api_key_store COMMAND test_config_api_key_store)
 
+add_executable(test_disk_monitor
+    test_disk_monitor.cpp
+)
+
+target_link_libraries(test_disk_monitor
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_disk_monitor COMMAND test_disk_monitor)
+
+add_executable(test_mdbx_api_key_store
+    test_mdbx_api_key_store.cpp
+)
+
+target_link_libraries(test_mdbx_api_key_store
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_mdbx_api_key_store COMMAND test_mdbx_api_key_store)
+
+add_executable(test_composite_api_key_store
+    test_composite_api_key_store.cpp
+)
+
+target_link_libraries(test_composite_api_key_store
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_composite_api_key_store COMMAND test_composite_api_key_store)
+
+add_executable(test_api_key_manager
+    test_api_key_manager.cpp
+)
+
+target_link_libraries(test_api_key_manager
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_api_key_manager COMMAND test_api_key_manager)
+
 add_executable(test_auth_cache
     test_auth_cache.cpp
 )
@@ -404,6 +448,28 @@ target_link_libraries(test_http_integration
 
 add_test(NAME test_http_integration COMMAND test_http_integration)
 
+add_executable(test_admin_router
+    test_admin_router.cpp
+)
+
+target_link_libraries(test_admin_router
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_admin_router COMMAND test_admin_router)
+
+add_executable(test_ops_endpoints
+    test_ops_endpoints.cpp
+)
+
+target_link_libraries(test_ops_endpoints
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ops_endpoints COMMAND test_ops_endpoints)
+
 add_executable(test_ws_protocol
     test_ws_protocol.cpp
 )
@@ -458,3 +524,14 @@ target_link_libraries(test_ws_runtime_components
 )
 
 add_test(NAME test_ws_runtime_components COMMAND test_ws_runtime_components)
+
+add_executable(test_disk_low
+    test_disk_low.cpp
+)
+
+target_link_libraries(test_disk_low
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_disk_low COMMAND test_disk_low)

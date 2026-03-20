@@ -3,11 +3,17 @@
 find_package(OpenSSL REQUIRED)
 
 add_library(dfh_node STATIC
+    core/disk_monitor.cpp
+    core/logging.cpp
     core/status.cpp
+    core/time_utils.cpp
     core/version.cpp
+    config/api_key_manager.cpp
     config/config.cpp
+    config/composite_api_key_store.cpp
     config/config_api_key_store.cpp
     config/config_loader.cpp
+    config/mdbx_api_key_store.cpp
     config/config_validator.cpp
     security/anti_replay_validator.cpp
     security/canonical_request.cpp
@@ -24,11 +30,15 @@ add_library(dfh_node STATIC
     scheduler/worker_pool.cpp
     adapter/dfh_adapter_dto.cpp
     adapter/fake_dfh_adapter.cpp
+    transport/http/admin_dto_parser.cpp
+    transport/http/admin_router.cpp
     transport/http/http_dto_parser.cpp
     transport/http/http_error_map.cpp
+    transport/http/ops_router.cpp
     transport/http/http_reply_handle.cpp
     transport/http/http_router.cpp
     transport/http/http_server.cpp
+    transport/transport_security_utils.cpp
     transport/ws/ws_dto_parser.cpp
     transport/ws/ws_message_handler.cpp
     transport/ws/ws_protocol.cpp
@@ -55,4 +65,5 @@ target_link_libraries(dfh_node
         simple-web-server
         simple-websocket-server
         msgpack-c
+        mdbx-static
 )

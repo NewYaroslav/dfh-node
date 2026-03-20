@@ -24,8 +24,9 @@ inline int to_index(TaskLane lane) { return static_cast<int>(lane); }
 
 /// \brief Семантический тип задачи (доменная операция).
 enum class TaskKind : std::uint8_t {
-    Ingest = 0, ///< Задача записи.
-    History = 1 ///< Задача чтения истории.
+    Ingest = 0,  ///< Задача записи.
+    History = 1, ///< Задача чтения истории.
+    Admin = 2    ///< Административная операция без постановки в `TaskScheduler`.
 };
 
 /// \brief Статус постановки задачи в очередь.
@@ -55,7 +56,7 @@ struct EnqueueResult {
 /// enqueue)
 /// - ОБЯЗАТЕЛЬНО: DTO передавать через unique_ptr<IngestRequestDTO> в capture
 struct Task {
-    TaskKind kind;                  ///< Тип задачи (Ingest/History).
+    TaskKind kind;                  ///< Тип задачи (Ingest/History/Admin).
     std::string request_id;         ///< ID для логирования/трейсинга.
     std::uint64_t enqueue_ts_ms;    ///< Timestamp постановки в очередь
                                     ///< (steady_clock! НЕ system_clock).

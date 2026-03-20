@@ -6,50 +6,20 @@
 #include "ws_router.hpp"
 
 #include "security/sha256_utils.hpp"
+#include "transport/transport_security_utils.hpp"
 #include "ws_message_handler.hpp"
 #include "ws_runtime_utils.hpp"
 
-#include <cctype>
 #include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace dfh_node::transport {
 namespace {
-
-std::string trim_copy(std::string_view value) {
-    std::size_t begin = 0;
-    while (begin < value.size() && std::isspace(static_cast<unsigned char>(value[begin])) != 0) {
-        ++begin;
-    }
-
-    std::size_t end = value.size();
-    while (end > begin && std::isspace(static_cast<unsigned char>(value[end - 1])) != 0) {
-        --end;
-    }
-
-    return std::string(value.substr(begin, end - begin));
-}
-
-std::string extract_bearer_token(const SimpleWeb::CaseInsensitiveMultimap &headers) {
-    const auto auth_it = headers.find("Authorization");
-    if (auth_it == headers.end()) {
-        return {};
-    }
-
-    const std::string auth_header = trim_copy(auth_it->second);
-    constexpr std::string_view prefix = "Bearer ";
-    if (auth_header.size() < prefix.size() || auth_header.compare(0, prefix.size(), prefix) != 0) {
-        return {};
-    }
-
-    return trim_copy(std::string_view(auth_header).substr(prefix.size()));
-}
 
 bool is_binary_frame(const std::shared_ptr<SimpleWeb::SocketServer<SimpleWeb::WS>::InMessage> &message) {
     if (!message) {
@@ -63,12 +33,13 @@ bool is_binary_frame(const std::shared_ptr<SimpleWeb::SocketServer<SimpleWeb::WS
 } // namespace
 
 WsRouter::WsRouter(UnifiedGate &gate, TaskScheduler &scheduler, IDfhAdapter &adapter, const config::Config &cfg,
-                   std::shared_ptr<WsSessionRegistry> registry)
-    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg), m_registry(std::move(registry)) {
+                   std::shared_ptr<WsSessionRegistry> registry, DiskMonitor *disk_monitor)
+    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg), m_registry(std::move(registry)),
+      m_disk_monitor(disk_monitor) {
     if (!m_registry) {
         throw std::invalid_argument("WsRouter requires non-null WsSessionRegistry");
     }
-    m_handler = std::make_shared<WsMessageHandler>(m_gate, m_scheduler, m_adapter, m_cfg, m_registry);
+    m_handler = std::make_shared<WsMessageHandler>(m_gate, m_scheduler, m_adapter, m_cfg, m_registry, m_disk_monitor);
 }
 
 void WsRouter::register_all(SimpleWeb::SocketServer<SimpleWeb::WS> &server) {

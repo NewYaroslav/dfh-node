@@ -17,6 +17,8 @@ Thumbs.db
 bin/
 lib/
 *.log
+data/*.mdbx
+data/*.mdbx-lck
 
 # CMake generated files
 CMakeCache.txt

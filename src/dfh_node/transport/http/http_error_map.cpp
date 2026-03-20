@@ -77,6 +77,10 @@ std::pair<int, std::string> error_code_to_http(const std::string_view error_code
         return make_http_error(404, error_code, detail);
     }
 
+    if (error_code == "duplicate_name") {
+        return make_http_error(409, error_code, detail);
+    }
+
     if (error_code == "invalid_query_param" || error_code == "invalid_json" || error_code == "invalid_argument" ||
         error_code == "unsupported_operation" || error_code == "missing_anti_replay_headers" ||
         error_code == "missing_anti_replay_fields" || error_code == "range_too_large") {
@@ -93,6 +97,10 @@ std::pair<int, std::string> error_code_to_http(const std::string_view error_code
 
     if (error_code == "timeout") {
         return make_http_error(504, error_code, detail);
+    }
+
+    if (error_code == "disk_low") {
+        return make_http_error(507, error_code, detail);
     }
 
     if (error_code == "queue_full") {

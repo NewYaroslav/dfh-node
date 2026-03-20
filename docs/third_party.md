@@ -19,6 +19,8 @@
 | simple-web-server | https://github.com/eidheim/Simple-Web-Server | 35ebb10782507f887802df64a2b6bfc8b427d81f | MIT | Header-only HTTP/HTTPS server |
 | simple-websocket-server | https://gitlab.com/eidheim/Simple-WebSocket-Server | 89e5677789d096374edb93aaabaf23799a7e1692 | MIT | Header-only WS server |
 | msgpack-c | https://github.com/msgpack/msgpack-c | 44c0f705c9a60217d7e07de844fb13ce4c1c1e6e | BSL-1.0 | Header-only MessagePack C++ |
+| libmdbx | https://github.com/erthink/libmdbx | 1d115d3df69cc07afbe0157763fce741f44909d2 | OLDAP-2.8 | Embedded KV database, C++ API `mdbx.h++` |
+| cxxopts | https://github.com/jarro2783/cxxopts | v3.3.1 | MIT | Header-only parser аргументов командной строки |
 
 ## Процесс обновления
 1) Обновить ref сабмодуля (закрепить новый тег/коммит).

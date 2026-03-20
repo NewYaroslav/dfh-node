@@ -35,6 +35,10 @@ public:
     /// Вызывает scheduler.остановка() и ждёт завершения всех потоков.
     void shutdown();
 
+    /// \brief Возвращает true, если пул воркеров запущен.
+    /// \return true после `start()` и до завершения `shutdown()`.
+    bool is_running() const;
+
     /// \brief Всего задач обработано (по лейну планировщика).
     /// \param lane Лейн планировщика (High/Low).
     std::uint64_t total_processed(TaskLane lane) const;
@@ -55,6 +59,7 @@ private:
 
     TaskScheduler &m_scheduler;                            ///< Ссылка на планировщик.
     std::vector<std::thread> m_workers;                    ///< Пул потоков.
+    std::atomic<bool> m_running{false};                    ///< Признак запущенного пула.
     std::atomic<std::uint64_t> m_total_processed[2]{0, 0}; ///< [High, Low] (C++17: fetch_add).
     std::atomic<std::uint64_t> m_total_wait_ms[2]{0, 0};   ///< [High, Low].
 };

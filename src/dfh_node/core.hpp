@@ -6,6 +6,7 @@
 #pragma once
 
 #include "core/build_info.hpp"
+#include "core/disk_monitor.hpp"
 #include "core/interfaces.hpp"
 #include "core/logging.hpp"
 #include "core/status.hpp"

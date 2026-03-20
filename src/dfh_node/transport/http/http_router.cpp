@@ -5,17 +5,18 @@
 #include "http_router.hpp"
 
 #include "core/build_info.hpp"
+#include "core/time_utils.hpp"
 #include "core/version.hpp"
 #include "http_error_map.hpp"
 #include "http_reply_handle.hpp"
 #include "security/sha256_utils.hpp"
 #include "transport/http/http_dto_parser.hpp"
+#include "transport/transport_security_utils.hpp"
 
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 
 #include <atomic>
-#include <cctype>
 #include <cerrno>
 #include <chrono>
 #include <cstdint>
@@ -25,7 +26,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -40,35 +40,6 @@ enum class ContentLengthState { Absent, Valid, Invalid };
 enum class HistoryResponseFormat { Csv, Dfhbin };
 
 std::atomic<std::uint64_t> g_request_counter{0};
-
-std::string trim_copy(std::string_view value) {
-    std::size_t begin = 0;
-    while (begin < value.size() && std::isspace(static_cast<unsigned char>(value[begin])) != 0) {
-        ++begin;
-    }
-
-    std::size_t end = value.size();
-    while (end > begin && std::isspace(static_cast<unsigned char>(value[end - 1])) != 0) {
-        --end;
-    }
-
-    return std::string(value.substr(begin, end - begin));
-}
-
-std::string extract_bearer_token(const std::shared_ptr<SwsRequest> &request) {
-    const auto auth_it = request->header.find("Authorization");
-    if (auth_it == request->header.end()) {
-        return {};
-    }
-
-    const std::string auth_header = trim_copy(auth_it->second);
-    constexpr std::string_view prefix = "Bearer ";
-    if (auth_header.size() < prefix.size() || auth_header.compare(0, prefix.size(), prefix) != 0) {
-        return {};
-    }
-
-    return trim_copy(std::string_view(auth_header).substr(prefix.size()));
-}
 
 ContentLengthState read_content_length(const std::shared_ptr<SwsRequest> &request, std::int64_t &content_length_out) {
     content_length_out = 0;
@@ -222,75 +193,6 @@ HistoryResponseFormat detect_history_format(const std::shared_ptr<SwsRequest> &r
     return HistoryResponseFormat::Csv;
 }
 
-const HttpAntiReplayFields *parse_http_anti_replay_fields(const std::shared_ptr<SwsRequest> &request,
-                                                          const std::string &body_hash,
-                                                          HttpAntiReplayFields &fields_out, bool &has_any_headers) {
-    has_any_headers = false;
-
-    std::string timestamp;
-    std::string nonce;
-    std::string signature;
-
-    const auto ts_it = request->header.find("X-DFH-Timestamp");
-    if (ts_it != request->header.end()) {
-        timestamp = trim_copy(ts_it->second);
-        has_any_headers = true;
-    }
-
-    const auto nonce_it = request->header.find("X-DFH-Nonce");
-    if (nonce_it != request->header.end()) {
-        nonce = trim_copy(nonce_it->second);
-        has_any_headers = true;
-    }
-
-    const auto sig_it = request->header.find("X-DFH-Signature");
-    if (sig_it != request->header.end()) {
-        signature = trim_copy(sig_it->second);
-        has_any_headers = true;
-    }
-
-    if (!has_any_headers) {
-        return nullptr;
-    }
-
-    if (timestamp.empty() || nonce.empty() || signature.empty()) {
-        return nullptr;
-    }
-
-    fields_out.method = request->method;
-    fields_out.path = request->path;
-    fields_out.query_params.clear();
-
-    const std::string_view query = (!request->query_string.empty() && request->query_string.front() == '?')
-                                       ? std::string_view(request->query_string).substr(1)
-                                       : std::string_view(request->query_string);
-    std::size_t start = 0;
-    while (start <= query.size()) {
-        const std::size_t amp = query.find('&', start);
-        const std::string_view token =
-            (amp == std::string_view::npos) ? query.substr(start) : query.substr(start, amp - start);
-
-        if (!token.empty()) {
-            const std::size_t eq = token.find('=');
-            const std::string key = std::string(token.substr(0, eq));
-            const std::string value =
-                (eq == std::string_view::npos) ? std::string() : std::string(token.substr(eq + 1));
-            fields_out.query_params.emplace_back(key, value);
-        }
-
-        if (amp == std::string_view::npos) {
-            break;
-        }
-        start = amp + 1;
-    }
-
-    fields_out.timestamp = std::move(timestamp);
-    fields_out.nonce = std::move(nonce);
-    fields_out.signature = std::move(signature);
-    fields_out.body_hash = body_hash;
-    return &fields_out;
-}
-
 Task make_task(const TaskKind kind, std::string request_id, std::function<void()> payload) {
     Task task;
     task.kind = kind;
@@ -324,11 +226,20 @@ void append_queue_metrics(nlohmann::json &output, const QueueMetrics &metrics) {
     output["avg_wait_ms"] = metrics.avg_wait_ms;
 }
 
+bool is_active_mdbx_key(const MdbxKeyRecord &record, const std::uint64_t now_ms) {
+    if (record.revoked) {
+        return false;
+    }
+
+    return !record.expires_at_ms.has_value() || *record.expires_at_ms > static_cast<std::int64_t>(now_ms);
+}
+
 } // namespace
 
-HttpRouter::HttpRouter(UnifiedGate &gate, TaskScheduler &scheduler, IDfhAdapter &adapter, const config::Config &cfg)
-    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg),
-      m_started_at(std::chrono::steady_clock::now()) {}
+HttpRouter::HttpRouter(UnifiedGate &gate, TaskScheduler &scheduler, IDfhAdapter &adapter, const config::Config &cfg,
+                       DiskMonitor *disk_monitor, MdbxApiKeyStore *mdbx_store)
+    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg), m_disk_monitor(disk_monitor),
+      m_mdbx_store(mdbx_store), m_started_at(std::chrono::steady_clock::now()) {}
 
 void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
     m_executor = server.io_service;
@@ -361,11 +272,12 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
             return;
         }
 
-        const std::string token = extract_bearer_token(request);
+        const std::string token = extract_bearer_token(request->header);
         HttpAntiReplayFields ar_fields;
         bool has_any_ar_header = false;
         const HttpAntiReplayFields *ar_ptr =
-            parse_http_anti_replay_fields(request, compute_sha256_hex(body), ar_fields, has_any_ar_header);
+            parse_http_anti_replay_fields(request->method, request->path, request->query_string, request->header,
+                                          compute_sha256_hex(body), ar_fields, has_any_ar_header);
         if (has_any_ar_header && ar_ptr == nullptr) {
             send_error_code(response, "missing_anti_replay_headers", "incomplete anti-replay headers");
             return;
@@ -374,6 +286,11 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
         const GateResult gate_result = m_gate.authorize_http(token, TaskKind::Ingest, ar_ptr);
         if (const auto *gate_error = std::get_if<GateError>(&gate_result)) {
             send_gate_error(response, *gate_error);
+            return;
+        }
+
+        if (m_disk_monitor != nullptr && m_disk_monitor->is_disk_low()) {
+            send_error_code(response, "disk_low", "Insufficient disk space");
             return;
         }
 
@@ -439,12 +356,13 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
         }
 
         const HistoryResponseFormat format = detect_history_format(request);
-        const std::string token = extract_bearer_token(request);
+        const std::string token = extract_bearer_token(request->header);
 
         HttpAntiReplayFields ar_fields;
         bool has_any_ar_header = false;
         const HttpAntiReplayFields *ar_ptr =
-            parse_http_anti_replay_fields(request, compute_sha256_hex(""), ar_fields, has_any_ar_header);
+            parse_http_anti_replay_fields(request->method, request->path, request->query_string, request->header,
+                                          compute_sha256_hex(""), ar_fields, has_any_ar_header);
         if (has_any_ar_header && ar_ptr == nullptr) {
             send_error_code(response, "missing_anti_replay_headers", "incomplete anti-replay headers");
             return;
@@ -528,7 +446,7 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
 
     server.resource["^/v1/status$"]["GET"] = [this](const std::shared_ptr<SwsResponse> &response,
                                                     const std::shared_ptr<SwsRequest> &request) {
-        const std::string token = extract_bearer_token(request);
+        const std::string token = extract_bearer_token(request->header);
 
         const GateResult gate_result = m_gate.authorize_http(token, TaskKind::History, nullptr);
         if (const auto *gate_error = std::get_if<GateError>(&gate_result)) {
@@ -556,6 +474,23 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
         append_queue_metrics(queues["high_priority_queue"], high_metrics);
         append_queue_metrics(queues["low_priority_queue"], low_metrics);
         payload["queues"] = std::move(queues);
+
+        if (m_disk_monitor != nullptr) {
+            payload["disk_free_bytes"] = m_disk_monitor->last_free_bytes();
+            payload["disk_low"] = m_disk_monitor->is_disk_low();
+        }
+
+        if (m_mdbx_store != nullptr) {
+            const auto all_keys = m_mdbx_store->list_all();
+            const std::uint64_t now_ms = static_cast<std::uint64_t>(dfh_node::now_epoch_ms());
+            std::uint64_t active_count = 0;
+            for (const auto &record : all_keys) {
+                if (is_active_mdbx_key(record, now_ms)) {
+                    ++active_count;
+                }
+            }
+            payload["mdbx_keys_active"] = active_count;
+        }
 
         send_response(response, 200, payload.dump(), "application/json");
     };

@@ -162,8 +162,10 @@ void send_response_via_registry(const std::shared_ptr<WsSessionRegistry> &regist
 } // namespace
 
 WsMessageHandler::WsMessageHandler(UnifiedGate &gate, TaskScheduler &scheduler, IDfhAdapter &adapter,
-                                   const config::Config &cfg, std::shared_ptr<WsSessionRegistry> registry)
-    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg), m_registry(std::move(registry)) {
+                                   const config::Config &cfg, std::shared_ptr<WsSessionRegistry> registry,
+                                   DiskMonitor *disk_monitor)
+    : m_gate(gate), m_scheduler(scheduler), m_adapter(adapter), m_cfg(cfg), m_registry(std::move(registry)),
+      m_disk_monitor(disk_monitor) {
     if (!m_registry) {
         throw std::invalid_argument("WsMessageHandler requires non-null WsSessionRegistry");
     }
@@ -257,6 +259,12 @@ void WsMessageHandler::handle_binary(const std::string &connection_id, const std
         return;
     }
 
+    if (m_disk_monitor != nullptr && m_disk_monitor->is_disk_low()) {
+        send_response(connection_id,
+                      make_error_response(pending.msg_id, "disk_low", "Insufficient disk space"), is_msgpack);
+        return;
+    }
+
     auto dto_holder = std::make_shared<std::unique_ptr<IngestRequest>>(std::make_unique<IngestRequest>());
     (*dto_holder)->key = std::move(pending.block_key);
     (*dto_holder)->payload.assign(bytes.begin(), bytes.end());
@@ -318,6 +326,11 @@ void WsMessageHandler::handle_ingest(const std::string &conn_id, const WsControl
     ParseResult<IngestRequest> parsed = parse_ws_ingest_payload(msg.payload, m_cfg.ws);
     if (const auto *parse_error = std::get_if<ParseError>(&parsed)) {
         send_response(conn_id, make_error_response(msg.msg_id, parse_error->first, parse_error->second), is_msgpack);
+        return;
+    }
+
+    if (m_disk_monitor != nullptr && m_disk_monitor->is_disk_low()) {
+        send_response(conn_id, make_error_response(msg.msg_id, "disk_low", "Insufficient disk space"), is_msgpack);
         return;
     }
 
