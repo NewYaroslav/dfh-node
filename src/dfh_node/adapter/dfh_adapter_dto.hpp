@@ -28,6 +28,26 @@ struct BlockKey {
     std::int64_t block_ts = 0;
 };
 
+/// \brief Задаёт строгий порядок ключей блока для ассоциативных контейнеров.
+/// \param a Левый операнд сравнения.
+/// \param b Правый операнд сравнения.
+/// \return `true`, если `a` лексикографически меньше `b`.
+inline bool operator<(const BlockKey &a, const BlockKey &b) {
+    if (a.provider != b.provider) {
+        return a.provider < b.provider;
+    }
+    if (a.symbol != b.symbol) {
+        return a.symbol < b.symbol;
+    }
+    if (a.source != b.source) {
+        return a.source < b.source;
+    }
+    if (a.tf != b.tf) {
+        return a.tf < b.tf;
+    }
+    return a.block_ts < b.block_ts;
+}
+
 /// \brief Возвращает начало часового блока для тиков.
 /// \param ts_ms Метка времени в миллисекундах UTC.
 /// \return Начало часа в миллисекундах UTC (floor-деление для отрицательных значений).
@@ -52,6 +72,7 @@ struct BlockMeta {
     std::int64_t last_ts = 0;
     std::size_t record_count = 0;
     std::int64_t updated_at = 0;
+    std::array<std::uint8_t, 32> hash{}; ///< SHA-256 блока; заполняется адаптером.
 };
 
 /// \brief Один блок результата истории.
@@ -112,6 +133,20 @@ struct GetBlockHashRequest {
 /// \details При `AdapterStatus::Error` `error_code` обязан быть непустым.
 /// Разрешённый минимальный набор: `not_found`, `invalid_argument`, `internal`.
 struct IngestResponse {
+    AdapterStatus status = AdapterStatus::Error;
+    std::string error_code;
+};
+
+/// \brief Запрос merge raw `dfhbin`-блока при межнодовой синхронизации.
+struct MergeBlockDfhbinRequest {
+    BlockKey key;
+    std::vector<std::uint8_t> bytes; ///< Raw `dfhbin` payload.
+};
+
+/// \brief Ответ на merge `dfhbin`-блока.
+/// \details `Ok` = блок сохранён; `Ignore` = локальные данные уже актуальны;
+/// `Error` = произошла ошибка.
+struct MergeBlockDfhbinResponse {
     AdapterStatus status = AdapterStatus::Error;
     std::string error_code;
 };

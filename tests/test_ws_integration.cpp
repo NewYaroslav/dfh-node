@@ -320,6 +320,14 @@ public:
         }
     }
 
+    std::unique_ptr<dfh_node::MergeBlockDfhbinResponse>
+    merge_block_dfhbin(std::unique_ptr<dfh_node::MergeBlockDfhbinRequest>) override {
+        auto resp = std::make_unique<dfh_node::MergeBlockDfhbinResponse>();
+        resp->status = dfh_node::AdapterStatus::Error;
+        resp->error_code = "not_supported";
+        return resp;
+    }
+
     std::unique_ptr<dfh_node::QueryHistoryResponse>
     query_history(std::unique_ptr<dfh_node::QueryHistoryRequest>) override {
         switch (m_mode) {

@@ -20,6 +20,7 @@ namespace dfh_node {
 class FakeDfhAdapter : public IDfhAdapter {
 public:
     std::unique_ptr<IngestResponse> ingest_structured(std::unique_ptr<IngestRequest> req) override;
+    std::unique_ptr<MergeBlockDfhbinResponse> merge_block_dfhbin(std::unique_ptr<MergeBlockDfhbinRequest> req) override;
     std::unique_ptr<QueryHistoryResponse> query_history(std::unique_ptr<QueryHistoryRequest> req) override;
     std::unique_ptr<GetBlockDfhbinResponse> get_block_dfhbin(std::unique_ptr<GetBlockDfhbinRequest> req) override;
     std::unique_ptr<ListBlockMetaResponse> list_block_meta(std::unique_ptr<ListBlockMetaRequest> req) override;

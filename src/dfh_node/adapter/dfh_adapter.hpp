@@ -23,6 +23,14 @@ public:
     /// \return Ответ со статусом операции ingest.
     virtual std::unique_ptr<IngestResponse> ingest_structured(std::unique_ptr<IngestRequest> req) = 0;
 
+    /// \brief Сохраняет raw `dfhbin`-блок при межнодовой синхронизации.
+    /// \details Семантика отличается от `ingest_structured`: метод принимает
+    /// уже сериализованный `dfhbin` без перекодирования.
+    /// \param req Запрос с ключом блока и raw payload.
+    /// \return Ответ со статусом merge-операции.
+    virtual std::unique_ptr<MergeBlockDfhbinResponse>
+    merge_block_dfhbin(std::unique_ptr<MergeBlockDfhbinRequest> req) = 0;
+
     /// \brief Возвращает набор блоков истории за диапазон времени.
     /// \param req Запрос истории с фильтрами и временными границами.
     /// \return Ответ со статусом и `chunks` истории.
