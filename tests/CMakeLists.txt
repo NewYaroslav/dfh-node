@@ -426,6 +426,17 @@ target_link_libraries(test_http_dto_parser
 
 add_test(NAME test_http_dto_parser COMMAND test_http_dto_parser)
 
+add_executable(test_sync_dto_parser
+    test_sync_dto_parser.cpp
+)
+
+target_link_libraries(test_sync_dto_parser
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_sync_dto_parser COMMAND test_sync_dto_parser)
+
 add_executable(test_http_reply_handle
     test_http_reply_handle.cpp
 )
@@ -458,6 +469,17 @@ target_link_libraries(test_admin_router
 )
 
 add_test(NAME test_admin_router COMMAND test_admin_router)
+
+add_executable(test_sync_router
+    test_sync_router.cpp
+)
+
+target_link_libraries(test_sync_router
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_sync_router COMMAND test_sync_router)
 
 add_executable(test_ops_endpoints
     test_ops_endpoints.cpp

@@ -6,6 +6,7 @@
 #include "test_helpers.hpp"
 
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -34,6 +35,26 @@ void test_verify_sha256_mismatch() {
 
 void test_verify_sha256_invalid_length() { CHECK(!dfh_node::verify_sha256("test data", "12345")); }
 
+void test_hex_to_bytes_valid_lowercase() {
+    const std::vector<std::uint8_t> bytes = dfh_node::hex_to_bytes("00ff10");
+    CHECK_EQ(bytes.size(), 3U);
+    CHECK_EQ(bytes[0], static_cast<std::uint8_t>(0x00));
+    CHECK_EQ(bytes[1], static_cast<std::uint8_t>(0xff));
+    CHECK_EQ(bytes[2], static_cast<std::uint8_t>(0x10));
+}
+
+void test_hex_to_bytes_valid_uppercase() {
+    const std::vector<std::uint8_t> bytes = dfh_node::hex_to_bytes("ABCD");
+    CHECK_EQ(bytes.size(), 2U);
+    CHECK_EQ(bytes[0], static_cast<std::uint8_t>(0xab));
+    CHECK_EQ(bytes[1], static_cast<std::uint8_t>(0xcd));
+}
+
+void test_hex_to_bytes_invalid_input() {
+    CHECK(dfh_node::hex_to_bytes("0").empty());
+    CHECK(dfh_node::hex_to_bytes("zz").empty());
+}
+
 } // namespace
 
 int main() {
@@ -42,5 +63,8 @@ int main() {
     test_verify_sha256_match();
     test_verify_sha256_mismatch();
     test_verify_sha256_invalid_length();
+    test_hex_to_bytes_valid_lowercase();
+    test_hex_to_bytes_valid_uppercase();
+    test_hex_to_bytes_invalid_input();
     return 0;
 }
