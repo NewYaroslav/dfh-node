@@ -43,6 +43,7 @@ Config default_config() {
     cfg.sync.meta_max_blocks = 10000;
     cfg.sync.max_blocks_per_cycle = 1000;
     cfg.sync.max_parallel_downloads = 4;
+    cfg.sync.outbound_token = "";
 
     cfg.storage.path = "./data";
     cfg.storage.min_free_bytes = 2000000000;

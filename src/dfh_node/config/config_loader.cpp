@@ -359,6 +359,7 @@ LoadResult load_from_file(const std::filesystem::path &path) {
             read_int64(obj, "meta_max_blocks", cfg.sync.meta_max_blocks, result.errors, "sync");
             read_int64(obj, "max_blocks_per_cycle", cfg.sync.max_blocks_per_cycle, result.errors, "sync");
             read_int(obj, "max_parallel_downloads", cfg.sync.max_parallel_downloads, result.errors, "sync");
+            read_string(obj, "outbound_token", cfg.sync.outbound_token, result.errors, "sync", false);
         }
     }
 

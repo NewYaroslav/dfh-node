@@ -30,6 +30,7 @@ add_library(dfh_node STATIC
     scheduler/worker_pool.cpp
     adapter/dfh_adapter_dto.cpp
     adapter/fake_dfh_adapter.cpp
+    sync/peer_sync_service.cpp
     transport/http/admin_dto_parser.cpp
     transport/http/admin_router.cpp
     transport/http/http_dto_parser.cpp

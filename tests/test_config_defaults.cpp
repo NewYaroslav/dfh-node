@@ -24,6 +24,7 @@ int main() {
     CHECK_EQ(cfg.sync.meta_max_blocks, static_cast<std::int64_t>(10000));
     CHECK_EQ(cfg.sync.max_blocks_per_cycle, static_cast<std::int64_t>(1000));
     CHECK_EQ(cfg.sync.max_parallel_downloads, 4);
+    CHECK(cfg.sync.outbound_token.empty());
     CHECK_EQ(cfg.security.anti_replay.require_for_scopes, dfh_node::to_scope_mask(dfh_node::Scope::Write) |
                                                               dfh_node::to_scope_mask(dfh_node::Scope::Admin) |
                                                               dfh_node::to_scope_mask(dfh_node::Scope::Sync));

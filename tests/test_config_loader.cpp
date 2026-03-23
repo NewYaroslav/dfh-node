@@ -259,7 +259,8 @@ int main() {
                 "request_timeout_ms": 7000,
                 "meta_max_blocks": 333,
                 "max_blocks_per_cycle": 222,
-                "max_parallel_downloads": 3
+                "max_parallel_downloads": 3,
+                "outbound_token": "sync-outbound-token"
             },
             "peers": [
                 { "id": "node-b", "url": "http://192.168.1.2:8080" }
@@ -274,6 +275,7 @@ int main() {
         CHECK_EQ(result.config->sync.meta_max_blocks, static_cast<std::int64_t>(333));
         CHECK_EQ(result.config->sync.max_blocks_per_cycle, static_cast<std::int64_t>(222));
         CHECK_EQ(result.config->sync.max_parallel_downloads, 3);
+        CHECK_EQ(result.config->sync.outbound_token, "sync-outbound-token");
         CHECK_EQ(result.config->peers.size(), static_cast<std::size_t>(1));
         CHECK_EQ(result.config->peers[0].id, "node-b");
         CHECK_EQ(result.config->peers[0].url, "http://192.168.1.2:8080");
@@ -480,7 +482,8 @@ int main() {
                 "request_timeout_ms": "bad",
                 "meta_max_blocks": "bad",
                 "max_blocks_per_cycle": "bad",
-                "max_parallel_downloads": "bad"
+                "max_parallel_downloads": "bad",
+                "outbound_token": 123
             }
         })");
         auto result = dfh_node::config::load_from_file(temp_path);
@@ -492,6 +495,7 @@ int main() {
         CHECK(has_error(result, "sync.meta_max_blocks", "type_mismatch"));
         CHECK(has_error(result, "sync.max_blocks_per_cycle", "type_mismatch"));
         CHECK(has_error(result, "sync.max_parallel_downloads", "type_mismatch"));
+        CHECK(has_error(result, "sync.outbound_token", "type_mismatch"));
         remove_temp_file(temp_path);
     }
 

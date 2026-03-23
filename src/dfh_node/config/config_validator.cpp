@@ -154,6 +154,10 @@ std::vector<ValidationError> validate(const Config &cfg) {
         if (cfg.sync.max_parallel_downloads <= 0) {
             add_error(errors, "sync.max_parallel_downloads", "out_of_range", "sync.max_parallel_downloads must be > 0");
         }
+        if (cfg.sync.outbound_token.empty() && !cfg.peers.empty()) {
+            add_error(errors, "sync.outbound_token", "missing",
+                      "sync.outbound_token must not be empty when sync.enabled and peers are configured");
+        }
     }
 
     if (!is_valid_level(cfg.logging.level)) {
