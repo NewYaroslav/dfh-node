@@ -260,8 +260,8 @@ void WsMessageHandler::handle_binary(const std::string &connection_id, const std
     }
 
     if (m_disk_monitor != nullptr && m_disk_monitor->is_disk_low()) {
-        send_response(connection_id,
-                      make_error_response(pending.msg_id, "disk_low", "Insufficient disk space"), is_msgpack);
+        send_response(connection_id, make_error_response(pending.msg_id, "disk_low", "Insufficient disk space"),
+                      is_msgpack);
         return;
     }
 

@@ -37,6 +37,15 @@
       "require_for_scopes": ["write", "admin", "sync"]
     }
   },
+  "sync": {
+    "enabled": false,
+    "pull_interval_ms": 60000,
+    "request_timeout_ms": 30000,
+    "meta_max_blocks": 10000,
+    "max_blocks_per_cycle": 1000,
+    "max_parallel_downloads": 4,
+    "outbound_token": ""
+  },
   "peers": [],
   "storage": {
     "path": "./data",
@@ -85,6 +94,15 @@
       "require_for_scopes": ["write", "admin", "sync"]
     }
   },
+  "sync": {
+    "enabled": true,
+    "pull_interval_ms": 60000,
+    "request_timeout_ms": 30000,
+    "meta_max_blocks": 10000,
+    "max_blocks_per_cycle": 1000,
+    "max_parallel_downloads": 4,
+    "outbound_token": "sync-outbound-token"
+  },
   "peers": [
     { "id": "node-eu-02", "url": "https://peer-02.example.com" },
     { "id": "node-us-01", "url": "https://peer-us.example.com" }
@@ -117,6 +135,7 @@
 - `ws` (object, optional).
 - `queues` (object, optional).
 - `security` (object, required).
+- `sync` (object, optional).
 - `peers` (array, optional, default: пустой).
 - `storage` (object, optional).
 - `logging` (object, optional).
@@ -151,6 +170,15 @@
 - `nonce_capacity` (int, default: `10000`).
 - `require_for_scopes` (array<string>, default: `["write","admin","sync"]`).
 
+### sync
+- `enabled` (bool, default: `false`): включает фоновый pull loop.
+- `pull_interval_ms` (int, default: `60000`): интервал между sync-циклами.
+- `request_timeout_ms` (int, default: `30000`): таймаут исходящих HTTP sync-запросов.
+- `meta_max_blocks` (int, default: `10000`): верхняя граница числа блоков, принимаемых из `/sync/meta` за один peer.
+- `max_blocks_per_cycle` (int, default: `1000`): верхняя граница числа скачиваемых блоков за цикл.
+- `max_parallel_downloads` (int, default: `4`): зарезервировано под ограничение параллельных загрузок; текущая реализация `PeerSyncService` выполняет загрузки последовательно.
+- `outbound_token` (string, default: пусто): plaintext токен для исходящих запросов к peers.
+
 ### peers
 Массив объектов:
 - `id` (string)
@@ -180,6 +208,9 @@
 - `security.server_secret`: не пустой, длина >= 16
 - `security.anti_replay.max_skew_ms`, `nonce_ttl_ms`, `nonce_capacity`: > 0
 - `security.anti_replay.require_for_scopes`: при `enabled=true` не должен быть пустым
+- `sync.pull_interval_ms`, `sync.request_timeout_ms`, `sync.meta_max_blocks`, `sync.max_blocks_per_cycle`,
+  `sync.max_parallel_downloads`: при `sync.enabled=true` должны быть > 0
+- `sync.outbound_token`: обязателен, если `sync.enabled=true` и `peers` не пустой
 - `storage.path`: не пустой
 - `storage.min_free_bytes`: >= 0
 - `logging.level`: `trace|debug|info|warn|error`

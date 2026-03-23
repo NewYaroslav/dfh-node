@@ -35,6 +35,9 @@ void test_freshness_by_last_ts_downloads_block() {
 
     CHECK_EQ(service.blocks_downloaded_total(), 1U);
     CHECK_EQ(service.blocks_merged_total(), 1U);
+    CHECK(service.last_attempt_at_ms() > 0);
+    CHECK(service.last_success_at_ms() > 0);
+    CHECK(service.last_success_at_ms() >= service.last_attempt_at_ms());
     CHECK_EQ(local_adapter.marker_for(key), "remote-newer");
     CHECK_EQ(local_adapter.last_ts_for(key), static_cast<std::int64_t>(200));
     cleanup_path(storage_root);
@@ -164,6 +167,59 @@ void test_attempt_and_success_timestamps_are_separated() {
     cleanup_path(storage_root);
 }
 
+void test_meta_max_blocks_limits_download_candidates() {
+    const std::string sync_token = "sync-token";
+    sync_test_support::RunningSyncPeer peer(sync_token);
+
+    const auto first_key = sync_test_support::make_test_key();
+    auto second_key = first_key;
+    second_key.block_ts += 60000;
+
+    peer.adapter().set_block(first_key, 200, 10, "first-block");
+    peer.adapter().set_block(second_key, 300, 20, "second-block");
+
+    sync_test_support::ScriptedAdapter local_adapter;
+    const auto storage_root = sync_test_support::make_temp_dir("dfh-node-peer-sync-meta-limit");
+    std::filesystem::create_directories(storage_root);
+    auto cfg = sync_test_support::make_client_config(peer.base_url(), sync_token, storage_root);
+    cfg.sync.meta_max_blocks = 1;
+
+    dfh_node::PeerSyncService service(local_adapter, cfg, nullptr);
+    service.sync_once();
+
+    CHECK_EQ(service.blocks_downloaded_total(), 1U);
+    CHECK(local_adapter.has_block(first_key));
+    CHECK(!local_adapter.has_block(second_key));
+    cleanup_path(storage_root);
+}
+
+void test_max_blocks_per_cycle_limits_downloads() {
+    const std::string sync_token = "sync-token";
+    sync_test_support::RunningSyncPeer peer(sync_token);
+
+    const auto first_key = sync_test_support::make_test_key();
+    auto second_key = first_key;
+    second_key.block_ts += 60000;
+
+    peer.adapter().set_block(first_key, 200, 10, "first-cycle-block");
+    peer.adapter().set_block(second_key, 300, 20, "second-cycle-block");
+
+    sync_test_support::ScriptedAdapter local_adapter;
+    const auto storage_root = sync_test_support::make_temp_dir("dfh-node-peer-sync-cycle-limit");
+    std::filesystem::create_directories(storage_root);
+    auto cfg = sync_test_support::make_client_config(peer.base_url(), sync_token, storage_root);
+    cfg.sync.max_blocks_per_cycle = 1;
+
+    dfh_node::PeerSyncService service(local_adapter, cfg, nullptr);
+    service.sync_once();
+
+    CHECK_EQ(service.blocks_downloaded_total(), 1U);
+    CHECK_EQ(service.blocks_merged_total(), 1U);
+    CHECK(local_adapter.has_block(first_key));
+    CHECK(!local_adapter.has_block(second_key));
+    cleanup_path(storage_root);
+}
+
 } // namespace
 
 int main() {
@@ -174,5 +230,7 @@ int main() {
     test_start_shutdown_and_is_running();
     test_disk_low_skips_merge_and_counts_error();
     test_attempt_and_success_timestamps_are_separated();
+    test_meta_max_blocks_limits_download_candidates();
+    test_max_blocks_per_cycle_limits_downloads();
     return 0;
 }
