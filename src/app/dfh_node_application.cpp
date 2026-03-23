@@ -17,7 +17,10 @@
 #include "core.hpp"
 #include "scheduler.hpp"
 #include "security.hpp"
+// clang-format off
 #include "transport.hpp"
+#include "sync.hpp"
+// clang-format on
 
 #include <chrono>
 #include <filesystem>
@@ -110,14 +113,20 @@ public:
           m_anti_replay_validator(make_anti_replay_validator(cfg, m_epoch_clock, m_nonce_store.get())),
           m_gate(m_auth_service, m_rate_limiter, m_ws_connection_limiter, m_anti_replay_validator.get(),
                  cfg.security.anti_replay.require_for_scopes),
-          m_adapter(), m_ws_registry(std::make_shared<dfh_node::transport::WsSessionRegistry>()),
+          m_adapter(),
+          m_peer_sync_service(cfg.sync.enabled && !cfg.peers.empty()
+                                  ? std::make_unique<dfh_node::PeerSyncService>(m_adapter, cfg, &m_disk_monitor)
+                                  : nullptr),
+          m_ws_registry(std::make_shared<dfh_node::transport::WsSessionRegistry>()),
           m_http_router(m_gate, m_scheduler, m_adapter, cfg, &m_disk_monitor, &m_mdbx_store),
           m_http_server(cfg.http, m_http_router), m_admin_router(m_gate, m_key_manager, cfg),
-          m_ops_router(m_gate, m_disk_monitor, m_mdbx_store, m_scheduler, m_pool, cfg) {
+          m_ops_router(m_gate, m_disk_monitor, m_mdbx_store, m_scheduler, m_pool, cfg),
+          m_sync_router(m_gate, m_adapter, cfg, m_peer_sync_service.get(), &m_disk_monitor) {
         std::filesystem::create_directories(cfg.storage.path);
         m_mdbx_store.open();
         m_admin_router.register_all(m_http_server.server());
         m_ops_router.register_all(m_http_server.server());
+        m_sync_router.register_all(m_http_server.server());
     }
 
     /// \brief Гарантированно останавливает transport и worker runtime.
@@ -130,6 +139,10 @@ public:
     void start_transport_runtime() {
         m_http_server.start();
         dfh_node::logging::log_http_server_started(m_cfg.http);
+
+        if (m_peer_sync_service != nullptr) {
+            m_peer_sync_service->start();
+        }
 
         if (m_cfg.ws.port == 0) {
             dfh_node::logging::log_ws_server_disabled();
@@ -190,6 +203,10 @@ private:
 
     /// \brief Останавливает transport и worker runtime без исключений.
     void shutdown() {
+        if (m_peer_sync_service != nullptr) {
+            m_peer_sync_service->shutdown();
+        }
+
         if (m_ws_server != nullptr) {
             m_ws_server->shutdown();
             m_ws_server.reset();
@@ -218,11 +235,13 @@ private:
     std::unique_ptr<dfh_node::AntiReplayValidator> m_anti_replay_validator;
     dfh_node::UnifiedGate m_gate;
     dfh_node::FakeDfhAdapter m_adapter;
+    std::unique_ptr<dfh_node::PeerSyncService> m_peer_sync_service;
     std::shared_ptr<dfh_node::transport::WsSessionRegistry> m_ws_registry;
     dfh_node::transport::HttpRouter m_http_router;
     dfh_node::transport::HttpServer m_http_server;
     dfh_node::transport::AdminRouter m_admin_router;
     dfh_node::transport::OpsRouter m_ops_router;
+    dfh_node::transport::SyncRouter m_sync_router;
     std::unique_ptr<dfh_node::transport::WsRouter> m_ws_router;
     std::unique_ptr<dfh_node::transport::WsServer> m_ws_server;
 };

@@ -8,6 +8,7 @@
 #include "http_error_map.hpp"
 #include "security/anti_replay_fields.hpp"
 #include "security/sha256_utils.hpp"
+#include "sync/peer_sync_service.hpp"
 #include "sync_dto_parser.hpp"
 #include "transport/transport_security_utils.hpp"
 
@@ -116,8 +117,8 @@ nlohmann::json block_meta_to_json(const BlockMeta &block) {
 } // namespace
 
 SyncRouter::SyncRouter(UnifiedGate &gate, IDfhAdapter &adapter, const config::Config &cfg,
-                       PeerSyncService *sync_service)
-    : m_gate(gate), m_adapter(adapter), m_cfg(cfg), m_sync_service(sync_service) {}
+                       PeerSyncService *sync_service, DiskMonitor *disk_monitor)
+    : m_gate(gate), m_adapter(adapter), m_cfg(cfg), m_sync_service(sync_service), m_disk_monitor(disk_monitor) {}
 
 void SyncRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
     server.resource["^/sync/meta$"]["POST"] = [this](const HttpResponse &response, const HttpRequest &request) {
@@ -189,22 +190,20 @@ void SyncRouter::handle_status(HttpRequest req, HttpResponse resp) {
         return;
     }
 
-    (void)m_sync_service;
-
     nlohmann::json body;
     body["sync_enabled"] = m_cfg.sync.enabled;
     body["peers_count"] = m_cfg.peers.size();
-    body["disk_low"] = false;
-    body["last_attempt_at_ms"] = 0;
-    body["last_success_at_ms"] = 0;
-    body["estimated_lag_ms"] = 0;
+    body["disk_low"] = m_disk_monitor != nullptr ? m_disk_monitor->is_disk_low() : false;
+    body["last_attempt_at_ms"] = m_sync_service != nullptr ? m_sync_service->last_attempt_at_ms() : 0;
+    body["last_success_at_ms"] = m_sync_service != nullptr ? m_sync_service->last_success_at_ms() : 0;
+    body["estimated_lag_ms"] = m_sync_service != nullptr ? m_sync_service->estimated_lag_ms() : 0;
 
     nlohmann::json counters;
-    counters["blocks_downloaded_total"] = 0;
-    counters["blocks_merged_total"] = 0;
-    counters["blocks_skipped_total"] = 0;
-    counters["sync_errors_total"] = 0;
-    counters["divergence_total"] = 0;
+    counters["blocks_downloaded_total"] = m_sync_service != nullptr ? m_sync_service->blocks_downloaded_total() : 0;
+    counters["blocks_merged_total"] = m_sync_service != nullptr ? m_sync_service->blocks_merged_total() : 0;
+    counters["blocks_skipped_total"] = m_sync_service != nullptr ? m_sync_service->blocks_skipped_total() : 0;
+    counters["sync_errors_total"] = m_sync_service != nullptr ? m_sync_service->sync_errors_total() : 0;
+    counters["divergence_total"] = m_sync_service != nullptr ? m_sync_service->divergence_total() : 0;
     body["counters"] = std::move(counters);
 
     send_json(resp, 200, body);

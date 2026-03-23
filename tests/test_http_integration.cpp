@@ -104,6 +104,7 @@ dfh_node::config::Config make_base_config() {
     cfg.http.max_payload_bytes = 1024 * 1024;
     cfg.http.history_max_range_ms = 24LL * 60LL * 60LL * 1000LL;
     cfg.http.history_max_bytes = 1024 * 1024;
+    cfg.storage.min_free_bytes = 0;
     cfg.queues.high_capacity = 64;
     cfg.queues.low_capacity = 64;
     cfg.queues.workers = 2;

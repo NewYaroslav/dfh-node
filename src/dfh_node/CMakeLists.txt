@@ -65,6 +65,7 @@ target_link_libraries(dfh_node
         nlohmann_json::nlohmann_json
         log-it-cpp
         OpenSSL::Crypto
+        OpenSSL::SSL
         simple-web-server
         simple-websocket-server
         msgpack-c

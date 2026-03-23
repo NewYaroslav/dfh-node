@@ -109,7 +109,7 @@ struct SyncConfig {
     std::int64_t meta_max_blocks = 10000;     ///< Максимум блоков в ответе `/sync/meta`.
     std::int64_t max_blocks_per_cycle = 1000; ///< Максимум блоков для скачивания за цикл.
     int max_parallel_downloads = 4;           ///< Максимум параллельных загрузок блоков.
-    std::string outbound_token;               ///< Plaintext токен для исходящих `/sync/*` запросов.
+    std::string outbound_token;               ///< Plaintext токен для исходящих sync-запросов.
 };
 
 /// \brief Полная конфигурация ноды.

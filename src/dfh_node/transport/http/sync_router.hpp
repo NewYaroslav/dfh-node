@@ -8,6 +8,7 @@
 #include "adapter/dfh_adapter.hpp"
 #include "auth/unified_gate.hpp"
 #include "config/config.hpp"
+#include "core/disk_monitor.hpp"
 
 #include <server_http.hpp>
 
@@ -30,7 +31,9 @@ public:
     /// \param adapter Адаптер хранения.
     /// \param cfg Полная конфигурация ноды.
     /// \param sync_service Сервис pull-синхронизации; допускается `nullptr`.
-    SyncRouter(UnifiedGate &gate, IDfhAdapter &adapter, const config::Config &cfg, PeerSyncService *sync_service);
+    /// \param disk_monitor Монитор состояния диска; допускается `nullptr`.
+    SyncRouter(UnifiedGate &gate, IDfhAdapter &adapter, const config::Config &cfg, PeerSyncService *sync_service,
+               DiskMonitor *disk_monitor);
 
     /// \brief Регистрирует все маршруты Sync API в HTTP-сервере.
     /// \param server Экземпляр SWS HTTP server.
@@ -56,6 +59,7 @@ private:
     IDfhAdapter &m_adapter;
     const config::Config &m_cfg;
     PeerSyncService *m_sync_service;
+    DiskMonitor *m_disk_monitor;
 };
 
 } // namespace dfh_node::transport

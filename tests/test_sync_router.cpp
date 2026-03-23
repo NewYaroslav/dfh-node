@@ -26,6 +26,8 @@ namespace asio = boost::asio;
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
+#include <limits>
 #include <optional>
 #include <string>
 #include <thread>
@@ -163,14 +165,20 @@ dfh_node::config::Config make_config() {
     cfg.http.request_timeout_ms = 1000;
     cfg.http.max_payload_bytes = 1024 * 1024;
     cfg.sync.enabled = true;
+    cfg.sync.outbound_token = "sync-token";
     cfg.peers.push_back({"peer-a", "http://127.0.0.1:8080"});
     return cfg;
 }
 
 class RunningSyncNode {
 public:
-    RunningSyncNode()
-        : m_cfg(make_config()), m_fingerprint_computer(m_cfg.security.server_secret), m_config_store(make_api_keys()),
+    explicit RunningSyncNode(const bool force_disk_low = false)
+        : m_storage_root(
+              std::filesystem::temp_directory_path() /
+              ("dfh-node-sync-router-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()))),
+          m_cfg(make_config()),
+          m_disk_monitor(m_storage_root.string(), force_disk_low ? std::numeric_limits<std::uint64_t>::max() : 0),
+          m_fingerprint_computer(m_cfg.security.server_secret), m_config_store(make_api_keys()),
           m_auth_cache(m_cfg.auth.cache_ttl_ms), m_auth_service(m_config_store, m_auth_cache, m_fingerprint_computer),
           m_rate_limiter(m_cfg.auth.rps_limit, m_cfg.auth.rate_limit_window_ms),
           m_nonce_store(m_epoch_clock, m_cfg.security.anti_replay.nonce_ttl_ms,
@@ -182,7 +190,8 @@ public:
                       static_cast<std::size_t>(m_cfg.queues.low_capacity)),
           m_worker_pool(static_cast<std::size_t>(m_cfg.queues.workers), m_scheduler),
           m_http_router(m_gate, m_scheduler, m_adapter, m_cfg, nullptr, nullptr),
-          m_http_server(m_cfg.http, m_http_router), m_sync_router(m_gate, m_adapter, m_cfg, nullptr) {
+          m_http_server(m_cfg.http, m_http_router), m_sync_router(m_gate, m_adapter, m_cfg, nullptr, &m_disk_monitor) {
+        std::filesystem::create_directories(m_storage_root);
         seed_adapter();
         m_worker_pool.start();
         m_sync_router.register_all(m_http_server.server());
@@ -194,6 +203,8 @@ public:
         m_http_server.shutdown();
         m_worker_pool.shutdown();
         m_scheduler.shutdown();
+        std::error_code ec;
+        std::filesystem::remove_all(m_storage_root, ec);
     }
 
     HttpResponse request(const std::string &method, const std::string &url, const std::string &body = "",
@@ -276,7 +287,9 @@ private:
         CHECK(false);
     }
 
+    std::filesystem::path m_storage_root;
     dfh_node::config::Config m_cfg;
+    dfh_node::DiskMonitor m_disk_monitor;
     std::string m_sync_token{"sync-token"};
     std::string m_admin_token{"admin-token"};
     std::string m_read_token{"read-token"};
@@ -398,6 +411,21 @@ void test_sync_block_and_status() {
     CHECK(status_json.at("counters").contains("divergence_total"));
 }
 
+void test_sync_status_reports_disk_low_without_blocking_reads() {
+    RunningSyncNode node(true);
+
+    const auto block_ok = node.request(
+        "GET", "/sync/block?provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&block_ts=123", "", node.sync_token(),
+        node.sync_ar_headers("GET", "/sync/block?provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&block_ts=123"));
+    CHECK_EQ(block_ok.status, 200);
+    CHECK_EQ(block_ok.body, "dfhbin");
+
+    const auto status_ok =
+        node.request("GET", "/sync/status", "", node.sync_token(), node.sync_ar_headers("GET", "/sync/status"));
+    CHECK_EQ(status_ok.status, 200);
+    CHECK_EQ(nlohmann::json::parse(status_ok.body).at("disk_low").get<bool>(), true);
+}
+
 } // namespace
 
 int main() {
@@ -405,5 +433,6 @@ int main() {
     test_sync_meta_success_for_sync_and_admin();
     test_sync_meta_bad_signature_and_replay();
     test_sync_block_and_status();
+    test_sync_status_reports_disk_low_without_blocking_reads();
     return 0;
 }

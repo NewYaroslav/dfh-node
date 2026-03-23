@@ -5,12 +5,10 @@
 ///
 #include "peer_sync_service.hpp"
 
-#include "core/logging.hpp"
 #include "core/time_utils.hpp"
 #include "security/canonical_request.hpp"
 #include "security/sha256_utils.hpp"
 
-#include <LogIt.hpp>
 #include <client_http.hpp>
 #include <client_https.hpp>
 #include <nlohmann/json.hpp>
@@ -21,6 +19,7 @@
 #include <array>
 #include <chrono>
 #include <exception>
+#include <iostream>
 #include <map>
 #include <optional>
 #include <stdexcept>
@@ -193,8 +192,8 @@ BlockMeta parse_block_meta_json(const nlohmann::json &json_block) {
 }
 
 template <typename ClientT>
-PeerHttpResponse send_request(ClientT &client, const std::string &method, const std::string &path, const std::string &body,
-                              const SimpleWeb::CaseInsensitiveMultimap &headers) {
+PeerHttpResponse send_request(ClientT &client, const std::string &method, const std::string &path,
+                              const std::string &body, const SimpleWeb::CaseInsensitiveMultimap &headers) {
     const auto response = client.request(method, path, body, headers);
     if (!response) {
         throw std::runtime_error("peer request returned null response");
@@ -255,9 +254,13 @@ void PeerSyncService::shutdown() {
 
 bool PeerSyncService::is_running() const { return m_running.load(std::memory_order_acquire); }
 
-std::int64_t PeerSyncService::last_attempt_at_ms() const { return m_last_attempt_at_ms.load(std::memory_order_acquire); }
+std::int64_t PeerSyncService::last_attempt_at_ms() const {
+    return m_last_attempt_at_ms.load(std::memory_order_acquire);
+}
 
-std::int64_t PeerSyncService::last_success_at_ms() const { return m_last_success_at_ms.load(std::memory_order_acquire); }
+std::int64_t PeerSyncService::last_success_at_ms() const {
+    return m_last_success_at_ms.load(std::memory_order_acquire);
+}
 
 std::int64_t PeerSyncService::estimated_lag_ms() const {
     const std::int64_t last_success = last_success_at_ms();
@@ -323,9 +326,8 @@ void PeerSyncService::sync_peer(const config::PeerConfig &peer, bool &had_any_su
         std::uint64_t divergence = 0;
 
         std::size_t downloaded_this_cycle = 0;
-        const std::size_t max_blocks = m_cfg.sync.max_blocks_per_cycle > 0
-                                           ? static_cast<std::size_t>(m_cfg.sync.max_blocks_per_cycle)
-                                           : 0U;
+        const std::size_t max_blocks =
+            m_cfg.sync.max_blocks_per_cycle > 0 ? static_cast<std::size_t>(m_cfg.sync.max_blocks_per_cycle) : 0U;
 
         for (const BlockMeta &peer_block : peer_blocks) {
             if (downloaded_this_cycle >= max_blocks) {
@@ -346,17 +348,17 @@ void PeerSyncService::sync_peer(const config::PeerConfig &peer, bool &had_any_su
             if (divergent) {
                 m_divergence.fetch_add(1, std::memory_order_relaxed);
                 ++divergence;
-                DFH_PRINTF_WARN("Sync divergence detected for peer=%s block=%s/%s/%s/%lld",
-                                peer.id.c_str(), peer_block.key.provider.c_str(), peer_block.key.symbol.c_str(),
-                                peer_block.key.source.c_str(), static_cast<long long>(peer_block.key.block_ts));
+                std::clog << "WARN: Sync divergence detected for peer=" << peer.id
+                          << " block=" << peer_block.key.provider << '/' << peer_block.key.symbol << '/'
+                          << peer_block.key.source << '/' << static_cast<long long>(peer_block.key.block_ts) << '\n';
             }
 
             if (m_disk_monitor != nullptr && m_disk_monitor->is_disk_low()) {
                 m_sync_errors.fetch_add(1, std::memory_order_relaxed);
                 ++errors;
-                DFH_PRINTF_WARN("Skip sync block due to disk_low: peer=%s block=%s/%s/%s/%lld",
-                                peer.id.c_str(), peer_block.key.provider.c_str(), peer_block.key.symbol.c_str(),
-                                peer_block.key.source.c_str(), static_cast<long long>(peer_block.key.block_ts));
+                std::clog << "WARN: Skip sync block due to disk_low: peer=" << peer.id
+                          << " block=" << peer_block.key.provider << '/' << peer_block.key.symbol << '/'
+                          << peer_block.key.source << '/' << static_cast<long long>(peer_block.key.block_ts) << '\n';
                 continue;
             }
 
@@ -389,11 +391,11 @@ void PeerSyncService::sync_peer(const config::PeerConfig &peer, bool &had_any_su
             } catch (const std::exception &error) {
                 m_sync_errors.fetch_add(1, std::memory_order_relaxed);
                 ++errors;
-                DFH_PRINTF_ERROR("Sync peer block failed: peer=%s error=%s", peer.id.c_str(), error.what());
+                std::clog << "ERROR: Sync peer block failed: peer=" << peer.id << " error=" << error.what() << '\n';
             } catch (...) {
                 m_sync_errors.fetch_add(1, std::memory_order_relaxed);
                 ++errors;
-                DFH_PRINTF_ERROR("Sync peer block failed: peer=%s error=unknown", peer.id.c_str());
+                std::clog << "ERROR: Sync peer block failed: peer=" << peer.id << " error=unknown\n";
             }
 
             {
@@ -402,16 +404,17 @@ void PeerSyncService::sync_peer(const config::PeerConfig &peer, bool &had_any_su
             }
         }
 
-        DFH_PRINTF_INFO("Sync peer finished: peer=%s downloaded=%llu skipped=%llu errors=%llu divergence=%llu",
-                        peer.id.c_str(), static_cast<unsigned long long>(downloaded),
-                        static_cast<unsigned long long>(skipped), static_cast<unsigned long long>(errors),
-                        static_cast<unsigned long long>(divergence));
+        std::clog << "INFO: Sync peer finished: peer=" << peer.id
+                  << " downloaded=" << static_cast<unsigned long long>(downloaded)
+                  << " skipped=" << static_cast<unsigned long long>(skipped)
+                  << " errors=" << static_cast<unsigned long long>(errors)
+                  << " divergence=" << static_cast<unsigned long long>(divergence) << '\n';
     } catch (const std::exception &error) {
         m_sync_errors.fetch_add(1, std::memory_order_relaxed);
-        DFH_PRINTF_ERROR("Sync peer failed: peer=%s error=%s", peer.id.c_str(), error.what());
+        std::clog << "ERROR: Sync peer failed: peer=" << peer.id << " error=" << error.what() << '\n';
     } catch (...) {
         m_sync_errors.fetch_add(1, std::memory_order_relaxed);
-        DFH_PRINTF_ERROR("Sync peer failed: peer=%s error=unknown", peer.id.c_str());
+        std::clog << "ERROR: Sync peer failed: peer=" << peer.id << " error=unknown\n";
     }
 }
 

@@ -1,7 +1,7 @@
 /// \file sync_dto_parser.hpp
 /// \brief Парсинг DTO для HTTP endpoints межнодовой синхронизации.
 /// \details Преобразует JSON/query transport-формата в DTO адаптера и
-/// возвращает стабильные коды ошибок для `/sync/*`.
+/// возвращает стабильные коды ошибок для sync-endpoint'ов.
 ///
 #pragma once
 
