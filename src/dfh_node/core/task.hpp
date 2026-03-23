@@ -26,7 +26,8 @@ inline int to_index(TaskLane lane) { return static_cast<int>(lane); }
 enum class TaskKind : std::uint8_t {
     Ingest = 0,  ///< Задача записи.
     History = 1, ///< Задача чтения истории.
-    Admin = 2    ///< Административная операция без постановки в `TaskScheduler`.
+    Admin = 2,   ///< Административная операция без постановки в `TaskScheduler`.
+    Sync = 3     ///< Межнодовая синхронизация.
 };
 
 /// \brief Статус постановки задачи в очередь.

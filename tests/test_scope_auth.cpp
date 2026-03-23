@@ -27,6 +27,10 @@ void test_required_scope_mapping() {
     CHECK(history_scope.has_value());
     CHECK_EQ(*history_scope, Scope::Read);
 
+    const auto sync_scope = required_scope(TaskKind::Sync);
+    CHECK(sync_scope.has_value());
+    CHECK_EQ(*sync_scope, Scope::Sync);
+
     const auto unsupported = required_scope(static_cast<TaskKind>(255));
     CHECK(!unsupported.has_value());
 }

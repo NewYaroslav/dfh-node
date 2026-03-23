@@ -82,6 +82,8 @@ inline std::optional<Scope> required_scope(const TaskKind kind) {
         return Scope::Read;
     case TaskKind::Admin:
         return Scope::Admin;
+    case TaskKind::Sync:
+        return Scope::Sync;
     default:
         // Безопасное поведение в runtime для будущих/неизвестных значений enum.
         return std::nullopt;

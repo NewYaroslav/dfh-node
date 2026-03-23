@@ -108,6 +108,7 @@ int main() {
             "queues": 1,
             "security": "x",
             "auth": 1,
+            "sync": 1,
             "storage": 1,
             "logging": 1,
             "peers": 1
@@ -123,6 +124,7 @@ int main() {
         CHECK(has_error(result, "queues", "type_mismatch"));
         CHECK(has_error(result, "security", "type_mismatch"));
         CHECK(has_error(result, "auth", "type_mismatch"));
+        CHECK(has_error(result, "sync", "type_mismatch"));
         CHECK(has_error(result, "storage", "type_mismatch"));
         CHECK(has_error(result, "logging", "type_mismatch"));
         CHECK(has_error(result, "peers", "type_mismatch"));
@@ -239,6 +241,42 @@ int main() {
         CHECK_EQ(result.config->auth.api_keys[0].ws_max_connections, 2);
         CHECK_EQ(result.config->auth.api_keys[1].rps_limit, 222);
         CHECK_EQ(result.config->auth.api_keys[1].ws_max_connections, 333);
+        remove_temp_file(temp_path);
+    }
+
+    {
+        // Пользовательские параметры sync корректно читаются из JSON.
+        const auto temp_path = write_temp_json("dfh_node_sync_config.json", R"({
+            "schema_version": 1,
+            "node_id": "node-sync",
+            "env": "dev",
+            "security": {
+                "server_secret": "test-secret-key-16chars"
+            },
+            "sync": {
+                "enabled": true,
+                "pull_interval_ms": 15000,
+                "request_timeout_ms": 7000,
+                "meta_max_blocks": 333,
+                "max_blocks_per_cycle": 222,
+                "max_parallel_downloads": 3
+            },
+            "peers": [
+                { "id": "node-b", "url": "http://192.168.1.2:8080" }
+            ]
+        })");
+        auto result = dfh_node::config::load_from_file(temp_path);
+        CHECK(result.is_ok());
+        CHECK(result.config.has_value());
+        CHECK(result.config->sync.enabled);
+        CHECK_EQ(result.config->sync.pull_interval_ms, static_cast<std::int64_t>(15000));
+        CHECK_EQ(result.config->sync.request_timeout_ms, static_cast<std::int64_t>(7000));
+        CHECK_EQ(result.config->sync.meta_max_blocks, static_cast<std::int64_t>(333));
+        CHECK_EQ(result.config->sync.max_blocks_per_cycle, static_cast<std::int64_t>(222));
+        CHECK_EQ(result.config->sync.max_parallel_downloads, 3);
+        CHECK_EQ(result.config->peers.size(), static_cast<std::size_t>(1));
+        CHECK_EQ(result.config->peers[0].id, "node-b");
+        CHECK_EQ(result.config->peers[0].url, "http://192.168.1.2:8080");
         remove_temp_file(temp_path);
     }
 
@@ -424,6 +462,36 @@ int main() {
         CHECK(has_error(result, "logging.level", "type_mismatch"));
         CHECK(has_error(result, "logging.console", "type_mismatch"));
         CHECK(has_error(result, "logging.file_path", "type_mismatch"));
+        remove_temp_file(temp_path);
+    }
+
+    {
+        // Типы полей sync валидируются.
+        const auto temp_path = write_temp_json("dfh_node_sync_errors.json", R"({
+            "schema_version": 1,
+            "node_id": "node-01",
+            "env": "dev",
+            "security": {
+                "server_secret": "test-secret-key-16chars"
+            },
+            "sync": {
+                "enabled": "true",
+                "pull_interval_ms": "bad",
+                "request_timeout_ms": "bad",
+                "meta_max_blocks": "bad",
+                "max_blocks_per_cycle": "bad",
+                "max_parallel_downloads": "bad"
+            }
+        })");
+        auto result = dfh_node::config::load_from_file(temp_path);
+        CHECK(!result.is_ok());
+        CHECK(!result.config.has_value());
+        CHECK(has_error(result, "sync.enabled", "type_mismatch"));
+        CHECK(has_error(result, "sync.pull_interval_ms", "type_mismatch"));
+        CHECK(has_error(result, "sync.request_timeout_ms", "type_mismatch"));
+        CHECK(has_error(result, "sync.meta_max_blocks", "type_mismatch"));
+        CHECK(has_error(result, "sync.max_blocks_per_cycle", "type_mismatch"));
+        CHECK(has_error(result, "sync.max_parallel_downloads", "type_mismatch"));
         remove_temp_file(temp_path);
     }
 
