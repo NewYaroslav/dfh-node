@@ -65,6 +65,14 @@ int main() {
         cfg.storage.path.clear();
         cfg.storage.min_free_bytes = -1;
 
+        cfg.sync.enabled = true;
+        cfg.sync.pull_interval_ms = 0;
+        cfg.sync.request_timeout_ms = 0;
+        cfg.sync.meta_max_blocks = 0;
+        cfg.sync.max_blocks_per_cycle = 0;
+        cfg.sync.max_parallel_downloads = 0;
+        cfg.sync.outbound_token.clear();
+
         cfg.logging.level = "verbose";
 
         cfg.peers = {
@@ -100,6 +108,12 @@ int main() {
         CHECK(has_error(errors, "security.anti_replay.require_for_scopes", "missing"));
         CHECK(has_error(errors, "storage.path", "missing"));
         CHECK(has_error(errors, "storage.min_free_bytes", "out_of_range"));
+        CHECK(has_error(errors, "sync.pull_interval_ms", "out_of_range"));
+        CHECK(has_error(errors, "sync.request_timeout_ms", "out_of_range"));
+        CHECK(has_error(errors, "sync.meta_max_blocks", "out_of_range"));
+        CHECK(has_error(errors, "sync.max_blocks_per_cycle", "out_of_range"));
+        CHECK(has_error(errors, "sync.max_parallel_downloads", "out_of_range"));
+        CHECK(has_error(errors, "sync.outbound_token", "missing"));
         CHECK(has_error(errors, "logging.level", "invalid_format"));
         CHECK(has_error(errors, "peers[1].id", "conflict"));
         CHECK(has_error(errors, "peers[1].url", "invalid_format"));
@@ -164,6 +178,57 @@ int main() {
         CHECK(!has_error(errors, "security.anti_replay.nonce_ttl_ms", "out_of_range"));
         CHECK(!has_error(errors, "security.anti_replay.nonce_capacity", "out_of_range"));
         CHECK(!has_error(errors, "security.anti_replay.require_for_scopes", "missing"));
+    }
+
+    {
+        // При выключенном sync нулевые значения не должны давать ошибок sync.
+        auto cfg = dfh_node::config::default_config();
+        cfg.node_id = "node-01";
+        cfg.env = "dev";
+        cfg.security.server_secret = "test-secret-key-16chars";
+        cfg.sync.enabled = false;
+        cfg.sync.pull_interval_ms = 0;
+        cfg.sync.request_timeout_ms = 0;
+        cfg.sync.meta_max_blocks = 0;
+        cfg.sync.max_blocks_per_cycle = 0;
+        cfg.sync.max_parallel_downloads = 0;
+        cfg.sync.outbound_token.clear();
+
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(!has_error(errors, "sync.pull_interval_ms", "out_of_range"));
+        CHECK(!has_error(errors, "sync.request_timeout_ms", "out_of_range"));
+        CHECK(!has_error(errors, "sync.meta_max_blocks", "out_of_range"));
+        CHECK(!has_error(errors, "sync.max_blocks_per_cycle", "out_of_range"));
+        CHECK(!has_error(errors, "sync.max_parallel_downloads", "out_of_range"));
+        CHECK(!has_error(errors, "sync.outbound_token", "missing"));
+    }
+
+    {
+        // При включённом sync и настроенных peers outbound_token обязателен.
+        auto cfg = dfh_node::config::default_config();
+        cfg.node_id = "node-01";
+        cfg.env = "dev";
+        cfg.security.server_secret = "test-secret-key-16chars";
+        cfg.sync.enabled = true;
+        cfg.sync.outbound_token.clear();
+        cfg.peers = {{"peer-a", "http://peer-a.local"}};
+
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(has_error(errors, "sync.outbound_token", "missing"));
+    }
+
+    {
+        // При включённом sync и peers валидный outbound_token снимает ошибку.
+        auto cfg = dfh_node::config::default_config();
+        cfg.node_id = "node-01";
+        cfg.env = "dev";
+        cfg.security.server_secret = "test-secret-key-16chars";
+        cfg.sync.enabled = true;
+        cfg.sync.outbound_token = "sync-outbound-token";
+        cfg.peers = {{"peer-a", "http://peer-a.local"}};
+
+        const auto errors = dfh_node::config::validate(cfg);
+        CHECK(!has_error(errors, "sync.outbound_token", "missing"));
     }
 
     {

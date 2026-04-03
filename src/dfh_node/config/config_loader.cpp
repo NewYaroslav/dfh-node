@@ -348,6 +348,21 @@ LoadResult load_from_file(const std::filesystem::path &path) {
         }
     }
 
+    if (auto it = root.find("sync"); it != root.end()) {
+        if (!it->is_object()) {
+            add_error(result.errors, "sync", "type_mismatch", "Expected object");
+        } else {
+            const auto &obj = *it;
+            read_bool(obj, "enabled", cfg.sync.enabled, result.errors, "sync");
+            read_int64(obj, "pull_interval_ms", cfg.sync.pull_interval_ms, result.errors, "sync");
+            read_int64(obj, "request_timeout_ms", cfg.sync.request_timeout_ms, result.errors, "sync");
+            read_int64(obj, "meta_max_blocks", cfg.sync.meta_max_blocks, result.errors, "sync");
+            read_int64(obj, "max_blocks_per_cycle", cfg.sync.max_blocks_per_cycle, result.errors, "sync");
+            read_int(obj, "max_parallel_downloads", cfg.sync.max_parallel_downloads, result.errors, "sync");
+            read_string(obj, "outbound_token", cfg.sync.outbound_token, result.errors, "sync", false);
+        }
+    }
+
     if (auto it = root.find("storage"); it != root.end()) {
         if (!it->is_object()) {
             add_error(result.errors, "storage", "type_mismatch", "Expected object");

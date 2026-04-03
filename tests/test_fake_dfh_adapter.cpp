@@ -220,6 +220,7 @@ void test_get_block_dfhbin_not_found() {
 
 void test_list_block_meta_filter() {
     FakeDfhAdapter adapter;
+    const std::array<std::uint8_t, 32> zero_hash{};
 
     auto ingest = [&](std::int64_t ts, const std::string &provider, const std::string &symbol) {
         auto req = std::make_unique<IngestRequest>();
@@ -243,6 +244,8 @@ void test_list_block_meta_filter() {
     CHECK_EQ(resp->blocks.size(), static_cast<std::size_t>(2));
     CHECK_EQ(resp->blocks[0].key.provider, std::string("pA"));
     CHECK_EQ(resp->blocks[1].key.provider, std::string("pA"));
+    CHECK_NE(resp->blocks[0].hash, zero_hash);
+    CHECK_NE(resp->blocks[1].hash, zero_hash);
 }
 
 void test_list_block_meta_bounds() {
@@ -351,6 +354,47 @@ void test_get_block_hash_not_found() {
     CHECK_EQ(resp->hash, zero_hash);
 }
 
+void test_merge_block_dfhbin_happy_path() {
+    FakeDfhAdapter adapter;
+    const auto payload = bytes({0xaa, 0xbb, 0xcc, 0xdd});
+
+    auto merge_req = std::make_unique<MergeBlockDfhbinRequest>();
+    merge_req->key = make_key(888);
+    merge_req->bytes = payload;
+
+    auto merge_resp = adapter.merge_block_dfhbin(std::move(merge_req));
+    CHECK_EQ(merge_resp->status, AdapterStatus::Ok);
+    CHECK(merge_resp->error_code.empty());
+
+    auto get_req = std::make_unique<GetBlockDfhbinRequest>();
+    get_req->key = make_key(888);
+    auto get_resp = adapter.get_block_dfhbin(std::move(get_req));
+    CHECK_EQ(get_resp->status, AdapterStatus::Ok);
+    CHECK_EQ(get_resp->payload, payload);
+
+    auto meta_req = std::make_unique<ListBlockMetaRequest>();
+    meta_req->provider = "p1";
+    meta_req->symbol = "s1";
+    meta_req->source = "src";
+    meta_req->tf = Timeframe::Ticks;
+    auto meta_resp = adapter.list_block_meta(std::move(meta_req));
+    CHECK_EQ(meta_resp->status, AdapterStatus::Ok);
+    CHECK_EQ(meta_resp->blocks.size(), static_cast<std::size_t>(1));
+
+    std::array<std::uint8_t, 32> expected_hash{};
+    const std::string payload_str(reinterpret_cast<const char *>(payload.data()), payload.size());
+    compute_sha256_raw(payload_str, expected_hash.data());
+    CHECK_EQ(meta_resp->blocks[0].hash, expected_hash);
+}
+
+void test_merge_block_dfhbin_invalid_argument() {
+    FakeDfhAdapter adapter;
+
+    auto resp = adapter.merge_block_dfhbin(std::unique_ptr<MergeBlockDfhbinRequest>());
+    CHECK_EQ(resp->status, AdapterStatus::Error);
+    CHECK_EQ(resp->error_code, std::string("invalid_argument"));
+}
+
 void test_reset_clears_storage() {
     FakeDfhAdapter adapter;
 
@@ -419,6 +463,8 @@ int main() {
     test_list_block_meta_filters_symbol_source_tf();
     test_get_block_hash_happy_path();
     test_get_block_hash_not_found();
+    test_merge_block_dfhbin_happy_path();
+    test_merge_block_dfhbin_invalid_argument();
     test_reset_clears_storage();
     test_error_invariants();
     return 0;

@@ -48,7 +48,7 @@
 - Для accessor-методов используем имена без префикса `get_` (`total_processed()`, `avg_wait_ms()`, `high_metrics()`).
 - Заголовки `.hpp` размещаем рядом с реализациями `.cpp` в `src/`; отдельную папку `include/` не используем.
 - Для внешних потребителей библиотеки (`src/app`, `tests`, примеры) используем umbrella-заголовки
-  `core.hpp`, `config.hpp`, `security.hpp`, `auth.hpp`, `scheduler.hpp`, `adapter.hpp`, `transport.hpp`
+  `core.hpp`, `config.hpp`, `security.hpp`, `auth.hpp`, `scheduler.hpp`, `adapter.hpp`, `transport.hpp`, `sync.hpp`
   как приоритетный способ подключения.
 - Прямые include вида `core/...`, `config/...`, `security/...`, `auth/...`, `scheduler/...`, `adapter/...`
   допускаются только когда umbrella не покрывает нужный API (например, internal API
@@ -81,11 +81,12 @@
 ## 4. Структура репозитория (фактическая)
 - docs/ — документация и правила (в т.ч. third_party).
 - src/dfh_node/ — библиотека ноды: `.cpp` и соответствующие `.hpp` рядом, основные подкаталоги:
-  `adapter/`, `auth/`, `config/`, `core/`, `scheduler/`, `security/`, `transport/http/`,
+  `adapter/`, `auth/`, `config/`, `core/`, `scheduler/`, `security/`, `sync/`, `transport/http/`,
   а также umbrella-заголовки `core.hpp`, `config.hpp`, `security.hpp`, `auth.hpp`,
-  `scheduler.hpp`, `adapter.hpp`, `transport.hpp`.
+  `scheduler.hpp`, `adapter.hpp`, `transport.hpp`, `sync.hpp`.
 - src/app/ — приложение: `main.cpp`.
 - tests/ — тесты: smoke + config + scheduler/worker + auth/rate-limit/gate + anti-replay + adapter + transport/http + transport/ws
+  + sync
   (`test_smoke.cpp`, `test_config_defaults.cpp`, `test_config_loader.cpp`,
   `test_config_validator.cpp`, `test_task_scheduler.cpp`, `test_worker_pool.cpp`,
   `test_bounded_queue.cpp`, `test_scope.cpp`, `test_scope_auth.cpp`,
@@ -98,6 +99,7 @@
   `test_fake_dfh_adapter.cpp`, `test_dfh_adapter_e2e.cpp`,
   `test_http_error_map.cpp`, `test_http_dto_parser.cpp`, `test_http_reply_handle.cpp`,
   `test_http_integration.cpp`, `test_admin_router.cpp`, `test_ops_endpoints.cpp`,
+  `test_sync_dto_parser.cpp`, `test_peer_sync_service.cpp`, `test_sync_router.cpp`, `test_sync_e2e.cpp`,
   `test_ws_protocol.cpp`, `test_ws_session_registry.cpp`,
   `test_ws_dto_parser.cpp`, `test_ws_integration.cpp`, `test_ws_runtime_components.cpp`,
   `test_disk_low.cpp`).
@@ -124,7 +126,8 @@
   `test_gate_e2e`, `test_status`, `test_dfh_adapter_dto`, `test_fake_dfh_adapter`,
   `test_dfh_adapter_e2e`, `test_http_error_map`, `test_http_dto_parser`,
   `test_http_reply_handle`, `test_http_integration`, `test_admin_router`,
-  `test_ops_endpoints`, `test_ws_protocol`, `test_ws_session_registry`,
+  `test_ops_endpoints`, `test_sync_dto_parser`, `test_peer_sync_service`,
+  `test_sync_router`, `test_sync_e2e`, `test_ws_protocol`, `test_ws_session_registry`,
   `test_ws_dto_parser`, `test_ws_integration`, `test_ws_runtime_components`,
   `test_disk_low`.
 
@@ -167,6 +170,7 @@
   adapter (`test_dfh_adapter_dto`, `test_fake_dfh_adapter`, `test_dfh_adapter_e2e`),
   transport/http (`test_http_error_map`, `test_http_dto_parser`, `test_http_reply_handle`, `test_http_integration`,
   `test_admin_router`, `test_ops_endpoints`),
+  sync (`test_sync_dto_parser`, `test_peer_sync_service`, `test_sync_router`, `test_sync_e2e`),
   transport/ws (`test_ws_protocol`, `test_ws_session_registry`, `test_ws_dto_parser`,
   `test_ws_integration`, `test_ws_runtime_components`, `test_disk_low`).
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
@@ -199,6 +203,10 @@
 - Admin/Ops (реализовано в runtime при запуске `dfh_node_app --run`):
   - `/v1/admin/keys` — CRUD для динамических API-ключей в `MDBX`.
   - `/health`, `/ready`, `/metrics` — эксплуатационные endpoints.
+- Sync (реализовано в runtime при запуске `dfh_node_app --run`):
+  - `/sync/meta` — список метаданных блоков peer-ноды.
+  - `/sync/block` — выдача raw `dfhbin` блока по ключу.
+  - `/sync/status` — состояние pull loop и sync-счётчиков.
 - WS (реализовано в runtime при запуске `dfh_node_app --run` и `ws.port != 0`):
   - Endpoints: `/ws/msgpack` (основной), `/ws/json` (fallback).
   - Control-message: `op=ingest|history|subscribe` + `msg_id`.
@@ -286,6 +294,11 @@ PAYLOAD_HASH
 - Pull-модель, peers статически в конфиге.
 - Diff по meta/hash/revision: сначала `end_ts`, затем `count`.
 - Eventual consistency как базовая модель.
+- `SyncRouter` регистрируется всегда; входящие `/sync/*` доступны независимо от `sync.enabled`.
+- `PeerSyncService` запускается только при `sync.enabled = true` и непустом `peers`.
+- Все `/sync/*` требуют anti-replay, включая `GET`.
+- `disk_low` не блокирует `/sync/meta` и `/sync/block`, но в pull loop блок скачивания пропускается и растёт `sync_errors_total`.
+- Merge downloaded блоков выполняется только через `merge_block_dfhbin()`, не через `ingest_structured()`.
 
 ## 10.1 Правила Mdbx
 - `MdbxApiKeyStore` отвечает только за открытие `MDBX`, чтение и атомарную запись/удаление во всех трёх индексах:

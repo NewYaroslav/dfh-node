@@ -56,10 +56,9 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - контракт storage-слоя (`IDfhAdapter` + DTO) и in-memory реализация `FakeDfhAdapter`;
 - HTTP transport v1 (`/v1/ingest`, `/v1/history`, `/v1/status`) + интеграционные тесты;
 - Admin/Ops runtime (`/v1/admin/keys`, `/health`, `/ready`, `/metrics`) + интеграционные тесты;
+- Sync runtime (`/sync/meta`, `/sync/block`, `/sync/status`) + unit/integration/E2E тесты;
 - WS transport v1 (`/ws/json`, `/ws/msgpack`) + интеграционные тесты;
 - unit/smoke/E2E тесты через CTest.
-
-Следующим этапом остается sync-протокол между нодами.
 
 ## Быстрый старт
 
@@ -85,6 +84,7 @@ build-msvc\src\app\dfh_node_app.exe --config examples\config_minimal.json --run
 HTTP transport API описан в `docs/api/http_v1.md`.
 Актуальный контракт WebSocket API описан в `docs/api/ws_v1.md`.
 Admin API описан в `docs/api/admin_v1.md`.
+Sync API описан в `docs/api/sync_v1.md`.
 
 ## Защита от replay-атак
 

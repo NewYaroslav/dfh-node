@@ -42,22 +42,6 @@ bool matches_non_empty_filter(const std::string &filter, const std::string &valu
 
 } // namespace
 
-bool operator<(const BlockKey &a, const BlockKey &b) {
-    if (a.provider != b.provider) {
-        return a.provider < b.provider;
-    }
-    if (a.symbol != b.symbol) {
-        return a.symbol < b.symbol;
-    }
-    if (a.source != b.source) {
-        return a.source < b.source;
-    }
-    if (a.tf != b.tf) {
-        return a.tf < b.tf;
-    }
-    return a.block_ts < b.block_ts;
-}
-
 std::unique_ptr<IngestResponse> FakeDfhAdapter::ingest_structured(std::unique_ptr<IngestRequest> req) {
     auto resp = std::make_unique<IngestResponse>();
     if (!req) {
@@ -78,7 +62,35 @@ std::unique_ptr<IngestResponse> FakeDfhAdapter::ingest_structured(std::unique_pt
     m_storage[req->key] = req->payload;
     m_hashes[req->key] = new_hash;
     m_meta[req->key] = BlockMeta{
-        req->key, req->key.block_ts, req->key.block_ts, 0, now_ms(),
+        req->key, req->key.block_ts, req->key.block_ts, 0, now_ms(), new_hash,
+    };
+
+    resp->status = AdapterStatus::Ok;
+    return resp;
+}
+
+std::unique_ptr<MergeBlockDfhbinResponse>
+FakeDfhAdapter::merge_block_dfhbin(std::unique_ptr<MergeBlockDfhbinRequest> req) {
+    auto resp = std::make_unique<MergeBlockDfhbinResponse>();
+    if (!req) {
+        resp->status = AdapterStatus::Error;
+        resp->error_code = "invalid_argument";
+        return resp;
+    }
+
+    const auto new_hash = compute_payload_hash(req->bytes);
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_hashes.find(req->key);
+    if (it != m_hashes.end() && it->second == new_hash) {
+        resp->status = AdapterStatus::Ignore;
+        return resp;
+    }
+
+    m_storage[req->key] = req->bytes;
+    m_hashes[req->key] = new_hash;
+    m_meta[req->key] = BlockMeta{
+        req->key, req->key.block_ts, req->key.block_ts, 0, now_ms(), new_hash,
     };
 
     resp->status = AdapterStatus::Ok;
@@ -178,7 +190,13 @@ std::unique_ptr<ListBlockMetaResponse> FakeDfhAdapter::list_block_meta(std::uniq
             continue;
         }
 
-        resp->blocks.push_back(entry.second);
+        BlockMeta meta = entry.second;
+        auto hash_it = m_hashes.find(key);
+        if (hash_it != m_hashes.end()) {
+            meta.hash = hash_it->second;
+        }
+
+        resp->blocks.push_back(std::move(meta));
     }
 
     return resp;

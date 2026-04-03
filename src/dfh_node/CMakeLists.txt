@@ -30,11 +30,14 @@ add_library(dfh_node STATIC
     scheduler/worker_pool.cpp
     adapter/dfh_adapter_dto.cpp
     adapter/fake_dfh_adapter.cpp
+    sync/peer_sync_service.cpp
     transport/http/admin_dto_parser.cpp
     transport/http/admin_router.cpp
     transport/http/http_dto_parser.cpp
     transport/http/http_error_map.cpp
     transport/http/ops_router.cpp
+    transport/http/sync_dto_parser.cpp
+    transport/http/sync_router.cpp
     transport/http/http_reply_handle.cpp
     transport/http/http_router.cpp
     transport/http/http_server.cpp
@@ -62,6 +65,7 @@ target_link_libraries(dfh_node
         nlohmann_json::nlohmann_json
         log-it-cpp
         OpenSSL::Crypto
+        OpenSSL::SSL
         simple-web-server
         simple-websocket-server
         msgpack-c

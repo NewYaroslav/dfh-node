@@ -5,13 +5,31 @@
 #include "sha256_utils.hpp"
 
 #include <array>
+#include <cstdint>
 #include <iomanip>
 #include <sstream>
+#include <string_view>
 
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
 
 namespace dfh_node {
+namespace {
+
+int hex_char_to_value(const char ch) {
+    if (ch >= '0' && ch <= '9') {
+        return ch - '0';
+    }
+    if (ch >= 'a' && ch <= 'f') {
+        return (ch - 'a') + 10;
+    }
+    if (ch >= 'A' && ch <= 'F') {
+        return (ch - 'A') + 10;
+    }
+    return -1;
+}
+
+} // namespace
 
 void compute_sha256_raw(const std::string &data, unsigned char *out_32bytes) {
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
@@ -40,6 +58,27 @@ bool verify_sha256(const std::string &data, const std::string &expected_hash) {
 
     const std::string actual_hash = compute_sha256_hex(data);
     return CRYPTO_memcmp(actual_hash.data(), expected_hash.data(), 64) == 0;
+}
+
+std::vector<std::uint8_t> hex_to_bytes(const std::string_view hex) {
+    std::vector<std::uint8_t> bytes;
+    if ((hex.size() % 2U) != 0U) {
+        return bytes;
+    }
+
+    bytes.reserve(hex.size() / 2U);
+    for (std::size_t index = 0; index < hex.size(); index += 2U) {
+        const int hi = hex_char_to_value(hex[index]);
+        const int lo = hex_char_to_value(hex[index + 1U]);
+        if (hi < 0 || lo < 0) {
+            bytes.clear();
+            return bytes;
+        }
+
+        bytes.push_back(static_cast<std::uint8_t>((hi << 4) | lo));
+    }
+
+    return bytes;
 }
 
 } // namespace dfh_node

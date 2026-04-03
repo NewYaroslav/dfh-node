@@ -100,6 +100,18 @@ struct PeerConfig {
     std::string url; ///< Базовый URL пира.
 };
 
+/// \brief Параметры межнодовой синхронизации.
+/// \details На этом этапе outbound credentials берутся из общей auth-модели.
+struct SyncConfig {
+    bool enabled = false;                     ///< Включить pull-loop.
+    std::int64_t pull_interval_ms = 60000;    ///< Интервал между циклами опроса, мс.
+    std::int64_t request_timeout_ms = 30000;  ///< Таймаут HTTP-запросов к peer-нодам, мс.
+    std::int64_t meta_max_blocks = 10000;     ///< Максимум блоков в ответе `/sync/meta`.
+    std::int64_t max_blocks_per_cycle = 1000; ///< Максимум блоков для скачивания за цикл.
+    int max_parallel_downloads = 4;           ///< Максимум параллельных загрузок блоков.
+    std::string outbound_token;               ///< Plaintext токен для исходящих sync-запросов.
+};
+
 /// \brief Полная конфигурация ноды.
 /// \details Валидируется через validate; значения по умолчанию задаются в
 /// default_config.
@@ -112,6 +124,7 @@ struct Config {
     QueuesConfig queues{};           ///< Очереди и воркеры.
     SecurityConfig security{};       ///< Безопасность и секреты.
     AuthConfig auth{};               ///< Авторизация и rate limiting.
+    SyncConfig sync{};               ///< Параметры межнодовой синхронизации.
     std::vector<PeerConfig> peers{}; ///< Список peer-нод.
     StorageConfig storage{};         ///< Настройки хранения.
     LoggingConfig logging{};         ///< Настройки логирования.

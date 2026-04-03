@@ -4,7 +4,10 @@
 ///
 #pragma once
 
+#include <cstdint>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace dfh_node {
 
@@ -24,5 +27,11 @@ std::string compute_sha256_hex(const std::string &data);
 /// \param expected_hash Ожидаемый хеш в hex в нижнем регистре (64 символа).
 /// \return true, если хеш совпадает, иначе false.
 bool verify_sha256(const std::string &data, const std::string &expected_hash);
+
+/// \brief Декодирует hex-строку в массив байт.
+/// \param hex Hex-строка в нижнем или верхнем регистре с чётной длиной.
+/// \return Вектор байт; пустой вектор возвращается и для пустой строки, и при
+/// невалидном вводе.
+std::vector<std::uint8_t> hex_to_bytes(std::string_view hex);
 
 } // namespace dfh_node

@@ -138,6 +138,28 @@ std::vector<ValidationError> validate(const Config &cfg) {
         add_error(errors, "storage.min_free_bytes", "out_of_range", "storage.min_free_bytes must be >= 0");
     }
 
+    if (cfg.sync.enabled) {
+        if (cfg.sync.pull_interval_ms <= 0) {
+            add_error(errors, "sync.pull_interval_ms", "out_of_range", "sync.pull_interval_ms must be > 0");
+        }
+        if (cfg.sync.request_timeout_ms <= 0) {
+            add_error(errors, "sync.request_timeout_ms", "out_of_range", "sync.request_timeout_ms must be > 0");
+        }
+        if (cfg.sync.meta_max_blocks <= 0) {
+            add_error(errors, "sync.meta_max_blocks", "out_of_range", "sync.meta_max_blocks must be > 0");
+        }
+        if (cfg.sync.max_blocks_per_cycle <= 0) {
+            add_error(errors, "sync.max_blocks_per_cycle", "out_of_range", "sync.max_blocks_per_cycle must be > 0");
+        }
+        if (cfg.sync.max_parallel_downloads <= 0) {
+            add_error(errors, "sync.max_parallel_downloads", "out_of_range", "sync.max_parallel_downloads must be > 0");
+        }
+        if (cfg.sync.outbound_token.empty() && !cfg.peers.empty()) {
+            add_error(errors, "sync.outbound_token", "missing",
+                      "sync.outbound_token must not be empty when sync.enabled and peers are configured");
+        }
+    }
+
     if (!is_valid_level(cfg.logging.level)) {
         add_error(errors, "logging.level", "invalid_format", "logging.level must be trace|debug|info|warn|error");
     }
