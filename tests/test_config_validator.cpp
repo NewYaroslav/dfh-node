@@ -50,6 +50,9 @@ int main() {
         cfg.http.history_max_bytes = 0;
         cfg.ws.max_payload_bytes = 0;
         cfg.ws.request_timeout_ms = -1;
+        cfg.ws.history_max_range_ms = 0;
+        cfg.ws.history_max_bytes = 0;
+        cfg.ws.max_ws_connections_total = 0;
 
         cfg.queues.high_capacity = 0;
         cfg.queues.low_capacity = 0;
@@ -98,6 +101,9 @@ int main() {
         CHECK(has_error(errors, "http.history_max_bytes", "out_of_range"));
         CHECK(has_error(errors, "ws.max_payload_bytes", "out_of_range"));
         CHECK(has_error(errors, "ws.request_timeout_ms", "out_of_range"));
+        CHECK(has_error(errors, "ws.history_max_range_ms", "out_of_range"));
+        CHECK(has_error(errors, "ws.history_max_bytes", "out_of_range"));
+        CHECK(has_error(errors, "ws.max_ws_connections_total", "out_of_range"));
         CHECK(has_error(errors, "queues.high_capacity", "out_of_range"));
         CHECK(has_error(errors, "queues.low_capacity", "out_of_range"));
         CHECK(has_error(errors, "queues.workers", "out_of_range"));

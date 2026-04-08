@@ -89,6 +89,15 @@ std::vector<ValidationError> validate(const Config &cfg) {
     if (cfg.ws.request_timeout_ms < 0) {
         add_error(errors, "ws.request_timeout_ms", "out_of_range", "ws.request_timeout_ms must be >= 0");
     }
+    if (cfg.ws.history_max_range_ms <= 0) {
+        add_error(errors, "ws.history_max_range_ms", "out_of_range", "ws.history_max_range_ms must be > 0");
+    }
+    if (cfg.ws.history_max_bytes <= 0) {
+        add_error(errors, "ws.history_max_bytes", "out_of_range", "ws.history_max_bytes must be > 0");
+    }
+    if (cfg.ws.max_ws_connections_total <= 0) {
+        add_error(errors, "ws.max_ws_connections_total", "out_of_range", "ws.max_ws_connections_total must be > 0");
+    }
 
     if (cfg.queues.high_capacity <= 0) {
         add_error(errors, "queues.high_capacity", "out_of_range", "queues.high_capacity must be > 0");

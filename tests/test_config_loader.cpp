@@ -51,6 +51,33 @@ int main() {
         CHECK_EQ(result.config->http.history_max_range_ms, static_cast<std::int64_t>(86400000));
         CHECK_EQ(result.config->http.history_max_bytes, static_cast<std::int64_t>(104857600));
         CHECK_EQ(result.config->ws.request_timeout_ms, static_cast<std::int64_t>(30000));
+        CHECK_EQ(result.config->ws.history_max_range_ms, static_cast<std::int64_t>(86400000));
+        CHECK_EQ(result.config->ws.history_max_bytes, static_cast<std::int64_t>(104857600));
+        CHECK_EQ(result.config->ws.max_ws_connections_total, static_cast<std::int64_t>(1000));
+    }
+
+    {
+        // Явные WS-лимиты должны переопределяться из файла.
+        const auto temp_path = write_temp_json("dfh_node_ws_limits.json", R"({
+            "schema_version": 1,
+            "node_id": "node-ws-limits",
+            "env": "dev",
+            "security": {
+                "server_secret": "test-secret-key-16chars"
+            },
+            "ws": {
+                "history_max_range_ms": 1234,
+                "history_max_bytes": 5678,
+                "max_ws_connections_total": 9
+            }
+        })");
+        auto result = dfh_node::config::load_from_file(temp_path);
+        CHECK(result.is_ok());
+        CHECK(result.config.has_value());
+        CHECK_EQ(result.config->ws.history_max_range_ms, static_cast<std::int64_t>(1234));
+        CHECK_EQ(result.config->ws.history_max_bytes, static_cast<std::int64_t>(5678));
+        CHECK_EQ(result.config->ws.max_ws_connections_total, static_cast<std::int64_t>(9));
+        remove_temp_file(temp_path);
     }
 
     {

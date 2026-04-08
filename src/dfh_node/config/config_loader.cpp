@@ -159,6 +159,9 @@ LoadResult load_from_file(const std::filesystem::path &path) {
             read_int(obj, "port", cfg.ws.port, result.errors, "ws");
             read_int64(obj, "max_payload_bytes", cfg.ws.max_payload_bytes, result.errors, "ws");
             read_int64(obj, "request_timeout_ms", cfg.ws.request_timeout_ms, result.errors, "ws");
+            read_int64(obj, "history_max_range_ms", cfg.ws.history_max_range_ms, result.errors, "ws");
+            read_int64(obj, "history_max_bytes", cfg.ws.history_max_bytes, result.errors, "ws");
+            read_int64(obj, "max_ws_connections_total", cfg.ws.max_ws_connections_total, result.errors, "ws");
         }
     }
 

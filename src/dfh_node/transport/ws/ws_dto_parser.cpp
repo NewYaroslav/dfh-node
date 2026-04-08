@@ -21,6 +21,10 @@ template <typename T> ParseResult<T> make_parse_error(std::string detail) {
     return ParseError{"invalid_argument", std::move(detail)};
 }
 
+template <typename T> ParseResult<T> make_parse_error(std::string code, std::string detail) {
+    return ParseError{std::move(code), std::move(detail)};
+}
+
 bool parse_i64_strict(const std::string &value, std::int64_t &out) {
     if (value.empty()) {
         return false;
@@ -174,8 +178,6 @@ bool read_optional_u32(const nlohmann::json &object, const char *field_name, std
 } // namespace
 
 ParseResult<QueryHistoryRequest> parse_ws_history_payload(const nlohmann::json &payload, const config::WsConfig &cfg) {
-    (void)cfg;
-
     if (!payload.is_object()) {
         return make_parse_error<QueryHistoryRequest>("payload must be object");
     }
@@ -203,6 +205,9 @@ ParseResult<QueryHistoryRequest> parse_ws_history_payload(const nlohmann::json &
 
     if (request.from_ms >= request.to_ms) {
         return make_parse_error<QueryHistoryRequest>("from_ms must be < to_ms");
+    }
+    if (cfg.history_max_range_ms > 0 && (request.to_ms - request.from_ms) > cfg.history_max_range_ms) {
+        return make_parse_error<QueryHistoryRequest>("range_too_large", "requested range exceeds history_max_range_ms");
     }
 
     return request;

@@ -25,6 +25,7 @@ namespace asio = boost::asio;
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -276,6 +277,7 @@ public:
         HistoryThrow,
         HistoryThrowUnknown,
         HistoryCustomChunks,
+        HistorySlowFirst,
     };
 
     void set_mode(const Mode mode) { m_mode = mode; }
@@ -366,6 +368,14 @@ public:
             resp->chunks.push_back(std::move(c2));
             return resp;
         }
+        case Mode::HistorySlowFirst: {
+            if (m_history_calls.fetch_add(1, std::memory_order_relaxed) == 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(150));
+            }
+            auto resp = std::make_unique<dfh_node::QueryHistoryResponse>();
+            resp->status = dfh_node::AdapterStatus::Ok;
+            return resp;
+        }
         default: {
             auto resp = std::make_unique<dfh_node::QueryHistoryResponse>();
             resp->status = dfh_node::AdapterStatus::Ok;
@@ -400,6 +410,7 @@ public:
 
 private:
     Mode m_mode{Mode::Normal};
+    std::atomic<int> m_history_calls{0};
 };
 
 class RunningWsNode {
@@ -1074,6 +1085,51 @@ void test_scripted_adapter_error_paths() {
     CHECK_EQ(resp.at("data").at("chunks").at(1).at("key").at("tf").get<std::string>(), "unknown");
 }
 
+void test_history_response_too_large() {
+    auto cfg = make_base_config();
+    cfg.ws.history_max_bytes = 2;
+    ScriptedAdapter adapter;
+    adapter.set_mode(ScriptedAdapter::Mode::HistoryCustomChunks);
+    RunningWsNodeWithAdapter node(
+        std::move(cfg), "token-history-too-large",
+        dfh_node::to_scope_mask(dfh_node::Scope::Read) | dfh_node::to_scope_mask(dfh_node::Scope::Write), adapter);
+
+    TestWsClient client(node.endpoint("/ws/json"), node.token());
+    CHECK(client.wait_open());
+
+    client.send_text(make_history_control("hist-too-large").dump());
+    const auto resp = wait_json_response(client);
+    CHECK_EQ(resp.at("ok").get<bool>(), false);
+    CHECK_EQ(resp.at("msg_id").get<std::string>(), "hist-too-large");
+    CHECK_EQ(resp.at("error_code").get<std::string>(), "response_too_large");
+}
+
+void test_history_soft_timeout() {
+    auto cfg = make_base_config();
+    cfg.ws.request_timeout_ms = 50;
+    cfg.queues.workers = 1;
+    ScriptedAdapter adapter;
+    adapter.set_mode(ScriptedAdapter::Mode::HistorySlowFirst);
+    RunningWsNodeWithAdapter node(
+        std::move(cfg), "token-history-timeout",
+        dfh_node::to_scope_mask(dfh_node::Scope::Read) | dfh_node::to_scope_mask(dfh_node::Scope::Write), adapter);
+
+    TestWsClient client(node.endpoint("/ws/json"), node.token());
+    CHECK(client.wait_open());
+
+    client.send_text(make_history_control("hist-slow-1").dump());
+    client.send_text(make_history_control("hist-slow-2").dump());
+
+    const auto first = wait_json_response(client);
+    const auto second = wait_json_response(client);
+
+    CHECK_EQ(first.at("ok").get<bool>(), true);
+    CHECK_EQ(first.at("msg_id").get<std::string>(), "hist-slow-1");
+    CHECK_EQ(second.at("ok").get<bool>(), false);
+    CHECK_EQ(second.at("msg_id").get<std::string>(), "hist-slow-2");
+    CHECK_EQ(second.at("error_code").get<std::string>(), "timeout");
+}
+
 } // namespace
 
 int main() {
@@ -1090,5 +1146,7 @@ int main() {
     test_close_connection_during_task_no_crash();
     test_close_callback_releases_connection_limit();
     test_scripted_adapter_error_paths();
+    test_history_response_too_large();
+    test_history_soft_timeout();
     return 0;
 }

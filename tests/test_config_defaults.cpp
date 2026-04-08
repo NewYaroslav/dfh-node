@@ -15,6 +15,9 @@ int main() {
     CHECK_EQ(cfg.http.history_max_bytes, static_cast<std::int64_t>(104857600));
     CHECK_EQ(cfg.ws.port, 8081);
     CHECK_EQ(cfg.ws.request_timeout_ms, static_cast<std::int64_t>(30000));
+    CHECK_EQ(cfg.ws.history_max_range_ms, static_cast<std::int64_t>(86400000));
+    CHECK_EQ(cfg.ws.history_max_bytes, static_cast<std::int64_t>(104857600));
+    CHECK_EQ(cfg.ws.max_ws_connections_total, static_cast<std::int64_t>(1000));
     CHECK(cfg.node_id.empty());
     CHECK(cfg.env.empty());
     CHECK(cfg.security.server_secret.empty());
