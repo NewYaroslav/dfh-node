@@ -25,15 +25,20 @@ struct QueueMetrics {
 /// \brief Снимок статуса ноды на конкретный момент времени.
 /// \details Поля предназначены для вывода и мониторинга.
 struct StatusSnapshot {
-    std::string node_id;              ///< Идентификатор ноды.
-    std::string version;              ///< Версия ПО.
-    std::string build_info;           ///< Информация о сборке.
-    std::uint64_t uptime_ms = 0;      ///< Время работы, мс.
-    std::size_t peers_count = 0;      ///< Количество peer-нод.
-    std::string env;                  ///< Окружение (dev|staging|prod).
-    QueueMetrics high_priority_queue; ///< Метрики high-priority очереди.
-    QueueMetrics low_priority_queue;  ///< Метрики low-priority очереди.
-    int workers_count = 0;            ///< Количество воркеров (из config.queues.workers).
+    std::string node_id;                             ///< Идентификатор ноды.
+    std::string version;                             ///< Версия ПО.
+    std::string build_info;                          ///< Информация о сборке.
+    std::uint64_t uptime_ms = 0;                     ///< Время работы, мс.
+    std::size_t peers_count = 0;                     ///< Количество peer-нод.
+    std::string env;                                 ///< Окружение (dev|staging|prod).
+    QueueMetrics high_priority_queue;                ///< Метрики high-priority очереди.
+    QueueMetrics low_priority_queue;                 ///< Метрики low-priority очереди.
+    int workers_count = 0;                           ///< Количество воркеров (из config.queues.workers).
+    std::uint64_t auth_fail_count = 0;               ///< Счётчик gate: auth failures (Unauthorized + Forbidden).
+    std::uint64_t rate_limit_reject_count = 0;       ///< Счётчик gate: rate-limited rejections.
+    std::uint64_t anti_replay_reject_count = 0;      ///< Счётчик gate: anti-replay rejections.
+    std::uint64_t connection_limit_reject_count = 0; ///< Счётчик gate: connection-limit rejections.
+    std::int64_t ws_active_connections_total = 0;    ///< Текущее число активных WS-соединений.
 };
 
 } // namespace dfh_node

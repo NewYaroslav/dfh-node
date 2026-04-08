@@ -37,6 +37,13 @@ void log_ws_server_disabled();
 /// \param message Текст ошибки.
 void log_runtime_bootstrap_error(const char *message);
 
+/// \brief Пишет предупреждение об отклонении gate-проверки.
+/// \param code Машиночитаемый код отказа.
+/// \param transport Название транспорта (`http` или `ws`).
+/// \param kind Название типа операции (`ingest`/`history`/`unknown`).
+/// \param fingerprint Fingerprint клиента или `"unknown"`.
+void log_gate_reject(const char *code, const char *transport, const char *kind, const char *fingerprint);
+
 } // namespace dfh_node::logging
 
 // Алиасы макросов log-it-cpp на уровне проекта (без функций-обёрток).

@@ -487,6 +487,12 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
             payload["mdbx_keys_active"] = active_count;
         }
 
+        payload["auth_fail_count"] = m_gate.auth_fail_count();
+        payload["rate_limit_reject_count"] = m_gate.rate_limit_reject_count();
+        payload["anti_replay_reject_count"] = m_gate.anti_replay_reject_count();
+        payload["connection_limit_reject_count"] = m_gate.connection_limit_reject_count();
+        payload["ws_active_connections_total"] = m_gate.ws_active_connections();
+
         send_response(response, 200, payload.dump(), "application/json");
     };
 

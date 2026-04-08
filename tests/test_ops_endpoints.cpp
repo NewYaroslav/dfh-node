@@ -235,6 +235,11 @@ void test_metrics_requires_admin_and_status_contains_new_fields() {
     CHECK(header_contains(metrics.headers, "Content-Type", "text/plain; version=0.0.4"));
     CHECK_NE(metrics.body.find("dfh_node_queue_size"), std::string::npos);
     CHECK_NE(metrics.body.find("dfh_node_disk_free_bytes"), std::string::npos);
+    CHECK_NE(metrics.body.find("dfh_node_auth_fail_total"), std::string::npos);
+    CHECK_NE(metrics.body.find("dfh_node_rate_limit_reject_total"), std::string::npos);
+    CHECK_NE(metrics.body.find("dfh_node_anti_replay_reject_total"), std::string::npos);
+    CHECK_NE(metrics.body.find("dfh_node_connection_limit_reject_total"), std::string::npos);
+    CHECK_NE(metrics.body.find("dfh_node_ws_active_connections"), std::string::npos);
 
     (void)node.request("GET", "/ready");
     const auto status = node.request("GET", "/v1/status", node.admin_token());
@@ -243,6 +248,16 @@ void test_metrics_requires_admin_and_status_contains_new_fields() {
     CHECK(status_json.contains("disk_free_bytes"));
     CHECK(status_json.contains("disk_low"));
     CHECK(status_json.contains("mdbx_keys_active"));
+    CHECK(status_json.contains("auth_fail_count"));
+    CHECK(status_json.contains("rate_limit_reject_count"));
+    CHECK(status_json.contains("anti_replay_reject_count"));
+    CHECK(status_json.contains("connection_limit_reject_count"));
+    CHECK(status_json.contains("ws_active_connections_total"));
+    CHECK(status_json.at("auth_fail_count").is_number_unsigned());
+    CHECK(status_json.at("rate_limit_reject_count").is_number_unsigned());
+    CHECK(status_json.at("anti_replay_reject_count").is_number_unsigned());
+    CHECK(status_json.at("connection_limit_reject_count").is_number_unsigned());
+    CHECK(status_json.at("ws_active_connections_total").is_number_integer());
 }
 
 } // namespace

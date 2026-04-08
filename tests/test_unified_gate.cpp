@@ -274,6 +274,117 @@ void test_ws_antireplay_error_propagates() {
     CHECK_EQ(std::get<GateError>(result).code, GateErrorCode::AntiReplayFailed);
 }
 
+void test_auth_fail_counter_increments() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string fingerprint = computer.compute("token-auth-fail");
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Read), std::nullopt, 100, 5});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+    RateLimiter limiter(100, 1000);
+    WsConnectionLimiter ws_limiter;
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
+
+    const auto unauthorized = gate.authorize_http("missing-token", TaskKind::History);
+    CHECK(std::holds_alternative<GateError>(unauthorized));
+
+    const auto forbidden = gate.authorize_http("token-auth-fail", TaskKind::Ingest);
+    CHECK(std::holds_alternative<GateError>(forbidden));
+
+    CHECK_EQ(gate.auth_fail_count(), static_cast<std::uint64_t>(2));
+}
+
+void test_rate_limit_counter_increments() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string fingerprint = computer.compute("token-rate-counter");
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Read), std::nullopt, 1, 5});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+    RateLimiter limiter(1, 60000);
+    WsConnectionLimiter ws_limiter;
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
+
+    const auto first = gate.authorize_http("token-rate-counter", TaskKind::History);
+    CHECK(std::holds_alternative<AuthContext>(first));
+
+    const auto second = gate.authorize_http("token-rate-counter", TaskKind::History);
+    CHECK(std::holds_alternative<GateError>(second));
+    CHECK_EQ(std::get<GateError>(second).code, GateErrorCode::RateLimited);
+    CHECK_EQ(gate.rate_limit_reject_count(), static_cast<std::uint64_t>(1));
+}
+
+void test_connection_limit_counter_and_active_connections() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string fingerprint = computer.compute("token-conn-counter");
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 5});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+    RateLimiter limiter(100, 1000);
+    WsConnectionLimiter ws_limiter(1);
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
+
+    const auto first = gate.authorize_ws_upgrade("token-conn-counter");
+    CHECK(std::holds_alternative<AuthContext>(first));
+    CHECK_EQ(gate.ws_active_connections(), static_cast<std::int64_t>(1));
+
+    const auto second = gate.authorize_ws_upgrade("token-conn-counter");
+    CHECK(std::holds_alternative<GateError>(second));
+    CHECK_EQ(std::get<GateError>(second).code, GateErrorCode::ConnectionLimited);
+    CHECK_EQ(gate.connection_limit_reject_count(), static_cast<std::uint64_t>(1));
+
+    gate.ws_connection_closed(fingerprint);
+    CHECK_EQ(gate.ws_active_connections(), static_cast<std::int64_t>(0));
+}
+
+void test_anti_replay_counter_increments() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string token = "token-ar-counter";
+    const std::string fingerprint = computer.compute(token);
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 5});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+    RateLimiter limiter(100, 1000);
+    WsConnectionLimiter ws_limiter;
+
+    MockClock clock(1000000000000);
+    config::AntiReplayConfig ar_cfg;
+    ar_cfg.enabled = true;
+    ar_cfg.max_skew_ms = 5000;
+    ar_cfg.nonce_ttl_ms = 60000;
+    ar_cfg.nonce_capacity = 100;
+    NonceStore nonce_store(clock, ar_cfg.nonce_ttl_ms, ar_cfg.nonce_capacity);
+    AntiReplayValidator validator(ar_cfg, clock, nonce_store);
+
+    UnifiedGate gate(service, limiter, ws_limiter, &validator);
+
+    const auto missing = gate.authorize_http(token, TaskKind::Ingest, nullptr);
+    CHECK(std::holds_alternative<GateError>(missing));
+
+    HttpAntiReplayFields fields;
+    fields.method = "POST";
+    fields.path = "/v1/ingest";
+    fields.query_params = {};
+    fields.timestamp = "1000000000000";
+    fields.nonce = "a1b2c3d4e5f67890";
+    fields.body_hash = compute_sha256_hex("");
+    fields.signature = std::string(64, '0');
+
+    const auto invalid = gate.authorize_http(token, TaskKind::Ingest, &fields);
+    CHECK(std::holds_alternative<GateError>(invalid));
+    CHECK_EQ(gate.anti_replay_reject_count(), static_cast<std::uint64_t>(2));
+}
+
 int main() {
     test_http_authorize();
     test_ws_upgrade_no_kind();
@@ -285,5 +396,9 @@ int main() {
     test_ws_missing_antireplay_fields_when_validator_enabled();
     test_http_antireplay_error_propagates();
     test_ws_antireplay_error_propagates();
+    test_auth_fail_counter_increments();
+    test_rate_limit_counter_increments();
+    test_connection_limit_counter_and_active_connections();
+    test_anti_replay_counter_increments();
     return 0;
 }

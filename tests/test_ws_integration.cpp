@@ -422,6 +422,7 @@ public:
           m_api_key_store(m_api_key_entries), m_auth_cache(m_cfg.auth.cache_ttl_ms),
           m_auth_service(m_api_key_store, m_auth_cache, m_fingerprint_computer),
           m_rate_limiter(m_cfg.auth.rps_limit, m_cfg.auth.rate_limit_window_ms),
+          m_ws_connection_limiter(m_cfg.ws.max_ws_connections_total),
           m_nonce_store(m_cfg.security.anti_replay.enabled ? std::make_unique<dfh_node::NonceStore>(
                                                                  m_epoch_clock, m_cfg.security.anti_replay.nonce_ttl_ms,
                                                                  m_cfg.security.anti_replay.nonce_capacity)
@@ -501,6 +502,7 @@ public:
           m_api_key_store(m_api_key_entries), m_auth_cache(m_cfg.auth.cache_ttl_ms),
           m_auth_service(m_api_key_store, m_auth_cache, m_fingerprint_computer),
           m_rate_limiter(m_cfg.auth.rps_limit, m_cfg.auth.rate_limit_window_ms),
+          m_ws_connection_limiter(m_cfg.ws.max_ws_connections_total),
           m_nonce_store(m_cfg.security.anti_replay.enabled ? std::make_unique<dfh_node::NonceStore>(
                                                                  m_epoch_clock, m_cfg.security.anti_replay.nonce_ttl_ms,
                                                                  m_cfg.security.anti_replay.nonce_capacity)
@@ -642,6 +644,23 @@ void test_upgrade_with_valid_token_and_limit() {
     RunningWsNode node(std::move(cfg), "token-upgrade-ok",
                        dfh_node::to_scope_mask(dfh_node::Scope::Read) | dfh_node::to_scope_mask(dfh_node::Scope::Write),
                        1);
+
+    TestWsClient c1(node.endpoint("/ws/json"), node.token());
+    CHECK(c1.wait_open());
+
+    TestWsClient c2(node.endpoint("/ws/json"), node.token());
+    const auto close = c2.wait_close();
+    CHECK(close.has_value());
+    CHECK_EQ(close->status, 1008);
+    CHECK_NE(close->reason.find("connection_limited"), std::string::npos);
+}
+
+void test_upgrade_global_connection_limit() {
+    auto cfg = make_base_config();
+    cfg.ws.max_ws_connections_total = 1;
+    RunningWsNode node(std::move(cfg), "token-upgrade-global-limit",
+                       dfh_node::to_scope_mask(dfh_node::Scope::Read) | dfh_node::to_scope_mask(dfh_node::Scope::Write),
+                       2);
 
     TestWsClient c1(node.endpoint("/ws/json"), node.token());
     CHECK(c1.wait_open());
@@ -1135,6 +1154,7 @@ void test_history_soft_timeout() {
 int main() {
     test_upgrade_without_authorization_closes();
     test_upgrade_with_valid_token_and_limit();
+    test_upgrade_global_connection_limit();
     test_upgrade_rate_limited_and_bad_auth_header();
     test_history_json_and_msgpack();
     test_dfhbin_success_and_errors();

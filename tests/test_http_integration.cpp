@@ -272,6 +272,11 @@ void test_success_endpoints_and_unauthorized() {
     CHECK(status_json.contains("disk_free_bytes"));
     CHECK(status_json.contains("disk_low"));
     CHECK(status_json.contains("mdbx_keys_active"));
+    CHECK(status_json.contains("auth_fail_count"));
+    CHECK(status_json.contains("rate_limit_reject_count"));
+    CHECK(status_json.contains("anti_replay_reject_count"));
+    CHECK(status_json.contains("connection_limit_reject_count"));
+    CHECK(status_json.contains("ws_active_connections_total"));
 
     const auto unauthorized = node.request("GET", "/v1/status", "", false);
     CHECK_EQ(unauthorized.status, 401);
