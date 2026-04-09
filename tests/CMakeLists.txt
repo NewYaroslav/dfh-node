@@ -470,6 +470,17 @@ target_link_libraries(test_http_integration
 
 add_test(NAME test_http_integration COMMAND test_http_integration)
 
+add_executable(test_http_hardening
+    test_http_hardening.cpp
+)
+
+target_link_libraries(test_http_hardening
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_http_hardening COMMAND test_http_hardening)
+
 add_executable(test_admin_router
     test_admin_router.cpp
 )
@@ -557,6 +568,50 @@ target_link_libraries(test_ws_integration
 )
 
 add_test(NAME test_ws_integration COMMAND test_ws_integration)
+
+add_executable(test_ws_hardening
+    test_ws_hardening.cpp
+)
+
+target_link_libraries(test_ws_hardening
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_hardening COMMAND test_ws_hardening)
+
+add_executable(test_ws_msg_correlation
+    test_ws_msg_correlation.cpp
+)
+
+target_link_libraries(test_ws_msg_correlation
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_msg_correlation COMMAND test_ws_msg_correlation)
+
+add_executable(test_queue_overload
+    test_queue_overload.cpp
+)
+
+target_link_libraries(test_queue_overload
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_queue_overload COMMAND test_queue_overload)
+
+add_executable(test_ws_disconnect
+    test_ws_disconnect.cpp
+)
+
+target_link_libraries(test_ws_disconnect
+    PRIVATE
+        dfh_node
+)
+
+add_test(NAME test_ws_disconnect COMMAND test_ws_disconnect)
 
 add_executable(test_ws_runtime_components
     test_ws_runtime_components.cpp
