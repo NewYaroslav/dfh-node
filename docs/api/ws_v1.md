@@ -38,6 +38,7 @@
 - `to_ms` (int64, строго больше `from_ms`)
 - `provider_id` (optional uint32)
 - `symbol_id` (optional uint32)
+- Ограничение диапазона: `(to_ms - from_ms) <= ws.history_max_range_ms`
 
 ## `dfhbin` flow (2 шага)
 1. Клиент отправляет control-message `op=ingest` без `payload_base64`, но с `payload_sha256`.
@@ -71,11 +72,14 @@
 - `unknown_op`
 - `invalid_argument`
 - `payload_too_large`
+- `range_too_large`
+- `response_too_large`
 - `sha256_mismatch`
 - `unexpected_binary_frame`
 - `overload.high_priority_queue_full`
 - `overload.low_priority_queue_full`
 - `unsupported_operation`
+- `timeout`
 - `internal_error`
 
 ## Примеры JSON
@@ -153,4 +157,7 @@
 ## Лимиты
 - `ws.max_payload_bytes` (по умолчанию `10000000`, 10 MB).
 - `auth.ws_max_connections` (лимит одновременных WS-соединений на fingerprint).
+- `ws.max_ws_connections_total` (глобальный лимит активных WS-соединений по всем fingerprint).
+- `ws.history_max_range_ms` ограничивает диапазон `op=history`.
+- `ws.history_max_bytes` ограничивает суммарный raw размер `payload` в ответе `history` до сериализации.
 - `ws.request_timeout_ms` (по умолчанию `30000`, `0` отключает таймаут).

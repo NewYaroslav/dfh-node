@@ -178,6 +178,8 @@ public:
     void shutdown_server_for_test() { m_server.shutdown(); }
 
     dfh_node::transport::HttpExecutor executor() const { return m_server.get_executor(); }
+    int port() const { return m_cfg.http.port; }
+    const std::string &token() const { return m_token; }
 
     dfh_node::MdbxApiKeyStore &mdbx_store() { return *m_mdbx_store; }
 
@@ -213,6 +215,182 @@ private:
     std::unique_ptr<dfh_node::MdbxApiKeyStore> m_mdbx_store;
     dfh_node::DiskMonitor m_disk_monitor;
     dfh_node::FakeDfhAdapter m_adapter;
+    dfh_node::transport::HttpRouter m_router;
+    dfh_node::transport::HttpServer m_server;
+    bool m_workers_started{false};
+};
+
+class ScriptedHttpAdapter final : public dfh_node::IDfhAdapter {
+public:
+    enum class Mode {
+        Normal,
+        HistoryNull,
+        HistoryThrow,
+        HistoryThrowUnknown,
+    };
+
+    void set_mode(const Mode mode) { m_mode = mode; }
+
+    std::unique_ptr<dfh_node::IngestResponse>
+    ingest_structured(std::unique_ptr<dfh_node::IngestRequest>) override {
+        auto resp = std::make_unique<dfh_node::IngestResponse>();
+        resp->status = dfh_node::AdapterStatus::Ok;
+        return resp;
+    }
+
+    std::unique_ptr<dfh_node::MergeBlockDfhbinResponse>
+    merge_block_dfhbin(std::unique_ptr<dfh_node::MergeBlockDfhbinRequest>) override {
+        auto resp = std::make_unique<dfh_node::MergeBlockDfhbinResponse>();
+        resp->status = dfh_node::AdapterStatus::Error;
+        resp->error_code = "not_supported";
+        return resp;
+    }
+
+    std::unique_ptr<dfh_node::QueryHistoryResponse>
+    query_history(std::unique_ptr<dfh_node::QueryHistoryRequest>) override {
+        switch (m_mode) {
+        case Mode::HistoryNull:
+            return nullptr;
+        case Mode::HistoryThrow:
+            throw std::runtime_error("history throw");
+        case Mode::HistoryThrowUnknown:
+            throw 13;
+        default: {
+            auto resp = std::make_unique<dfh_node::QueryHistoryResponse>();
+            resp->status = dfh_node::AdapterStatus::Ok;
+            return resp;
+        }
+        }
+    }
+
+    std::unique_ptr<dfh_node::GetBlockDfhbinResponse>
+    get_block_dfhbin(std::unique_ptr<dfh_node::GetBlockDfhbinRequest>) override {
+        auto resp = std::make_unique<dfh_node::GetBlockDfhbinResponse>();
+        resp->status = dfh_node::AdapterStatus::Error;
+        resp->error_code = "not_supported";
+        return resp;
+    }
+
+    std::unique_ptr<dfh_node::ListBlockMetaResponse>
+    list_block_meta(std::unique_ptr<dfh_node::ListBlockMetaRequest>) override {
+        auto resp = std::make_unique<dfh_node::ListBlockMetaResponse>();
+        resp->status = dfh_node::AdapterStatus::Error;
+        resp->error_code = "not_supported";
+        return resp;
+    }
+
+    std::unique_ptr<dfh_node::GetBlockHashResponse>
+    get_block_hash(std::unique_ptr<dfh_node::GetBlockHashRequest>) override {
+        auto resp = std::make_unique<dfh_node::GetBlockHashResponse>();
+        resp->status = dfh_node::AdapterStatus::Error;
+        resp->error_code = "not_supported";
+        return resp;
+    }
+
+private:
+    Mode m_mode{Mode::Normal};
+};
+
+class RunningHttpNodeWithAdapter {
+public:
+    RunningHttpNodeWithAdapter(dfh_node::config::Config cfg, std::string token, dfh_node::IDfhAdapter &adapter,
+                               const bool auto_start_workers = true)
+        : m_cfg(std::move(cfg)), m_token(std::move(token)), m_fingerprint_computer(m_cfg.security.server_secret),
+          m_api_key_entries(make_api_keys(m_fingerprint_computer, m_token)), m_api_key_store(m_api_key_entries),
+          m_auth_cache(m_cfg.auth.cache_ttl_ms), m_auth_service(m_api_key_store, m_auth_cache, m_fingerprint_computer),
+          m_rate_limiter(m_cfg.auth.rps_limit, m_cfg.auth.rate_limit_window_ms),
+          m_gate(m_auth_service, m_rate_limiter, m_ws_connection_limiter, nullptr,
+                 m_cfg.security.anti_replay.require_for_scopes),
+          m_scheduler(to_size_t(m_cfg.queues.high_capacity), to_size_t(m_cfg.queues.low_capacity)),
+          m_worker_pool(static_cast<std::size_t>(m_cfg.queues.workers), m_scheduler),
+          m_storage_root(
+              std::filesystem::temp_directory_path() / ("dfh-node-http-it-adapter-" +
+                                                        std::to_string(std::chrono::steady_clock::now()
+                                                                           .time_since_epoch()
+                                                                           .count()))),
+          m_mdbx_path(m_storage_root / "keys.mdbx"),
+          m_mdbx_store(std::make_unique<dfh_node::MdbxApiKeyStore>(m_mdbx_path.string())),
+          m_disk_monitor(m_storage_root.string(), static_cast<std::uint64_t>(m_cfg.storage.min_free_bytes)),
+          m_adapter(adapter), m_router(m_gate, m_scheduler, m_adapter, m_cfg, &m_disk_monitor, m_mdbx_store.get()),
+          m_server(m_cfg.http, m_router) {
+        std::filesystem::create_directories(m_storage_root);
+        m_mdbx_store->open();
+        if (auto_start_workers) {
+            start_workers();
+        }
+
+        m_server.start();
+        wait_until_ready();
+    }
+
+    ~RunningHttpNodeWithAdapter() {
+        m_server.shutdown();
+        m_worker_pool.shutdown();
+        m_scheduler.shutdown();
+    }
+
+    HttpResponse request(const std::string &method, const std::string &path, const std::string &body = "",
+                         bool with_token = true, long timeout_seconds = 5,
+                         const SwsHeaders &extra_headers = SwsHeaders()) const {
+        SwsClient client("127.0.0.1:" + std::to_string(m_cfg.http.port));
+        client.config.timeout = timeout_seconds;
+
+        SwsHeaders headers = extra_headers;
+        if (with_token) {
+            headers.emplace("Authorization", "Bearer " + m_token);
+        }
+
+        auto response = client.request(method, path, body, headers);
+        HttpResponse result;
+        result.status = parse_status_code(response->status_code);
+        result.body = response->content.string();
+        result.headers = response->header;
+        return result;
+    }
+
+    int port() const { return m_cfg.http.port; }
+    const std::string &token() const { return m_token; }
+
+    void start_workers() {
+        if (m_workers_started || m_cfg.queues.workers <= 0) {
+            return;
+        }
+        m_worker_pool.start();
+        m_workers_started = true;
+    }
+
+private:
+    void wait_until_ready() const {
+        for (int attempt = 0; attempt < 120; ++attempt) {
+            try {
+                const auto response = request("GET", "/v1/status");
+                if (response.status == 200) {
+                    return;
+                }
+            } catch (...) {
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        }
+        CHECK(false);
+    }
+
+    dfh_node::config::Config m_cfg;
+    std::string m_token;
+    dfh_node::FingerprintComputer m_fingerprint_computer;
+    std::vector<dfh_node::config::ApiKeyEntry> m_api_key_entries;
+    dfh_node::ConfigApiKeyStore m_api_key_store;
+    dfh_node::AuthCache m_auth_cache;
+    dfh_node::AuthService m_auth_service;
+    dfh_node::RateLimiter m_rate_limiter;
+    dfh_node::WsConnectionLimiter m_ws_connection_limiter;
+    dfh_node::UnifiedGate m_gate;
+    dfh_node::TaskScheduler m_scheduler;
+    dfh_node::WorkerPool m_worker_pool;
+    std::filesystem::path m_storage_root;
+    std::filesystem::path m_mdbx_path;
+    std::unique_ptr<dfh_node::MdbxApiKeyStore> m_mdbx_store;
+    dfh_node::DiskMonitor m_disk_monitor;
+    dfh_node::IDfhAdapter &m_adapter;
     dfh_node::transport::HttpRouter m_router;
     dfh_node::transport::HttpServer m_server;
     bool m_workers_started{false};
@@ -495,6 +673,62 @@ void test_timeout_maps_to_504() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
+void test_history_worker_error_paths() {
+    auto cfg = make_base_config();
+    ScriptedHttpAdapter adapter;
+    RunningHttpNodeWithAdapter node(std::move(cfg), "token-history-worker-errors", adapter);
+
+    const std::string path =
+        "/v1/history?provider=binance&symbol=BTCUSDT&source=spot&tf=ticks&from_ms=1704067200000&to_ms=1704070800000";
+
+    adapter.set_mode(ScriptedHttpAdapter::Mode::HistoryNull);
+    auto response = node.request("GET", path);
+    CHECK_EQ(response.status, 500);
+    CHECK_EQ(nlohmann::json::parse(response.body).at("error").get<std::string>(), "internal_error");
+
+    adapter.set_mode(ScriptedHttpAdapter::Mode::HistoryThrow);
+    response = node.request("GET", path);
+    CHECK_EQ(response.status, 500);
+    CHECK_EQ(nlohmann::json::parse(response.body).at("error").get<std::string>(), "internal_error");
+
+    adapter.set_mode(ScriptedHttpAdapter::Mode::HistoryThrowUnknown);
+    response = node.request("GET", path);
+    CHECK_EQ(response.status, 500);
+    CHECK_EQ(nlohmann::json::parse(response.body).at("error").get<std::string>(), "internal_error");
+}
+
+void test_http_on_error_handles_null_request() {
+    auto cfg = make_base_config();
+    const std::string token = "token-http-on-error";
+    dfh_node::FingerprintComputer fingerprint_computer(cfg.security.server_secret);
+    auto api_keys = make_api_keys(fingerprint_computer, token);
+    dfh_node::ConfigApiKeyStore api_key_store(api_keys);
+    dfh_node::AuthCache auth_cache(cfg.auth.cache_ttl_ms);
+    dfh_node::AuthService auth_service(api_key_store, auth_cache, fingerprint_computer);
+    dfh_node::RateLimiter rate_limiter(cfg.auth.rps_limit, cfg.auth.rate_limit_window_ms);
+    dfh_node::WsConnectionLimiter ws_connection_limiter(cfg.ws.max_ws_connections_total);
+    dfh_node::TaskScheduler scheduler(to_size_t(cfg.queues.high_capacity), to_size_t(cfg.queues.low_capacity));
+    dfh_node::FakeDfhAdapter adapter;
+
+    const auto storage_root =
+        std::filesystem::temp_directory_path() /
+        ("dfh-node-http-on-error-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+    std::filesystem::create_directories(storage_root);
+    dfh_node::MdbxApiKeyStore mdbx_store((storage_root / "keys.mdbx").string());
+    mdbx_store.open();
+    dfh_node::DiskMonitor disk_monitor(storage_root.string(), static_cast<std::uint64_t>(cfg.storage.min_free_bytes));
+    dfh_node::UnifiedGate gate(auth_service, rate_limiter, ws_connection_limiter, nullptr,
+                               cfg.security.anti_replay.require_for_scopes);
+    dfh_node::transport::HttpRouter router(gate, scheduler, adapter, cfg, &disk_monitor, &mdbx_store);
+    SimpleWeb::Server<SimpleWeb::HTTP> server;
+    router.register_all(server);
+
+    const auto error_code = make_error_code(std::errc::connection_reset);
+    server.on_error(nullptr, error_code);
+
+    scheduler.shutdown();
+}
+
 void test_parallel_requests_complete_without_deadlock() {
     auto cfg = make_base_config();
     cfg.queues.high_capacity = 128;
@@ -544,6 +778,8 @@ int main() {
     test_http_server_lifecycle_idempotent();
     test_queue_overflow_maps_to_503();
     test_timeout_maps_to_504();
+    test_history_worker_error_paths();
+    test_http_on_error_handles_null_request();
     test_parallel_requests_complete_without_deadlock();
     return 0;
 }

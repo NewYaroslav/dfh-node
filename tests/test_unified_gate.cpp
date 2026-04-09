@@ -385,6 +385,52 @@ void test_anti_replay_counter_increments() {
     CHECK_EQ(gate.anti_replay_reject_count(), static_cast<std::uint64_t>(2));
 }
 
+void test_http_unsupported_operation() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string fingerprint = computer.compute("token-unsupported-http");
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Read | Scope::Write),
+                                          std::nullopt, 100, 5});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+    RateLimiter limiter(100, 1000);
+    WsConnectionLimiter ws_limiter;
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
+
+    const auto result = gate.authorize_http("token-unsupported-http", static_cast<TaskKind>(255));
+    CHECK(std::holds_alternative<GateError>(result));
+    CHECK_EQ(std::get<GateError>(result).code, GateErrorCode::UnsupportedOperation);
+    CHECK_EQ(gate.auth_fail_count(), static_cast<std::uint64_t>(0));
+    CHECK_EQ(gate.rate_limit_reject_count(), static_cast<std::uint64_t>(0));
+    CHECK_EQ(gate.anti_replay_reject_count(), static_cast<std::uint64_t>(0));
+}
+
+void test_ws_message_unsupported_operation() {
+    std::vector<config::ApiKeyEntry> entries;
+    FingerprintComputer computer("secret");
+    const std::string fingerprint = computer.compute("token-unsupported-ws");
+    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Write), std::nullopt, 100, 5});
+
+    ConfigApiKeyStore store(entries);
+    AuthCache cache(60000);
+    AuthService service(store, cache, computer);
+    RateLimiter limiter(100, 1000);
+    WsConnectionLimiter ws_limiter;
+    UnifiedGate gate(service, limiter, ws_limiter, nullptr, 0);
+
+    const auto upgrade = gate.authorize_ws_upgrade("token-unsupported-ws");
+    CHECK(std::holds_alternative<AuthContext>(upgrade));
+
+    const auto result = gate.authorize_ws_message(fingerprint, static_cast<TaskKind>(255));
+    CHECK(std::holds_alternative<GateError>(result));
+    CHECK_EQ(std::get<GateError>(result).code, GateErrorCode::UnsupportedOperation);
+    CHECK_EQ(gate.auth_fail_count(), static_cast<std::uint64_t>(0));
+    CHECK_EQ(gate.rate_limit_reject_count(), static_cast<std::uint64_t>(0));
+    CHECK_EQ(gate.anti_replay_reject_count(), static_cast<std::uint64_t>(0));
+}
+
 int main() {
     test_http_authorize();
     test_ws_upgrade_no_kind();
@@ -400,5 +446,7 @@ int main() {
     test_rate_limit_counter_increments();
     test_connection_limit_counter_and_active_connections();
     test_anti_replay_counter_increments();
+    test_http_unsupported_operation();
+    test_ws_message_unsupported_operation();
     return 0;
 }

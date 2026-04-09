@@ -130,8 +130,8 @@ class TestWsClient final {
 public:
     TestWsClient(const std::string &endpoint, const std::string &token, const std::string &raw_auth_header = "")
         : m_client(endpoint) {
-        m_client.config.timeout_request = 2;
-        m_client.config.timeout_idle = 2;
+        m_client.config.timeout_request = 5;
+        m_client.config.timeout_idle = 5;
         if (!raw_auth_header.empty()) {
             m_client.config.header.emplace("Authorization", raw_auth_header);
         } else if (!token.empty()) {
@@ -173,13 +173,13 @@ public:
 
     ~TestWsClient() { stop(); }
 
-    bool wait_open(std::chrono::milliseconds timeout = std::chrono::milliseconds(2000)) {
+    bool wait_open(std::chrono::milliseconds timeout = std::chrono::milliseconds(5000)) {
         std::unique_lock<std::mutex> lock(m_mutex);
         (void)m_cv.wait_for(lock, timeout, [this]() { return m_opened || m_close.has_value() || m_error.has_value(); });
         return m_opened;
     }
 
-    std::optional<WsFrame> wait_frame(std::chrono::milliseconds timeout = std::chrono::milliseconds(2000)) {
+    std::optional<WsFrame> wait_frame(std::chrono::milliseconds timeout = std::chrono::milliseconds(5000)) {
         std::unique_lock<std::mutex> lock(m_mutex);
         const bool ready = m_cv.wait_for(
             lock, timeout, [this]() { return !m_frames.empty() || m_close.has_value() || m_error.has_value(); });
@@ -191,7 +191,7 @@ public:
         return frame;
     }
 
-    std::optional<WsCloseEvent> wait_close(std::chrono::milliseconds timeout = std::chrono::milliseconds(2000)) {
+    std::optional<WsCloseEvent> wait_close(std::chrono::milliseconds timeout = std::chrono::milliseconds(5000)) {
         std::unique_lock<std::mutex> lock(m_mutex);
         const bool ready =
             m_cv.wait_for(lock, timeout, [this]() { return m_close.has_value() || m_error.has_value(); });
@@ -201,7 +201,7 @@ public:
         return m_close;
     }
 
-    std::optional<std::string> wait_error(std::chrono::milliseconds timeout = std::chrono::milliseconds(2000)) {
+    std::optional<std::string> wait_error(std::chrono::milliseconds timeout = std::chrono::milliseconds(5000)) {
         std::unique_lock<std::mutex> lock(m_mutex);
         const bool ready = m_cv.wait_for(lock, timeout, [this]() { return m_error.has_value(); });
         if (!ready) {
@@ -578,6 +578,13 @@ nlohmann::json wait_json_response(TestWsClient &client) {
     return nlohmann::json::parse(frame->payload);
 }
 
+nlohmann::json wait_json_response(TestWsClient &client, const std::chrono::milliseconds timeout) {
+    const auto frame = client.wait_frame(timeout);
+    CHECK(frame.has_value());
+    CHECK(!frame->is_binary());
+    return nlohmann::json::parse(frame->payload);
+}
+
 nlohmann::json wait_msgpack_response(TestWsClient &client) {
     const auto frame = client.wait_frame();
     CHECK(frame.has_value());
@@ -614,6 +621,22 @@ nlohmann::json make_history_control(const std::string &msg_id) {
              {"tf", "ticks"},
              {"from_ms", 1704067200000LL},
              {"to_ms", 1704070800000LL},
+         }},
+    };
+}
+
+nlohmann::json make_dfhbin_control(const std::string &msg_id, const std::string &payload_sha256) {
+    return {
+        {"op", "ingest"},
+        {"msg_id", msg_id},
+        {"payload_sha256", payload_sha256},
+        {"payload",
+         {
+             {"provider", "binance"},
+             {"symbol", "BTCUSDT"},
+             {"source", "spot"},
+             {"tf", "ticks"},
+             {"block_ts", 1704067200000LL},
          }},
     };
 }
@@ -795,6 +818,63 @@ void test_dfhbin_success_and_errors() {
     const auto unexpected = wait_json_response(client);
     CHECK_EQ(unexpected.at("ok").get<bool>(), false);
     CHECK_EQ(unexpected.at("error_code").get<std::string>(), "unexpected_binary_frame");
+
+    const nlohmann::json control_missing_sha = {
+        {"op", "ingest"},
+        {"msg_id", "dfh-3"},
+        {"payload",
+         {
+             {"provider", "binance"},
+             {"symbol", "BTCUSDT"},
+             {"source", "spot"},
+             {"tf", "ticks"},
+             {"block_ts", 1704067200000LL},
+         }},
+    };
+    client.send_text(control_missing_sha.dump());
+    const auto missing_sha = wait_json_response(client);
+    CHECK_EQ(missing_sha.at("ok").get<bool>(), false);
+    CHECK_EQ(missing_sha.at("msg_id").get<std::string>(), "dfh-3");
+    CHECK_EQ(missing_sha.at("error_code").get<std::string>(), "invalid_argument");
+
+    const nlohmann::json control_invalid_payload = {
+        {"op", "ingest"},
+        {"msg_id", "dfh-4"},
+        {"payload_sha256", payload_sha256},
+        {"payload",
+         {
+             {"provider", "binance"},
+             {"symbol", "BTCUSDT"},
+             {"source", "spot"},
+             {"tf", "bad"},
+             {"block_ts", 1704067200000LL},
+         }},
+    };
+    client.send_text(control_invalid_payload.dump());
+    const auto invalid_payload = wait_json_response(client);
+    CHECK_EQ(invalid_payload.at("ok").get<bool>(), false);
+    CHECK_EQ(invalid_payload.at("msg_id").get<std::string>(), "dfh-4");
+    CHECK_EQ(invalid_payload.at("error_code").get<std::string>(), "invalid_argument");
+}
+
+void test_dfhbin_payload_too_large() {
+    auto cfg = make_base_config();
+    cfg.ws.max_payload_bytes = 3;
+    RunningWsNode node(std::move(cfg), "token-dfhbin-too-large",
+                       dfh_node::to_scope_mask(dfh_node::Scope::Read) |
+                           dfh_node::to_scope_mask(dfh_node::Scope::Write));
+
+    TestWsClient client(node.endpoint("/ws/json"), node.token());
+    CHECK(client.wait_open());
+
+    const std::vector<std::uint8_t> payload = {1, 2, 3, 4};
+    std::string raw(reinterpret_cast<const char *>(payload.data()), payload.size());
+    client.send_text(make_dfhbin_control("dfh-too-large", dfh_node::compute_sha256_hex(raw)).dump());
+    client.send_binary(payload);
+
+    const auto closed = client.wait_close(std::chrono::milliseconds(5000));
+    const auto error = client.wait_error(std::chrono::milliseconds(5000));
+    CHECK(closed.has_value() || error.has_value());
 }
 
 void test_overload_and_subscribe() {
@@ -1149,6 +1229,31 @@ void test_history_soft_timeout() {
     CHECK_EQ(second.at("error_code").get<std::string>(), "timeout");
 }
 
+void test_history_timeout_disabled_when_zero() {
+    auto cfg = make_base_config();
+    cfg.ws.request_timeout_ms = 0;
+    cfg.queues.workers = 1;
+    ScriptedAdapter adapter;
+    adapter.set_mode(ScriptedAdapter::Mode::HistorySlowFirst);
+    RunningWsNodeWithAdapter node(
+        std::move(cfg), "token-history-timeout-disabled",
+        dfh_node::to_scope_mask(dfh_node::Scope::Read) | dfh_node::to_scope_mask(dfh_node::Scope::Write), adapter);
+
+    TestWsClient client(node.endpoint("/ws/json"), node.token());
+    CHECK(client.wait_open());
+
+    client.send_text(make_history_control("hist-no-timeout-1").dump());
+    client.send_text(make_history_control("hist-no-timeout-2").dump());
+
+    const auto first = wait_json_response(client);
+    const auto second = wait_json_response(client, std::chrono::milliseconds(4000));
+
+    CHECK_EQ(first.at("ok").get<bool>(), true);
+    CHECK_EQ(first.at("msg_id").get<std::string>(), "hist-no-timeout-1");
+    CHECK_EQ(second.at("ok").get<bool>(), true);
+    CHECK_EQ(second.at("msg_id").get<std::string>(), "hist-no-timeout-2");
+}
+
 } // namespace
 
 int main() {
@@ -1158,6 +1263,7 @@ int main() {
     test_upgrade_rate_limited_and_bad_auth_header();
     test_history_json_and_msgpack();
     test_dfhbin_success_and_errors();
+    test_dfhbin_payload_too_large();
     test_overload_and_subscribe();
     test_anti_replay_invalid_signature();
     test_invalid_control_message();
@@ -1168,5 +1274,6 @@ int main() {
     test_scripted_adapter_error_paths();
     test_history_response_too_large();
     test_history_soft_timeout();
+    test_history_timeout_disabled_when_zero();
     return 0;
 }

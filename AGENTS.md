@@ -38,6 +38,8 @@
 - Для dfhbin-операций используем ts (метка блока), не from/to.
 - Перегруз: history режется первой; ingest держим максимально живым (HTTP reject, WS drop + error по msg_id).
 - Anti-replay (ts + nonce + HMAC) внедряем сразу.
+- Для WS действуют отдельные operational limits: `history_max_range_ms`, `history_max_bytes`, `max_ws_connections_total`, `request_timeout_ms`.
+- `/v1/status` и `/metrics` публикуют queue/disk показатели, gate anomaly counters и `ws_active_connections_total`.
 
 ## 3.1 Code style
 - Отступы: 4 пробела (без табов) для C/C++ и CMake.

@@ -20,7 +20,10 @@
     "bind_host": "0.0.0.0",
     "port": 8081,
     "max_payload_bytes": 10000000,
-    "request_timeout_ms": 30000
+    "request_timeout_ms": 30000,
+    "history_max_range_ms": 86400000,
+    "history_max_bytes": 104857600,
+    "max_ws_connections_total": 1000
   },
   "queues": {
     "high_capacity": 10000,
@@ -77,7 +80,10 @@
     "bind_host": "0.0.0.0",
     "port": 8081,
     "max_payload_bytes": 20000000,
-    "request_timeout_ms": 30000
+    "request_timeout_ms": 30000,
+    "history_max_range_ms": 172800000,
+    "history_max_bytes": 209715200,
+    "max_ws_connections_total": 2000
   },
   "queues": {
     "high_capacity": 20000,
@@ -153,6 +159,9 @@
 - `port` (int, default: `8081`).
 - `max_payload_bytes` (int, default: `10000000`).
 - `request_timeout_ms` (int, default: `30000`): таймаут WS-задач в миллисекундах (`0` = отключён).
+- `history_max_range_ms` (int, default: `86400000`): максимальный диапазон WS `history` запроса (`to_ms - from_ms`) в миллисекундах.
+- `history_max_bytes` (int, default: `104857600`): максимальный суммарный объём raw `payload` в ответе WS `history` до сериализации.
+- `max_ws_connections_total` (int, default: `1000`): глобальный лимит активных WS-соединений по всем fingerprint.
 
 ### queues
 - `high_capacity` (int, default: `10000`).
@@ -204,6 +213,7 @@
 - `http.request_timeout_ms`: >= 0
 - `ws.request_timeout_ms`: >= 0
 - `http.history_max_range_ms`, `http.history_max_bytes`: > 0
+- `ws.history_max_range_ms`, `ws.history_max_bytes`, `ws.max_ws_connections_total`: > 0
 - `queues.high_capacity`, `queues.low_capacity`, `queues.workers`: > 0
 - `security.server_secret`: не пустой, длина >= 16
 - `security.anti_replay.max_skew_ms`, `nonce_ttl_ms`, `nonce_capacity`: > 0
