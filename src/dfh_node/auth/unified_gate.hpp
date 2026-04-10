@@ -10,6 +10,7 @@
 #include "security/anti_replay_validator.hpp"
 #include "ws_connection_limiter.hpp"
 
+#include <atomic>
 #include <cstddef>
 #include <string>
 
@@ -56,6 +57,26 @@ public:
     /// \param fingerprint Fingerprint клиента.
     void ws_connection_closed(const std::string &fingerprint);
 
+    /// \brief Возвращает число отказов авторизации и запретов по scope.
+    /// \return Счётчик auth failure.
+    std::uint64_t auth_fail_count() const;
+
+    /// \brief Возвращает число отказов по rate limit.
+    /// \return Счётчик rate-limit отказов.
+    std::uint64_t rate_limit_reject_count() const;
+
+    /// \brief Возвращает число отказов anti-replay.
+    /// \return Счётчик anti-replay отказов.
+    std::uint64_t anti_replay_reject_count() const;
+
+    /// \brief Возвращает число отказов по лимиту WS-соединений.
+    /// \return Счётчик connection-limit отказов.
+    std::uint64_t connection_limit_reject_count() const;
+
+    /// \brief Возвращает текущее общее число активных WS-соединений.
+    /// \return Количество активных WS-соединений.
+    std::int64_t ws_active_connections() const;
+
 private:
     /// \brief Проверяет, обязателен ли anti-replay для операции по `require_for_scopes`.
     /// \param kind Тип операции.
@@ -64,11 +85,15 @@ private:
     /// \note Для неизвестного `TaskKind` вызывающий код должен вернуть `UnsupportedOperation`.
     bool is_anti_replay_required(TaskKind kind) const;
 
-    AuthService &m_auth_service;                  ///< Сервис авторизации.
-    RateLimiter &m_rate_limiter;                  ///< Лимитер частоты запросов.
-    WsConnectionLimiter &m_ws_limiter;            ///< Лимитер WS-соединений.
-    AntiReplayValidator *m_anti_replay_validator; ///< Nullable при отключённом anti-replay.
-    ScopeMask m_require_for_scopes;               ///< Scope, для которых anti-replay обязателен.
+    AuthService &m_auth_service;                                   ///< Сервис авторизации.
+    RateLimiter &m_rate_limiter;                                   ///< Лимитер частоты запросов.
+    WsConnectionLimiter &m_ws_limiter;                             ///< Лимитер WS-соединений.
+    AntiReplayValidator *m_anti_replay_validator;                  ///< Nullable при отключённом anti-replay.
+    ScopeMask m_require_for_scopes;                                ///< Scope, для которых anti-replay обязателен.
+    std::atomic<std::uint64_t> m_auth_fail_count{0};               ///< Счётчик auth failures.
+    std::atomic<std::uint64_t> m_rate_limit_reject_count{0};       ///< Счётчик rate-limit отказов.
+    std::atomic<std::uint64_t> m_anti_replay_reject_count{0};      ///< Счётчик anti-replay отказов.
+    std::atomic<std::uint64_t> m_connection_limit_reject_count{0}; ///< Счётчик отказов по лимиту соединений.
 };
 
 } // namespace dfh_node

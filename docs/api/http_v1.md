@@ -132,7 +132,12 @@ curl "http://127.0.0.1:8080/v1/history?provider=binance&symbol=BTCUSDT&source=sp
   },
   "disk_free_bytes": 123456789,
   "disk_low": false,
-  "mdbx_keys_active": 3
+  "mdbx_keys_active": 3,
+  "auth_fail_count": 0,
+  "rate_limit_reject_count": 0,
+  "anti_replay_reject_count": 0,
+  "connection_limit_reject_count": 0,
+  "ws_active_connections_total": 0
 }
 ```
 

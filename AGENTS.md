@@ -38,6 +38,8 @@
 - Для dfhbin-операций используем ts (метка блока), не from/to.
 - Перегруз: history режется первой; ingest держим максимально живым (HTTP reject, WS drop + error по msg_id).
 - Anti-replay (ts + nonce + HMAC) внедряем сразу.
+- Для WS действуют отдельные operational limits: `history_max_range_ms`, `history_max_bytes`, `max_ws_connections_total`, `request_timeout_ms`.
+- `/v1/status` и `/metrics` публикуют queue/disk показатели, gate anomaly counters и `ws_active_connections_total`.
 
 ## 3.1 Code style
 - Отступы: 4 пробела (без табов) для C/C++ и CMake.
@@ -98,11 +100,12 @@
   `test_gate_e2e.cpp`, `test_status.cpp`, `test_dfh_adapter_dto.cpp`,
   `test_fake_dfh_adapter.cpp`, `test_dfh_adapter_e2e.cpp`,
   `test_http_error_map.cpp`, `test_http_dto_parser.cpp`, `test_http_reply_handle.cpp`,
-  `test_http_integration.cpp`, `test_admin_router.cpp`, `test_ops_endpoints.cpp`,
+  `test_http_integration.cpp`, `test_http_hardening.cpp`, `test_admin_router.cpp`, `test_ops_endpoints.cpp`,
   `test_sync_dto_parser.cpp`, `test_peer_sync_service.cpp`, `test_sync_router.cpp`, `test_sync_e2e.cpp`,
-  `test_ws_protocol.cpp`, `test_ws_session_registry.cpp`,
-  `test_ws_dto_parser.cpp`, `test_ws_integration.cpp`, `test_ws_runtime_components.cpp`,
-  `test_disk_low.cpp`).
+  `test_ws_protocol.cpp`, `test_ws_session_registry.cpp`, `test_ws_msg_correlation.cpp`,
+  `test_ws_dto_parser.cpp`, `test_ws_integration.cpp`, `test_ws_hardening.cpp`,
+  `test_ws_disconnect.cpp`, `test_ws_runtime_components.cpp`,
+  `test_queue_overload.cpp`, `test_disk_low.cpp`).
 - tests/app_configs/ — фикстуры конфигов для CTest-сценариев приложения.
 - examples/ — примеры: `config_minimal.json`.
 - third_party/ — каталог для submodules (см. docs/third_party.md).
@@ -125,10 +128,11 @@
   `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`,
   `test_gate_e2e`, `test_status`, `test_dfh_adapter_dto`, `test_fake_dfh_adapter`,
   `test_dfh_adapter_e2e`, `test_http_error_map`, `test_http_dto_parser`,
-  `test_http_reply_handle`, `test_http_integration`, `test_admin_router`,
+  `test_http_reply_handle`, `test_http_integration`, `test_http_hardening`, `test_admin_router`,
   `test_ops_endpoints`, `test_sync_dto_parser`, `test_peer_sync_service`,
   `test_sync_router`, `test_sync_e2e`, `test_ws_protocol`, `test_ws_session_registry`,
-  `test_ws_dto_parser`, `test_ws_integration`, `test_ws_runtime_components`,
+  `test_ws_dto_parser`, `test_ws_integration`, `test_ws_hardening`, `test_ws_msg_correlation`,
+  `test_queue_overload`, `test_ws_disconnect`, `test_ws_runtime_components`,
   `test_disk_low`.
 
 ### 4.2 Опции CMake (реальные)
@@ -169,10 +173,11 @@
   `test_canonical_request`, `test_nonce_store`, `test_anti_replay_validator`, `test_gate_e2e`),
   adapter (`test_dfh_adapter_dto`, `test_fake_dfh_adapter`, `test_dfh_adapter_e2e`),
   transport/http (`test_http_error_map`, `test_http_dto_parser`, `test_http_reply_handle`, `test_http_integration`,
-  `test_admin_router`, `test_ops_endpoints`),
+  `test_http_hardening`, `test_admin_router`, `test_ops_endpoints`),
   sync (`test_sync_dto_parser`, `test_peer_sync_service`, `test_sync_router`, `test_sync_e2e`),
   transport/ws (`test_ws_protocol`, `test_ws_session_registry`, `test_ws_dto_parser`,
-  `test_ws_integration`, `test_ws_runtime_components`, `test_disk_low`).
+  `test_ws_integration`, `test_ws_hardening`, `test_ws_msg_correlation`,
+  `test_queue_overload`, `test_ws_disconnect`, `test_ws_runtime_components`, `test_disk_low`).
 - Если тестов недостаточно — добавляйте новые и регистрируйте через `add_test`.
 
 ## 6. Процесс разработки
@@ -310,6 +315,18 @@ PAYLOAD_HASH
 - Admin операции выполняются синхронно и не отправляются в `TaskScheduler`.
 - Bootstrap-ключи из конфига считаются read-only; Admin CRUD работает только с `MDBX` и для config-ключей
   эквивалентен `404`.
+
+## 10.2 Обновление документации и версионирование API
+- Код — источник истины; документация обновляется под фактическое поведение кода.
+- Если код расходится с задокументированным контрактом, это выносится как отдельный вопрос; нельзя
+  молча менять docs так, чтобы скрыть breaking change.
+- Breaking changes запрещены без явного решения: изменение строк `error_code`, URL endpoint, формата canonical string,
+  удаление обязательных полей запроса/сообщения.
+- Non-breaking изменения: новые optional поля в ответах, новые endpoint'ы, новые `error_code`, дополнительные разделы docs.
+- При добавлении нового `GateErrorCode` обязательно обновлять `http_error_map.cpp` и `docs/api/error_codes.md`.
+- При добавлении нового WS `error_code` обязательно обновлять `ws_message_handler.cpp`/`ws_protocol.cpp`,
+  `docs/api/error_codes.md` и `docs/api/ws_v1.md`.
+- При добавлении нового HTTP endpoint обязательно обновлять соответствующий файл в `docs/api/`.
 
 ## 11. Чек-лист перед коммитом
 - Сборка `build-msvc` и тесты `ctest -C Debug --output-on-failure`.

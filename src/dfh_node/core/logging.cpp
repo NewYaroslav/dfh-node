@@ -110,4 +110,9 @@ void log_ws_server_disabled() { DFH_INFO("WS server is disabled (ws.port=0)"); }
 
 void log_runtime_bootstrap_error(const char *message) { DFH_PRINTF_ERROR("%s", message); }
 
+void log_gate_reject(const char *code, const char *transport, const char *kind, const char *fingerprint) {
+    DFH_WARN("[gate_reject] code=", (code ? code : "unknown"), " transport=", (transport ? transport : "unknown"),
+             " kind=", (kind ? kind : "unknown"), " fingerprint=", (fingerprint ? fingerprint : "unknown"));
+}
+
 } // namespace dfh_node::logging

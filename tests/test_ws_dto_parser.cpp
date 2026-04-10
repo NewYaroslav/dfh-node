@@ -40,6 +40,33 @@ void test_parse_history_valid() {
     CHECK_EQ(dto->to_ms, 1704070800000LL);
 }
 
+void test_parse_history_range_limit() {
+    auto cfg = dfh_node::config::default_config();
+    cfg.ws.history_max_range_ms = 1000;
+
+    {
+        const nlohmann::json payload = {
+            {"provider", "binance"}, {"symbol", "BTCUSDT"}, {"source", "spot"},
+            {"tf", "ticks"},         {"from_ms", 0},        {"to_ms", 1000},
+        };
+        const auto parsed = dfh_node::transport::parse_ws_history_payload(payload, cfg.ws);
+        const auto *dto = std::get_if<dfh_node::QueryHistoryRequest>(&parsed);
+        CHECK(dto != nullptr);
+    }
+
+    {
+        const nlohmann::json payload = {
+            {"provider", "binance"}, {"symbol", "BTCUSDT"}, {"source", "spot"},
+            {"tf", "ticks"},         {"from_ms", 0},        {"to_ms", 1001},
+        };
+        const auto parsed = dfh_node::transport::parse_ws_history_payload(payload, cfg.ws);
+        const auto *error = as_error(parsed);
+        CHECK(error != nullptr);
+        CHECK_EQ(error->first, "range_too_large");
+        CHECK_NE(error->second.find("history_max_range_ms"), std::string::npos);
+    }
+}
+
 void test_parse_history_errors() {
     const auto cfg = dfh_node::config::default_config();
     {
@@ -328,6 +355,7 @@ void test_parse_dfhbin_valid_and_error() {
 
 int main() {
     test_parse_history_valid();
+    test_parse_history_range_limit();
     test_parse_history_errors();
     test_parse_history_with_string_numbers_and_ids();
     test_parse_ingest_valid();

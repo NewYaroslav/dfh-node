@@ -17,7 +17,7 @@ dfh-node — это сервер (“нода”) для хранения и р�
 - Rate limiting: лимит запросов/сек и лимит одновременных WS соединений.
 - Anti-replay для подписанных запросов (timestamp + nonce + HMAC).
 - Admin API для CRUD динамических API-ключей в `MDBX`.
-- Ops endpoints: `/health`, `/ready`, `/metrics`.
+- Ops endpoints: `/health`, `/ready`, `/metrics`; `/v1/status` и `/metrics` отдают queue/disk метрики, gate counters и число активных WS-соединений.
 - Disk-low gate: write-path блокируется при нехватке места, read-path остаётся доступным.
 - Синхронизация нод (pull): ноды могут подтягивать недостающие данные у peers для надежности
   и распределения нагрузки. Sync ориентирован на работу через интернет за прокси (TLS делает nginx/внешний сервис).
@@ -85,6 +85,9 @@ HTTP transport API описан в `docs/api/http_v1.md`.
 Актуальный контракт WebSocket API описан в `docs/api/ws_v1.md`.
 Admin API описан в `docs/api/admin_v1.md`.
 Sync API описан в `docs/api/sync_v1.md`.
+Справочник по стабильным `error_code` находится в `docs/api/error_codes.md`.
+Руководство по подключению клиента находится в `docs/api/connection_guide.md`.
+Модель безопасности и воспроизводимые примеры подписи описаны в `docs/security.md`.
 
 ## Защита от replay-атак
 

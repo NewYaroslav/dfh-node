@@ -65,11 +65,6 @@ ContentLengthState read_content_length(const std::shared_ptr<SwsRequest> &reques
     return ContentLengthState::Valid;
 }
 
-std::uint64_t steady_now_ms() {
-    using namespace std::chrono;
-    return static_cast<std::uint64_t>(duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count());
-}
-
 std::string next_request_id() {
     const std::uint64_t id = g_request_counter.fetch_add(1, std::memory_order_relaxed) + 1;
     return "http-" + std::to_string(id);
@@ -197,7 +192,7 @@ Task make_task(const TaskKind kind, std::string request_id, std::function<void()
     Task task;
     task.kind = kind;
     task.request_id = std::move(request_id);
-    task.enqueue_ts_ms = steady_now_ms();
+    task.enqueue_ts_ms = dfh_node::steady_ms();
     task.payload = std::move(payload);
     return task;
 }
@@ -491,6 +486,12 @@ void HttpRouter::register_all(SimpleWeb::Server<SimpleWeb::HTTP> &server) {
             }
             payload["mdbx_keys_active"] = active_count;
         }
+
+        payload["auth_fail_count"] = m_gate.auth_fail_count();
+        payload["rate_limit_reject_count"] = m_gate.rate_limit_reject_count();
+        payload["anti_replay_reject_count"] = m_gate.anti_replay_reject_count();
+        payload["connection_limit_reject_count"] = m_gate.connection_limit_reject_count();
+        payload["ws_active_connections_total"] = m_gate.ws_active_connections();
 
         send_response(response, 200, payload.dump(), "application/json");
     };

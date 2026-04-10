@@ -34,7 +34,9 @@ void send_gate_error(const OpsRouter::HttpResponse &response, const GateError &e
 
 std::string build_prometheus_metrics(const QueueMetrics &high_metrics, const QueueMetrics &low_metrics,
                                      const WorkerPool &worker_pool, const std::uint64_t disk_free_bytes,
-                                     const bool disk_low) {
+                                     const bool disk_low, const std::uint64_t auth_fail,
+                                     const std::uint64_t rate_limit_reject, const std::uint64_t anti_replay_reject,
+                                     const std::uint64_t connection_limit_reject, const std::int64_t ws_active) {
     std::ostringstream stream;
     stream << "# HELP dfh_node_queue_size Current queue size\n"
            << "# TYPE dfh_node_queue_size gauge\n"
@@ -53,7 +55,22 @@ std::string build_prometheus_metrics(const QueueMetrics &high_metrics, const Que
            << "dfh_node_disk_free_bytes " << disk_free_bytes << '\n'
            << "# HELP dfh_node_disk_low Disk low flag\n"
            << "# TYPE dfh_node_disk_low gauge\n"
-           << "dfh_node_disk_low " << (disk_low ? 1 : 0) << '\n';
+           << "dfh_node_disk_low " << (disk_low ? 1 : 0) << '\n'
+           << "# HELP dfh_node_auth_fail_total Total gate auth failures\n"
+           << "# TYPE dfh_node_auth_fail_total counter\n"
+           << "dfh_node_auth_fail_total " << auth_fail << '\n'
+           << "# HELP dfh_node_rate_limit_reject_total Total rate-limited rejections\n"
+           << "# TYPE dfh_node_rate_limit_reject_total counter\n"
+           << "dfh_node_rate_limit_reject_total " << rate_limit_reject << '\n'
+           << "# HELP dfh_node_anti_replay_reject_total Total anti-replay rejections\n"
+           << "# TYPE dfh_node_anti_replay_reject_total counter\n"
+           << "dfh_node_anti_replay_reject_total " << anti_replay_reject << '\n'
+           << "# HELP dfh_node_connection_limit_reject_total Total connection-limit rejections\n"
+           << "# TYPE dfh_node_connection_limit_reject_total counter\n"
+           << "dfh_node_connection_limit_reject_total " << connection_limit_reject << '\n'
+           << "# HELP dfh_node_ws_active_connections Current active WS connections (total)\n"
+           << "# TYPE dfh_node_ws_active_connections gauge\n"
+           << "dfh_node_ws_active_connections " << ws_active << '\n';
     return stream.str();
 }
 
@@ -121,7 +138,10 @@ void OpsRouter::handle_metrics(HttpRequest req, HttpResponse resp) {
     const std::uint64_t disk_free_bytes = m_disk_monitor.last_free_bytes();
 
     send_response(resp, 200,
-                  build_prometheus_metrics(high_metrics, low_metrics, m_worker_pool, disk_free_bytes, disk_low),
+                  build_prometheus_metrics(high_metrics, low_metrics, m_worker_pool, disk_free_bytes, disk_low,
+                                           m_gate.auth_fail_count(), m_gate.rate_limit_reject_count(),
+                                           m_gate.anti_replay_reject_count(), m_gate.connection_limit_reject_count(),
+                                           m_gate.ws_active_connections()),
                   "text/plain; version=0.0.4");
 }
 

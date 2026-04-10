@@ -5,6 +5,7 @@
 ///
 #include "ws_message_handler.hpp"
 
+#include "core/time_utils.hpp"
 #include "security/sha256_utils.hpp"
 #include "ws_dto_parser.hpp"
 #include "ws_runtime_utils.hpp"
@@ -14,6 +15,7 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -271,10 +273,25 @@ void WsMessageHandler::handle_binary(const std::string &connection_id, const std
 
     const std::string msg_id = pending.msg_id;
     auto registry = m_registry;
+    const std::uint64_t deadline_ms =
+        (m_cfg.ws.request_timeout_ms > 0)
+            ? dfh_node::steady_ms() + static_cast<std::uint64_t>(m_cfg.ws.request_timeout_ms)
+            : 0;
     auto task = make_task(
         TaskKind::Ingest, msg_id,
-        [dto_holder, registry, conn_id = connection_id, msg_id, is_msgpack, &adapter = m_adapter]() mutable {
+        [dto_holder, registry, conn_id = connection_id, msg_id, is_msgpack, deadline_ms,
+         &adapter = m_adapter]() mutable {
             try {
+                if (deadline_ms > 0 && dfh_node::steady_ms() > deadline_ms) {
+                    if (!registry->get_context(conn_id).has_value()) {
+                        return;
+                    }
+                    send_response_via_registry(registry, conn_id,
+                                               make_error_response(msg_id, "timeout", "ws task deadline exceeded"),
+                                               is_msgpack);
+                    return;
+                }
+
                 std::unique_ptr<IngestResponse> adapter_response = adapter.ingest_structured(std::move(*dto_holder));
                 if (!registry->get_context(conn_id).has_value()) {
                     std::clog << "WARN: WS binary ingest reply skipped: connection closed, id=" << conn_id << '\n';
@@ -339,9 +356,24 @@ void WsMessageHandler::handle_ingest(const std::string &conn_id, const WsControl
 
     const std::string msg_id = msg.msg_id;
     auto registry = m_registry;
+    const std::uint64_t deadline_ms =
+        (m_cfg.ws.request_timeout_ms > 0)
+            ? dfh_node::steady_ms() + static_cast<std::uint64_t>(m_cfg.ws.request_timeout_ms)
+            : 0;
     auto task = make_task(
-        TaskKind::Ingest, msg_id, [dto_holder, registry, conn_id, msg_id, is_msgpack, &adapter = m_adapter]() mutable {
+        TaskKind::Ingest, msg_id,
+        [dto_holder, registry, conn_id, msg_id, is_msgpack, deadline_ms, &adapter = m_adapter]() mutable {
             try {
+                if (deadline_ms > 0 && dfh_node::steady_ms() > deadline_ms) {
+                    if (!registry->get_context(conn_id).has_value()) {
+                        return;
+                    }
+                    send_response_via_registry(registry, conn_id,
+                                               make_error_response(msg_id, "timeout", "ws task deadline exceeded"),
+                                               is_msgpack);
+                    return;
+                }
+
                 std::unique_ptr<IngestResponse> adapter_response = adapter.ingest_structured(std::move(*dto_holder));
                 if (!registry->get_context(conn_id).has_value()) {
                     std::clog << "WARN: WS ingest reply skipped: connection closed, id=" << conn_id << '\n';
@@ -401,9 +433,28 @@ void WsMessageHandler::handle_history(const std::string &conn_id, const WsContro
 
     const std::string msg_id = msg.msg_id;
     auto registry = m_registry;
+    const std::uint64_t deadline_ms =
+        (m_cfg.ws.request_timeout_ms > 0)
+            ? dfh_node::steady_ms() + static_cast<std::uint64_t>(m_cfg.ws.request_timeout_ms)
+            : 0;
+    const std::size_t ws_history_limit = (m_cfg.ws.history_max_bytes > 0)
+                                             ? static_cast<std::size_t>(m_cfg.ws.history_max_bytes)
+                                             : std::numeric_limits<std::size_t>::max();
     auto task = make_task(
-        TaskKind::History, msg_id, [dto_holder, registry, conn_id, msg_id, is_msgpack, &adapter = m_adapter]() mutable {
+        TaskKind::History, msg_id,
+        [dto_holder, registry, conn_id, msg_id, is_msgpack, deadline_ms, ws_history_limit,
+         &adapter = m_adapter]() mutable {
             try {
+                if (deadline_ms > 0 && dfh_node::steady_ms() > deadline_ms) {
+                    if (!registry->get_context(conn_id).has_value()) {
+                        return;
+                    }
+                    send_response_via_registry(registry, conn_id,
+                                               make_error_response(msg_id, "timeout", "ws task deadline exceeded"),
+                                               is_msgpack);
+                    return;
+                }
+
                 std::unique_ptr<QueryHistoryResponse> adapter_response = adapter.query_history(std::move(*dto_holder));
                 if (!registry->get_context(conn_id).has_value()) {
                     std::clog << "WARN: WS history reply skipped: connection closed, id=" << conn_id << '\n';
@@ -429,7 +480,18 @@ void WsMessageHandler::handle_history(const std::string &conn_id, const WsContro
 
                 nlohmann::json data;
                 data["chunks"] = nlohmann::json::array();
+                // `history_max_bytes` для WS ограничивает суммарный объём raw `payload`
+                // до сериализации. Это operational safeguard, а не точный wire-size.
+                std::size_t total_payload_bytes = 0;
                 for (const auto &chunk : adapter_response->chunks) {
+                    if (total_payload_bytes + chunk.payload.size() > ws_history_limit) {
+                        send_response_via_registry(
+                            registry, conn_id,
+                            make_error_response(msg_id, "response_too_large", "narrow the time range"), is_msgpack);
+                        return;
+                    }
+                    total_payload_bytes += chunk.payload.size();
+
                     nlohmann::json item;
                     item["key"] = block_key_to_json(chunk.key);
                     item["payload_base64"] = encode_base64(chunk.payload);

@@ -27,10 +27,13 @@ struct HttpConfig {
 /// \brief Параметры WebSocket-интерфейса.
 /// \details По умолчанию разделяет порт с HTTP.
 struct WsConfig {
-    std::string bind_host = "0.0.0.0";         ///< Хост/интерфейс для bind.
-    int port = 8081;                           ///< TCP-порт (ожидается 1..65535).
-    std::int64_t max_payload_bytes = 10000000; ///< Лимит размера фрейма, байты.
-    std::int64_t request_timeout_ms = 30000;   ///< Таймаут WS-задач (мс), `0` отключает таймаут.
+    std::string bind_host = "0.0.0.0";            ///< Хост/интерфейс для bind.
+    int port = 8081;                              ///< TCP-порт (ожидается 1..65535).
+    std::int64_t max_payload_bytes = 10000000;    ///< Лимит размера фрейма, байты.
+    std::int64_t request_timeout_ms = 30000;      ///< Таймаут WS-задач (мс), `0` отключает таймаут.
+    std::int64_t history_max_range_ms = 86400000; ///< Макс. диапазон `to_ms - from_ms` для history (мс).
+    std::int64_t history_max_bytes = 104857600;   ///< Макс. суммарный объём raw payload ответа history (байты).
+    std::int64_t max_ws_connections_total = 1000; ///< Глобальный лимит активных WS-соединений.
 };
 
 /// \brief Настройки внутренних очередей и воркеров.

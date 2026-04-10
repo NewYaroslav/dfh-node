@@ -24,6 +24,9 @@ Config default_config() {
     cfg.ws.port = 8081;
     cfg.ws.max_payload_bytes = 10000000;
     cfg.ws.request_timeout_ms = 30000;
+    cfg.ws.history_max_range_ms = 86400000;
+    cfg.ws.history_max_bytes = 104857600;
+    cfg.ws.max_ws_connections_total = 1000;
 
     cfg.queues.high_capacity = 10000;
     cfg.queues.low_capacity = 5000;

@@ -7,6 +7,7 @@
 #include "auth.hpp"
 #include "config.hpp"
 #include "scheduler.hpp"
+#include "security.hpp"
 #include "test_helpers.hpp"
 #include "transport.hpp"
 
@@ -137,6 +138,21 @@ public:
         }
         CHECK(connection != nullptr);
         connection->send(payload);
+    }
+
+    void send_binary(const std::vector<std::uint8_t> &bytes) {
+        std::shared_ptr<WsConnection> connection;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            connection = m_connection;
+        }
+        CHECK(connection != nullptr);
+
+        std::string payload;
+        if (!bytes.empty()) {
+            payload.assign(reinterpret_cast<const char *>(bytes.data()), bytes.size());
+        }
+        connection->send(payload, nullptr, 130);
     }
 
     nlohmann::json wait_json_response() {
@@ -290,6 +306,20 @@ nlohmann::json make_history_control(const std::string &msg_id) {
     };
 }
 
+nlohmann::json make_dfhbin_control(const std::string &msg_id, const std::string &payload_sha256) {
+    return {
+        {"op", "ingest"},
+        {"msg_id", msg_id},
+        {"payload_sha256", payload_sha256},
+        {"payload",
+         {{"provider", "binance"},
+          {"symbol", "BTCUSDT"},
+          {"source", "spot"},
+          {"tf", "ticks"},
+          {"block_ts", 1704067200000LL}}},
+    };
+}
+
 void test_http_disk_low_blocks_only_ingest() {
     RunningDiskLowNode node;
 
@@ -317,6 +347,15 @@ void test_ws_disk_low_blocks_only_ingest() {
     client.send_text(make_history_control("hist-1").dump());
     const auto history = client.wait_json_response();
     CHECK_EQ(history.at("ok").get<bool>(), true);
+
+    const std::vector<std::uint8_t> payload = {1, 2, 3, 4};
+    std::string raw(reinterpret_cast<const char *>(payload.data()), payload.size());
+    client.send_text(make_dfhbin_control("dfh-1", dfh_node::compute_sha256_hex(raw)).dump());
+    client.send_binary(payload);
+    const auto dfhbin = client.wait_json_response();
+    CHECK_EQ(dfhbin.at("ok").get<bool>(), false);
+    CHECK_EQ(dfhbin.at("msg_id").get<std::string>(), "dfh-1");
+    CHECK_EQ(dfhbin.at("error_code").get<std::string>(), "disk_low");
 }
 
 } // namespace
