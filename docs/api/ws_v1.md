@@ -8,6 +8,12 @@
 - Клиент должен передать заголовок `Authorization: Bearer <token>` в Upgrade-запросе.
 - При ошибке авторизации/лимитов сервер закрывает соединение с кодом `1008`.
 
+### WS close codes
+- `1008` — policy violation на этапе upgrade. Используется при ошибках gate-проверки:
+  отсутствует токен, токен невалиден, не хватает scope, превышен `rate limit` или лимит соединений.
+- После успешного upgrade прикладные ошибки возвращаются не через close frame, а через обычный WS response
+  с `ok=false` и полями `error_code`/`detail`.
+
 ## Схема control-message
 
 | Поле | Тип | Обязательность | Описание |
@@ -40,11 +46,21 @@
 - `symbol_id` (optional uint32)
 - Ограничение диапазона: `(to_ms - from_ms) <= ws.history_max_range_ms`
 
+## `op=subscribe`
+- Зарезервирован для будущего стриминга.
+- В текущей реализации не поддержан и возвращает `error_code: "unsupported_operation"`.
+
 ## `dfhbin` flow (2 шага)
 1. Клиент отправляет control-message `op=ingest` без `payload_base64`, но с `payload_sha256`.
 2. Следующим сообщением клиент отправляет binary frame с raw bytes блока.
 3. Сервер сверяет `sha256(binary_frame)` с `payload_sha256`.
 4. При совпадении блок отправляется в ingest (high-priority очередь).
+
+## `disk_low` в WS
+- `disk_low` не приводит к HTTP `507`, потому что после upgrade обмен уже идёт внутри WS-сессии.
+- Для write-операций (`op=ingest`, включая `dfhbin`) сервер возвращает обычный WS response:
+  `{"msg_id":"...","ok":false,"error_code":"disk_low","detail":"Insufficient disk space"}`.
+- `op=history` при `disk_low` продолжает обслуживаться.
 
 ## Canonical serialization `BlockKey`
 - Для `dfhbin` payload используется объект с полями: `provider`, `symbol`, `source`, `tf`, `block_ts`.
@@ -71,11 +87,13 @@
 - `invalid_control_message`
 - `unknown_op`
 - `invalid_argument`
+- `not_found`
 - `payload_too_large`
 - `range_too_large`
 - `response_too_large`
 - `sha256_mismatch`
 - `unexpected_binary_frame`
+- `disk_low`
 - `overload.high_priority_queue_full`
 - `overload.low_priority_queue_full`
 - `unsupported_operation`

@@ -142,3 +142,101 @@ PAYLOAD_HASH
 
 \* Примечание по текущей реализации: в `config_validator` warning считается по baseline
 `peak_rps_per_fingerprint = auth.rps_limit` и выводится в `std::clog`.
+
+## Пример вычисления подписи (HTTP)
+
+### Входные данные
+
+- `token = test-token`
+- `method = POST`
+- `path = /v1/ingest`
+- `query = exchange=binance&order=%20asc&symbol=BTC%2FUSD`
+- `timestamp = 1700000000123`
+- `nonce = 0011223344556677`
+- `body_hash = 64c355dc41f90aa6c171ea306bfd2e8433c657727c6d088814368cea30ec3b07`
+
+`signing_key = SHA256(token)`:
+
+```text
+4c5dc9b7708905f77f5e5d16316b5dfb425e68cb326dcd55a860e90a7707031e
+```
+
+Каноническая строка:
+
+```text
+POST
+/v1/ingest
+exchange=binance&order=%20asc&symbol=BTC%2FUSD
+1700000000123
+0011223344556677
+64c355dc41f90aa6c171ea306bfd2e8433c657727c6d088814368cea30ec3b07
+```
+
+Команда проверки через `openssl`:
+
+```bash
+printf '%s' 'POST
+/v1/ingest
+exchange=binance&order=%20asc&symbol=BTC%2FUSD
+1700000000123
+0011223344556677
+64c355dc41f90aa6c171ea306bfd2e8433c657727c6d088814368cea30ec3b07' > canonical-http.txt
+openssl dgst -sha256 -mac HMAC \
+  -macopt hexkey:4c5dc9b7708905f77f5e5d16316b5dfb425e68cb326dcd55a860e90a7707031e \
+  canonical-http.txt
+```
+
+Ожидаемая подпись:
+
+```text
+c8230057960cb068e134510bf60dbb3b2ab47fbe614678533530c8c587cd6dec
+```
+
+## Пример вычисления подписи (WS)
+
+### Входные данные
+
+- `token = test-token`
+- `endpoint = /ws/msgpack`
+- `op = history`
+- `msg_id = msg-42`
+- `timestamp = 1700000000456`
+- `nonce = 8899aabbccddeeff`
+- `payload_hash = 684a901ad6fc33ae2083dfea268f1fc73be602f022ce33e21cc918645abcb7cd`
+
+`signing_key = SHA256(token)` тот же:
+
+```text
+4c5dc9b7708905f77f5e5d16316b5dfb425e68cb326dcd55a860e90a7707031e
+```
+
+Каноническая строка:
+
+```text
+/ws/msgpack
+history
+msg-42
+1700000000456
+8899aabbccddeeff
+684a901ad6fc33ae2083dfea268f1fc73be602f022ce33e21cc918645abcb7cd
+```
+
+Команда проверки через `openssl`:
+
+```bash
+printf '%s' '/ws/msgpack
+history
+msg-42
+1700000000456
+8899aabbccddeeff
+684a901ad6fc33ae2083dfea268f1fc73be602f022ce33e21cc918645abcb7cd' > canonical-ws.txt
+openssl dgst -sha256 -mac HMAC \
+  -macopt hexkey:4c5dc9b7708905f77f5e5d16316b5dfb425e68cb326dcd55a860e90a7707031e \
+  canonical-ws.txt
+```
+
+Ожидаемая подпись:
+
+```text
+380b84ae81e1858ba407f9f5c764312a3211e6e16c17501b17e4c9af088aa428
+```

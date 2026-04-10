@@ -177,6 +177,73 @@ void test_ws_payload_hash_mismatch() {
     CHECK_EQ(std::get<dfh_node::GateError>(result).code, dfh_node::GateErrorCode::AntiReplayFailed);
 }
 
+void test_invalid_timestamp_formats() {
+    MockClock clock(1000000000000);
+    dfh_node::NonceStore store(clock, 60000, 100);
+    const auto cfg = make_config();
+    dfh_node::AntiReplayValidator validator(cfg, clock, store);
+    const auto signing_key = make_signing_key();
+
+    for (const std::string timestamp : {std::string("not-a-number"), std::string("")}) {
+        const auto input = make_http_input(timestamp, "a1b2c3d4e5f67890");
+        const auto result = validator.validate_http("fp1", signing_key.data(), signing_key.size(), input,
+                                                    std::string(64, '0'));
+        CHECK(std::holds_alternative<dfh_node::GateError>(result));
+        CHECK_EQ(std::get<dfh_node::GateError>(result).code, dfh_node::GateErrorCode::AntiReplayFailed);
+    }
+}
+
+void test_invalid_nonce_formats() {
+    MockClock clock(1000000000000);
+    dfh_node::NonceStore store(clock, 60000, 100);
+    const auto cfg = make_config();
+    dfh_node::AntiReplayValidator validator(cfg, clock, store);
+    const auto signing_key = make_signing_key();
+    const auto valid_signature = std::string(64, '0');
+
+    for (const std::string nonce :
+         {std::string("a1b2c3d4e5f6789"), std::string("a1b2c3d4e5f6789g"), std::string("A1B2C3D4E5F67890")}) {
+        const auto input = make_http_input("1000000000000", nonce);
+        const auto result =
+            validator.validate_http("fp1", signing_key.data(), signing_key.size(), input, valid_signature);
+        CHECK(std::holds_alternative<dfh_node::GateError>(result));
+        CHECK_EQ(std::get<dfh_node::GateError>(result).code, dfh_node::GateErrorCode::AntiReplayFailed);
+    }
+}
+
+void test_invalid_signature_formats() {
+    MockClock clock(1000000000000);
+    dfh_node::NonceStore store(clock, 60000, 100);
+    const auto cfg = make_config();
+    dfh_node::AntiReplayValidator validator(cfg, clock, store);
+    const auto signing_key = make_signing_key();
+    const auto input = make_http_input("1000000000000", "a1b2c3d4e5f67890");
+
+    for (const std::string signature : {std::string(63, 'a'), std::string(65, 'a')}) {
+        const auto result = validator.validate_http("fp1", signing_key.data(), signing_key.size(), input, signature);
+        CHECK(std::holds_alternative<dfh_node::GateError>(result));
+        CHECK_EQ(std::get<dfh_node::GateError>(result).code, dfh_node::GateErrorCode::AntiReplayFailed);
+    }
+}
+
+void test_invalid_signing_key_length() {
+    MockClock clock(1000000000000);
+    dfh_node::NonceStore store(clock, 60000, 100);
+    const auto cfg = make_config();
+    dfh_node::AntiReplayValidator validator(cfg, clock, store);
+    const auto signing_key = make_signing_key();
+    const auto input = make_http_input("1000000000000", "a1b2c3d4e5f67890");
+    const std::string signature = make_signature(input, signing_key);
+
+    const auto short_result = validator.validate_http("fp1", signing_key.data(), signing_key.size() - 1, input, signature);
+    CHECK(std::holds_alternative<dfh_node::GateError>(short_result));
+    CHECK_EQ(std::get<dfh_node::GateError>(short_result).code, dfh_node::GateErrorCode::AntiReplayFailed);
+
+    const auto long_result = validator.validate_http("fp1", signing_key.data(), signing_key.size() + 1, input, signature);
+    CHECK(std::holds_alternative<dfh_node::GateError>(long_result));
+    CHECK_EQ(std::get<dfh_node::GateError>(long_result).code, dfh_node::GateErrorCode::AntiReplayFailed);
+}
+
 } // namespace
 
 int main() {
@@ -188,5 +255,9 @@ int main() {
     test_invalid_signature_does_not_touch_nonce_store();
     test_ws_valid_request();
     test_ws_payload_hash_mismatch();
+    test_invalid_timestamp_formats();
+    test_invalid_nonce_formats();
+    test_invalid_signature_formats();
+    test_invalid_signing_key_length();
     return 0;
 }

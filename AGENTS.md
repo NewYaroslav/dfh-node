@@ -313,6 +313,18 @@ PAYLOAD_HASH
 - Bootstrap-ключи из конфига считаются read-only; Admin CRUD работает только с `MDBX` и для config-ключей
   эквивалентен `404`.
 
+## 10.2 Обновление документации и версионирование API
+- Код — источник истины; документация обновляется под фактическое поведение кода.
+- Если код расходится с задокументированным контрактом, это выносится как отдельный вопрос; нельзя
+  молча менять docs так, чтобы скрыть breaking change.
+- Breaking changes запрещены без явного решения: изменение строк `error_code`, URL endpoint, формата canonical string,
+  удаление обязательных полей запроса/сообщения.
+- Non-breaking изменения: новые optional поля в ответах, новые endpoint'ы, новые `error_code`, дополнительные разделы docs.
+- При добавлении нового `GateErrorCode` обязательно обновлять `http_error_map.cpp` и `docs/api/error_codes.md`.
+- При добавлении нового WS `error_code` обязательно обновлять `ws_message_handler.cpp`/`ws_protocol.cpp`,
+  `docs/api/error_codes.md` и `docs/api/ws_v1.md`.
+- При добавлении нового HTTP endpoint обязательно обновлять соответствующий файл в `docs/api/`.
+
 ## 11. Чек-лист перед коммитом
 - Сборка `build-msvc` и тесты `ctest -C Debug --output-on-failure`.
 - Прогон `build-tests-mingw.bat` (если MinGW доступен).

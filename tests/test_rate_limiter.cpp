@@ -44,9 +44,55 @@ void test_opportunistic_cleanup() {
     CHECK(limiter.check_and_record("fp1", 10));
 }
 
+void test_high_load_rejects_roughly_excess_requests() {
+    RateLimiter limiter(100, 1000);
+
+    constexpr int total_requests = 1000;
+    int accepted = 0;
+    for (int index = 0; index < total_requests; ++index) {
+        if (limiter.check_and_record("fp-high-load", 100)) {
+            ++accepted;
+        }
+    }
+
+    const int rejected = total_requests - accepted;
+    CHECK(rejected >= 810);
+    CHECK(rejected <= 990);
+}
+
+void test_requests_allowed_after_window_expires() {
+    RateLimiter limiter(3, 120);
+
+    CHECK(limiter.check_and_record("fp-window", 3));
+    CHECK(limiter.check_and_record("fp-window", 3));
+    CHECK(limiter.check_and_record("fp-window", 3));
+    CHECK(!limiter.check_and_record("fp-window", 3));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(160));
+
+    CHECK(limiter.check_and_record("fp-window", 3));
+    CHECK(limiter.check_and_record("fp-window", 3));
+    CHECK(limiter.check_and_record("fp-window", 3));
+}
+
+void test_different_fingerprints_do_not_share_limits() {
+    RateLimiter limiter(2, 1000);
+
+    CHECK(limiter.check_and_record("fp-a", 2));
+    CHECK(limiter.check_and_record("fp-a", 2));
+    CHECK(!limiter.check_and_record("fp-a", 2));
+
+    CHECK(limiter.check_and_record("fp-b", 2));
+    CHECK(limiter.check_and_record("fp-b", 2));
+    CHECK(!limiter.check_and_record("fp-b", 2));
+}
+
 int main() {
     test_basic_limit();
     test_window_slide();
     test_opportunistic_cleanup();
+    test_high_load_rejects_roughly_excess_requests();
+    test_requests_allowed_after_window_expires();
+    test_different_fingerprints_do_not_share_limits();
     return 0;
 }
