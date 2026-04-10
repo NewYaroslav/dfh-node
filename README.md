@@ -85,6 +85,9 @@ HTTP transport API описан в `docs/api/http_v1.md`.
 Актуальный контракт WebSocket API описан в `docs/api/ws_v1.md`.
 Admin API описан в `docs/api/admin_v1.md`.
 Sync API описан в `docs/api/sync_v1.md`.
+Справочник по стабильным `error_code` находится в `docs/api/error_codes.md`.
+Руководство по подключению клиента находится в `docs/api/connection_guide.md`.
+Модель безопасности и воспроизводимые примеры подписи описаны в `docs/security.md`.
 
 ## Защита от replay-атак
 

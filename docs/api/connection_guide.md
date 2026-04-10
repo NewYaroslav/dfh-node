@@ -132,7 +132,7 @@ openssl dgst -sha256 -mac HMAC -macopt hexkey:$SIGNING_KEY_HEX canonical.txt
 Поток работы:
 1. Клиент открывает `/ws/json` или `/ws/msgpack`.
 2. На upgrade передаёт `Authorization`.
-3. После успешного upgrade отправляет control-message.
+3. Anti-replay headers в HTTP upgrade не требуются; после успешного upgrade anti-replay передаётся уже внутри control-message.
 4. На каждый запрос получает ответ с тем же `msg_id`.
 
 ### `dfhbin` 2-step flow

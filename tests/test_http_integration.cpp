@@ -231,8 +231,7 @@ public:
 
     void set_mode(const Mode mode) { m_mode = mode; }
 
-    std::unique_ptr<dfh_node::IngestResponse>
-    ingest_structured(std::unique_ptr<dfh_node::IngestRequest>) override {
+    std::unique_ptr<dfh_node::IngestResponse> ingest_structured(std::unique_ptr<dfh_node::IngestRequest>) override {
         auto resp = std::make_unique<dfh_node::IngestResponse>();
         resp->status = dfh_node::AdapterStatus::Ok;
         return resp;
@@ -303,11 +302,9 @@ public:
                  m_cfg.security.anti_replay.require_for_scopes),
           m_scheduler(to_size_t(m_cfg.queues.high_capacity), to_size_t(m_cfg.queues.low_capacity)),
           m_worker_pool(static_cast<std::size_t>(m_cfg.queues.workers), m_scheduler),
-          m_storage_root(
-              std::filesystem::temp_directory_path() / ("dfh-node-http-it-adapter-" +
-                                                        std::to_string(std::chrono::steady_clock::now()
-                                                                           .time_since_epoch()
-                                                                           .count()))),
+          m_storage_root(std::filesystem::temp_directory_path() /
+                         ("dfh-node-http-it-adapter-" +
+                          std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()))),
           m_mdbx_path(m_storage_root / "keys.mdbx"),
           m_mdbx_store(std::make_unique<dfh_node::MdbxApiKeyStore>(m_mdbx_path.string())),
           m_disk_monitor(m_storage_root.string(), static_cast<std::uint64_t>(m_cfg.storage.min_free_bytes)),

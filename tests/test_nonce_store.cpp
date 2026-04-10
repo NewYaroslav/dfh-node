@@ -134,7 +134,8 @@ void test_concurrent_insert_and_cleanup_respects_capacity() {
     for (int thread_index = 0; thread_index < insert_thread_count; ++thread_index) {
         threads.emplace_back([&store, &clock, thread_index]() {
             for (int nonce_index = 0; nonce_index < inserts_per_thread; ++nonce_index) {
-                const std::uint64_t now = 1000 + static_cast<std::uint64_t>(thread_index * inserts_per_thread + nonce_index);
+                const std::uint64_t now =
+                    1000 + static_cast<std::uint64_t>(thread_index * inserts_per_thread + nonce_index);
                 clock.set_now(now);
                 const std::string nonce = "nonce-" + std::to_string(thread_index) + "-" + std::to_string(nonce_index);
                 store.check_and_record("fp1", nonce, static_cast<std::int64_t>(now));

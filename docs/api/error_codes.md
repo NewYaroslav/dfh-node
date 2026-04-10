@@ -40,7 +40,6 @@
 | `unsupported_operation` | Операция не поддержана; в частности, `op=subscribe` пока не реализован |
 | `anti_replay_failed` | Формат anti-replay полей, подпись, окно времени или replay nonce не прошли проверку |
 | `anti_replay_required` | Для этого scope anti-replay обязателен, но отключён политикой |
-| `missing_anti_replay_headers` | На upgrade не хватает anti-replay HTTP headers |
 | `missing_anti_replay_fields` | В control-message не хватает anti-replay полей |
 | `invalid_control_message` | Control-message невалиден как JSON/MessagePack object |
 | `unknown_op` | Поле `op` не распознано |
@@ -68,7 +67,7 @@
 | `UnsupportedOperation` | `400 unsupported_operation` | `unsupported_operation` |
 | `AntiReplayFailed` | `401 anti_replay_failed` | `anti_replay_failed` |
 | `AntiReplayRequired` | `403 anti_replay_required` | `anti_replay_required` |
-| `MissingAntiReplayHeaders` | `400 missing_anti_replay_headers` | `missing_anti_replay_headers` |
+| `MissingAntiReplayHeaders` | `400 missing_anti_replay_headers` | не используется в текущем WS runtime |
 | `MissingAntiReplayFields` | `400 missing_anti_replay_fields` | `missing_anti_replay_fields` |
 
 ## Примечания по ретраям

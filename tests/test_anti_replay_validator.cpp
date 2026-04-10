@@ -186,8 +186,8 @@ void test_invalid_timestamp_formats() {
 
     for (const std::string timestamp : {std::string("not-a-number"), std::string("")}) {
         const auto input = make_http_input(timestamp, "a1b2c3d4e5f67890");
-        const auto result = validator.validate_http("fp1", signing_key.data(), signing_key.size(), input,
-                                                    std::string(64, '0'));
+        const auto result =
+            validator.validate_http("fp1", signing_key.data(), signing_key.size(), input, std::string(64, '0'));
         CHECK(std::holds_alternative<dfh_node::GateError>(result));
         CHECK_EQ(std::get<dfh_node::GateError>(result).code, dfh_node::GateErrorCode::AntiReplayFailed);
     }
@@ -235,11 +235,13 @@ void test_invalid_signing_key_length() {
     const auto input = make_http_input("1000000000000", "a1b2c3d4e5f67890");
     const std::string signature = make_signature(input, signing_key);
 
-    const auto short_result = validator.validate_http("fp1", signing_key.data(), signing_key.size() - 1, input, signature);
+    const auto short_result =
+        validator.validate_http("fp1", signing_key.data(), signing_key.size() - 1, input, signature);
     CHECK(std::holds_alternative<dfh_node::GateError>(short_result));
     CHECK_EQ(std::get<dfh_node::GateError>(short_result).code, dfh_node::GateErrorCode::AntiReplayFailed);
 
-    const auto long_result = validator.validate_http("fp1", signing_key.data(), signing_key.size() + 1, input, signature);
+    const auto long_result =
+        validator.validate_http("fp1", signing_key.data(), signing_key.size() + 1, input, signature);
     CHECK(std::holds_alternative<dfh_node::GateError>(long_result));
     CHECK_EQ(std::get<dfh_node::GateError>(long_result).code, dfh_node::GateErrorCode::AntiReplayFailed);
 }

@@ -389,8 +389,8 @@ void test_http_unsupported_operation() {
     std::vector<config::ApiKeyEntry> entries;
     FingerprintComputer computer("secret");
     const std::string fingerprint = computer.compute("token-unsupported-http");
-    entries.push_back(config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Read | Scope::Write),
-                                          std::nullopt, 100, 5});
+    entries.push_back(
+        config::ApiKeyEntry{fingerprint, static_cast<ScopeMask>(Scope::Read | Scope::Write), std::nullopt, 100, 5});
 
     ConfigApiKeyStore store(entries);
     AuthCache cache(60000);

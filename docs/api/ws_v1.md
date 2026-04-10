@@ -7,6 +7,7 @@
 ## Handshake
 - Клиент должен передать заголовок `Authorization: Bearer <token>` в Upgrade-запросе.
 - При ошибке авторизации/лимитов сервер закрывает соединение с кодом `1008`.
+- Anti-replay HTTP headers на этапе upgrade не используются; anti-replay начинается с первого control-message.
 
 ### WS close codes
 - `1008` — policy violation на этапе upgrade. Используется при ошибках gate-проверки:
